@@ -1,0 +1,8 @@
+# Local documentation
+/docs/
+
+# Large CSV datasets (Prevent pushing to GitHub)
+/*.csv
+
+# Local environment variables
+.env
