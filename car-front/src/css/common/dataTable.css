@@ -1,0 +1,24 @@
+/* Data Table */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  border: 1px solid #dddddd;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.data-table th {
+  background-color: #f0f0f0;
+  font-weight: 700;
+}

@@ -1,0 +1,162 @@
+/* Search Sidebar */
+.search-sidebar {
+  position: sticky;
+  top: 84px;
+
+  align-self: start;
+  padding: 24px;
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 12px;
+}
+
+.search-sidebar h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 22px;
+}
+
+.search-box {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label,
+.price-range-area label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+  background-color: #ffffff;
+  font-size: 14px;
+}
+
+.price-range-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.price-range-area label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price-range-area strong {
+  font-size: 15px;
+}
+
+.dual-range {
+  position: relative;
+  height: 36px;
+}
+
+.range-track,
+.range-selected {
+  position: absolute;
+  top: 16px;
+  height: 5px;
+  border-radius: 999px;
+}
+
+.range-track {
+  left: 0;
+  right: 0;
+  background-color: #dddddd;
+}
+
+.range-selected {
+  background-color: #222222;
+}
+
+.dual-range input[type="range"] {
+  position: absolute;
+  top: 8px;
+  left: 0;
+
+  width: 100%;
+  height: 20px;
+  margin: 0;
+
+  background: none;
+  pointer-events: none;
+  appearance: none;
+}
+
+.dual-range input[type="range"]::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #222222;
+  cursor: pointer;
+  pointer-events: auto;
+  appearance: none;
+}
+
+.dual-range input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background-color: #222222;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  color: #666666;
+  font-size: 13px;
+}
+
+.search-button-area {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.search-button-area button {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.search-button-area button[type="submit"] {
+  background-color: #222222;
+  color: #ffffff;
+}
+
+.search-button-area button[type="button"] {
+  background-color: #ffffff;
+  color: #222222;
+}
+
+.search-button-area button:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 900px) {
+  .search-sidebar {
+    position: static;
+    max-height: none;
+  }
+}

@@ -1,0 +1,35 @@
+/* Feature Card */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.feature-card {
+  padding: 20px;
+  border: 1px solid #dddddd;
+  border-radius: 10px;
+  background-color: #fafafa;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.feature-card p {
+  color: #555555;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+}

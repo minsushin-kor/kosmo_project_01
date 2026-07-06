@@ -1,0 +1,24 @@
+/* Page Title */
+.page-section {
+  margin-bottom: 32px;
+  padding: 28px;
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 12px;
+}
+
+.page-section h1,
+.page-section h2,
+.page-section h3 {
+  margin-top: 0;
+}
+
+.page-section p {
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .page-section {
+    padding: 20px;
+  }
+}

@@ -1,0 +1,68 @@
+.index-page {
+  width: 100%;
+  min-height: calc(100vh - 64px);
+  padding: 28px 34px;
+  background-color: #f7f3ef;
+  box-sizing: border-box;
+}
+
+.index-main-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 240px;
+  gap: 22px;
+  align-items: start;
+}
+
+.left-search-sidebar,
+.right-info-sidebar {
+  min-width: 0;
+}
+
+.left-search-sidebar {
+  position: sticky;
+  top: 88px;
+}
+
+.right-info-sidebar {
+  position: sticky;
+  top: 88px;
+}
+
+.car-list-section {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 1400px) {
+  .index-main-layout {
+    grid-template-columns: 270px minmax(0, 1fr) 220px;
+    gap: 18px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .index-main-layout {
+    grid-template-columns: 270px minmax(0, 1fr);
+  }
+
+  .right-info-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .index-main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .left-search-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .index-page {
+    padding: 20px 14px;
+  }
+}

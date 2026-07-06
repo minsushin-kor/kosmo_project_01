@@ -1,0 +1,108 @@
+.forbidden-page {
+  min-height: calc(100vh - 64px);
+  padding: 80px 20px;
+  background-color: #f8f4f1;
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.forbidden-box {
+  width: 100%;
+  max-width: 560px;
+  padding: 46px 36px;
+  background-color: #ffffff;
+  border: 1px solid #e2d8d0;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(70, 50, 35, 0.08);
+
+  text-align: center;
+}
+
+.forbidden-code {
+  margin-bottom: 14px;
+  font-size: 58px;
+  font-weight: 900;
+  color: #5a3e2b;
+  letter-spacing: -1px;
+}
+
+.forbidden-box h1 {
+  margin: 0 0 16px;
+  font-size: 28px;
+  color: #2f241d;
+}
+
+.forbidden-box p {
+  margin: 0;
+  color: #6f625a;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.forbidden-actions {
+  margin-top: 32px;
+
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.forbidden-main-btn,
+.forbidden-sub-btn {
+  min-width: 150px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.forbidden-main-btn {
+  background-color: #5a3e2b;
+  color: #ffffff;
+  border: 1px solid #5a3e2b;
+}
+
+.forbidden-sub-btn {
+  background-color: #ffffff;
+  color: #5a3e2b;
+  border: 1px solid #c8b8ac;
+}
+
+.forbidden-main-btn:hover {
+  background-color: #463020;
+}
+
+.forbidden-sub-btn:hover {
+  background-color: #f7f2ee;
+}
+
+@media (max-width: 600px) {
+  .forbidden-box {
+    padding: 38px 24px;
+  }
+
+  .forbidden-code {
+    font-size: 48px;
+  }
+
+  .forbidden-box h1 {
+    font-size: 24px;
+  }
+
+  .forbidden-actions {
+    flex-direction: column;
+  }
+
+  .forbidden-main-btn,
+  .forbidden-sub-btn {
+    width: 100%;
+  }
+}

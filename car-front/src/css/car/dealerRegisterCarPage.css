@@ -1,0 +1,282 @@
+.dealer-register-page {
+  min-height: calc(100vh - 64px);
+  padding: 36px;
+  background-color: #f7f3ef;
+  box-sizing: border-box;
+}
+
+.dealer-register-container {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.register-page-header {
+  margin-bottom: 24px;
+}
+
+.register-page-header h2 {
+  margin: 0 0 10px;
+  color: #2c211c;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.register-page-header p {
+  margin: 0;
+  color: #6f625a;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.car-register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-card {
+  padding: 24px;
+  border: 1px solid #e2d6ce;
+  border-radius: 14px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 14px rgba(60, 45, 35, 0.04);
+}
+
+.form-card h3 {
+  margin: 0 0 18px;
+  color: #2c211c;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field-wide {
+  grid-column: span 3;
+}
+
+.form-field label {
+  color: #3a2f29;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d6c8bd;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #2c211c;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  border-color: #8b6f5c;
+  box-shadow: 0 0 0 3px rgba(139, 111, 92, 0.12);
+}
+
+.form-field input::placeholder {
+  color: #b2a59c;
+}
+
+.form-button-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cancel-button,
+.submit-button {
+  min-width: 120px;
+  height: 44px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cancel-button {
+  border: 1px solid #2f241f;
+  background-color: #ffffff;
+  color: #2f241f;
+}
+
+.submit-button {
+  border: none;
+  background-color: #2f241f;
+  color: #ffffff;
+}
+
+.cancel-button:hover {
+  background-color: #f3ebe5;
+}
+
+.submit-button:hover {
+  background-color: #1f1713;
+}
+
+@media (max-width: 900px) {
+  .dealer-register-page {
+    padding: 24px 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field-wide {
+    grid-column: span 1;
+  }
+
+  .form-button-row {
+    flex-direction: column;
+  }
+
+  .cancel-button,
+  .submit-button {
+    width: 100%;
+  }
+}
+
+.option-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.option-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+  padding: 12px 14px;
+  border: 1px solid #d8c8bd;
+  border-radius: 10px;
+  background-color: #fffaf6;
+  cursor: pointer;
+  font-size: 14px;
+  color: #4a3428;
+}
+
+.option-checkbox-item input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.option-checkbox-item:hover {
+  background-color: #f5ebe3;
+  border-color: #b99a86;
+}
+
+.register-info-box {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background-color: #f8f1eb;
+  border: 1px solid #e0cec2;
+  color: #5a4033;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dealer-register-header {
+  margin-bottom: 24px;
+}
+
+.dealer-register-header h2 {
+  margin: 0 0 10px;
+  color: #2c211c;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.dealer-register-header p {
+  margin: 0;
+  color: #6f625a;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.dealer-register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-section {
+  padding: 24px;
+  border: 1px solid #e2d6ce;
+  border-radius: 14px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 14px rgba(60, 45, 35, 0.04);
+}
+
+.form-section h3 {
+  margin: 0 0 18px;
+  color: #2c211c;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #3a2f29;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d6c8bd;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #2c211c;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #8b6f5c;
+  box-shadow: 0 0 0 3px rgba(139, 111, 92, 0.12);
+}
+
+.form-button-area {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .form-button-area {
+    flex-direction: column;
+  }
+}
