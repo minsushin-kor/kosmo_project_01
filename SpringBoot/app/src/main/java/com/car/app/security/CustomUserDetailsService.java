@@ -44,7 +44,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         Optional<Member> memberOpt = memberRepository.findByEmail(username);
         if (memberOpt.isPresent()) {
             Member member = memberOpt.get();
-            String role = "ROLE_" + member.getRole().toUpperCase(); // e.g. ROLE_MEMBER, ROLE_ADMIN
+            String role = "ROLE_" + member.getRole().toUpperCase();
             return new CustomUserDetails(
                     member.getEmail(),
                     member.getPassword(),

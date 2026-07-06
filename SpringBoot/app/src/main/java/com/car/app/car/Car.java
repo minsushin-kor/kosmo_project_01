@@ -88,7 +88,6 @@ public class Car {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Helper methods for polymorphic owner
     public Object getOwner() {
         return member != null ? member : dealer;
     }
