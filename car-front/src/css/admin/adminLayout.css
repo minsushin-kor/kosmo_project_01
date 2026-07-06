@@ -1,0 +1,132 @@
+.admin-layout-page {
+  min-height: 100vh;
+  background-color: #f6f0eb;
+  padding: 32px 24px;
+  display: flex;
+  gap: 24px;
+}
+
+.admin-sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 90px;
+  align-self: flex-start;
+  background-color: #fffaf6;
+  border: 1px solid #e0cec2;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(70, 45, 32, 0.08);
+}
+
+.admin-sidebar-title {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #eadbd1;
+}
+
+.admin-sidebar-title strong {
+  display: block;
+  color: #3f2d25;
+  font-size: 18px;
+}
+
+.admin-sidebar-title span {
+  display: block;
+  margin-top: 4px;
+  color: #9a735f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.admin-sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-menu-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #5f493d;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-menu-link:hover,
+.admin-menu-link.active {
+  background-color: #5a3d31;
+  color: #ffffff;
+}
+
+.admin-layout-content {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.admin-layout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.admin-page-label {
+  margin: 0 0 8px;
+  color: #9a735f;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.admin-layout-header h2 {
+  margin: 0;
+  color: #3f2d25;
+  font-size: 32px;
+}
+
+.admin-layout-header p {
+  margin-top: 10px;
+  color: #7b6659;
+  font-size: 15px;
+}
+
+.admin-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .admin-layout-page {
+    flex-direction: column;
+    padding: 24px 14px;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    position: static;
+  }
+
+  .admin-sidebar-menu {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .admin-menu-link {
+    white-space: nowrap;
+  }
+
+  .admin-layout-header {
+    flex-direction: column;
+  }
+
+  .admin-header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+}

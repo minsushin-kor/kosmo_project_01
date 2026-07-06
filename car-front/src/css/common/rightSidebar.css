@@ -1,0 +1,120 @@
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.right-widget {
+  padding: 16px;
+  border: 1px solid #e2d6ce;
+  border-radius: 12px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(60, 45, 35, 0.04);
+}
+
+.right-widget h3 {
+  margin: 0 0 12px;
+  color: #2c211c;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.right-widget-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.right-widget-title-row h3 {
+  margin-bottom: 0;
+}
+
+.right-widget-title-row button {
+  border: none;
+  background: none;
+  color: #8a7b72;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.recent-car-empty {
+  padding: 20px 10px;
+  border-radius: 10px;
+  background-color: #f8f3ef;
+  color: #8a7b72;
+  font-size: 13px;
+  text-align: center;
+}
+
+.keyword-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.keyword-list button {
+  padding: 7px 9px;
+  border: 1px solid #e4d8d0;
+  border-radius: 999px;
+  background-color: #faf6f2;
+  color: #5d4a40;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.keyword-list button:hover {
+  background-color: #efe4dc;
+}
+
+.dealer-guide p {
+  margin: 0 0 12px;
+  color: #6f625a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dealer-guide button {
+  width: 100%;
+  height: 38px;
+  border: none;
+  border-radius: 8px;
+  background-color: #2f241f;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notice-widget ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notice-widget li {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0e7e1;
+  color: #5b4b42;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.notice-widget li:last-child {
+  border-bottom: none;
+}
+
+.notice-widget li {
+  cursor: pointer;
+}
+
+.notice-widget li:hover {
+  color: #2f241f;
+  font-weight: 700;
+}
+
+.keyword-list button:active,
+.dealer-guide button:active,
+.right-widget-title-row button:active {
+  transform: translateY(1px);
+}
