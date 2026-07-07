@@ -1,51 +1,117 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import AdminTable from "../../components/admin/AdminTable";
-import AdminSearchFilter from "../../components/admin/AdminSearchFilter";
-import { adminChurnUsers } from "../../data/adminData";
-import "../../css/admin/adminManagePage.css";
+import {
+  adminSummaryCards,
+  adminCars,
+  adminPendingTasks,
+} from "../../data/adminData";
+import {
+  getCompanyChurnUsers,
+  getDealerChurnUsers,
+} from "../../api/adminChurnApi";
+import "../../css/admin/adminDashboardPage.css";
 
-function AdminChurnManagePage() {
-  const [searchText, setSearchText] = useState("");
-  const [actionFilter, setActionFilter] = useState([]);
-  const [riskFilter, setRiskFilter] = useState("전체");
+function SummaryChart({ data }) {
+  const width = 260;
+  const height = 80;
+  const padding = 8;
 
-  const handleActionFilterChange = (action) => {
-    setActionFilter((prev) =>
-      prev.includes(action)
-        ? prev.filter((item) => item !== action)
-        : [...prev, action]
-    );
-  };
+  const max = Math.max(...data);
+  const min = Math.min(...data);
 
-  const handleResetFilter = () => {
-    setSearchText("");
-    setActionFilter([]);
-    setRiskFilter("전체");
-  };
+  const points = data.map((value, index) => {
+    const x = padding + (index * (width - padding * 2)) / (data.length - 1);
+    const y =
+      height -
+      padding -
+      ((value - min) / (max - min || 1)) * (height - padding * 2);
 
-  const filteredChurnUsers = adminChurnUsers.filter((user) => {
-    const keywordMatch =
-      user.name.includes(searchText) ||
-      user.type.includes(searchText) ||
-      user.action.includes(searchText);
-
-    const actionMatch =
-      actionFilter.length === 0 || actionFilter.includes(user.action);
-
-    const riskMatch = riskFilter === "전체" || user.risk === riskFilter;
-
-    return keywordMatch && actionMatch && riskMatch;
+    return {
+      x,
+      y,
+    };
   });
 
-  const columns = [
+  const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+
+  return (
+    <svg
+      className="summary-chart"
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+    >
+      <polyline className="summary-chart-line" points={linePoints} />
+
+      {points.map((point, index) => (
+        <circle
+          key={index}
+          className="summary-chart-dot"
+          cx={point.x}
+          cy={point.y}
+          r="3"
+        />
+      ))}
+    </svg>
+  );
+}
+
+function AdminDashboardPage() {
+  const [companyChurnUsers, setCompanyChurnUsers] = useState([]);
+  const [dealerChurnUsers, setDealerChurnUsers] = useState([]);
+
+  useEffect(() => {
+    fetchDashboardChurnUsers();
+  }, []);
+
+  const fetchDashboardChurnUsers = async () => {
+    const companyData = await getCompanyChurnUsers();
+    const dealerData = await getDealerChurnUsers();
+
+    setCompanyChurnUsers(companyData);
+    setDealerChurnUsers(dealerData);
+  };
+
+  const recentCarColumns = [
     {
-      key: "type",
+      key: "carName",
+      label: "차량명",
+    },
+    {
+      key: "company",
+      label: "회사",
+    },
+    {
+      key: "dealer",
+      label: "딜러",
+    },
+    {
+      key: "price",
+      label: "가격",
+    },
+    {
+      key: "status",
+      label: "상태",
+      render: (car) => (
+        <span className={`admin-status ${car.status}`}>{car.status}</span>
+      ),
+    },
+    {
+      key: "date",
+      label: "등록일",
+    },
+  ];
+
+  const companyChurnColumns = [
+    {
+      key: "memberType",
       label: "회원유형",
+      render: (member) => member.memberType || member.type,
     },
     {
       key: "name",
-      label: "이름",
+      label: "회사명",
     },
     {
       key: "recentActivity",
@@ -58,81 +124,168 @@ function AdminChurnManagePage() {
     {
       key: "risk",
       label: "위험등급",
-      render: (user) => (
-        <span className={`manage-badge ${user.risk}`}>{user.risk}</span>
+      render: (member) => (
+        <span className={`admin-risk ${member.risk}`}>{member.risk}</span>
       ),
     },
     {
       key: "action",
-      label: "관리방안",
+      label: "관리상태",
+    },
+  ];
+
+  const dealerChurnColumns = [
+    {
+      key: "memberType",
+      label: "회원유형",
+      render: (member) => member.memberType || member.type,
     },
     {
-      key: "manage",
-      label: "관리",
-      render: () => (
-        <button type="button" className="small-btn">
-          관리
-        </button>
+      key: "name",
+      label: "딜러명",
+    },
+    {
+      key: "recentActivity",
+      label: "최근활동",
+    },
+    {
+      key: "churnRate",
+      label: "이탈확률",
+    },
+    {
+      key: "risk",
+      label: "위험등급",
+      render: (member) => (
+        <span className={`admin-risk ${member.risk}`}>{member.risk}</span>
       ),
     },
-  ];
-
-  const filters = [
     {
-      name: "risk",
-      value: riskFilter,
-      onChange: setRiskFilter,
-      options: [
-        { label: "전체 위험도", value: "전체" },
-        { label: "높음", value: "높음" },
-        { label: "보통", value: "보통" },
-      ],
-    },
-  ];
-
-  const checkboxFilters = [
-    {
-      name: "action",
-      label: "관리방안",
-      value: actionFilter,
-      onChange: handleActionFilterChange,
-      options: [
-        { label: "상담 필요", value: "상담 필요" },
-        { label: "쿠폰 지급", value: "쿠폰 지급" },
-        { label: "모니터링", value: "모니터링" },
-      ],
+      key: "action",
+      label: "관리상태",
     },
   ];
 
   return (
     <AdminLayout
-      title="이탈 위험 관리"
-      description="머신러닝 예측 결과를 기반으로 이탈 위험 회원을 관리합니다."
+      title="관리자 대시보드"
+      description="현재는 백엔드 주소가 없으면 임시데이터를 사용하고, 백엔드 주소가 생기면 API 데이터로 표시됩니다."
+      actions={
+        <>
+          <button type="button" className="admin-outline-btn">
+            보고서 다운로드
+          </button>
+          <button type="button" className="admin-primary-btn">
+            관리 작업 확인
+          </button>
+        </>
+      }
     >
-      <section className="admin-manage-panel">
-        <div className="admin-manage-panel-header">
-          <h3>이탈 위험 회원 목록</h3>
-          <button type="button">예측 결과 갱신</button>
-        </div>
+      <section className="admin-summary-grid">
+        {adminSummaryCards.map((card) => (
+          <article
+            className={`admin-summary-card summary-${card.color}`}
+            key={card.title}
+          >
+            <div className="summary-card-header">
+              <div className="summary-icon">{card.icon}</div>
 
-        <AdminSearchFilter
-          searchValue={searchText}
-          onSearchChange={setSearchText}
-          searchPlaceholder="이름, 회원유형, 관리방안 검색"
-          filters={filters}
-          checkboxFilters={checkboxFilters}
-          onReset={handleResetFilter}
-        />
+              <div className="summary-trend-box">
+                <em className={card.trend}>
+                  {card.trend === "up" ? "↑" : "↓"} {card.change}
+                </em>
+                <span>{card.changeText}</span>
+              </div>
+            </div>
 
-        <AdminTable
-          columns={columns}
-          data={filteredChurnUsers}
-          totalCount={filteredChurnUsers.length}
-          emptyMessage="조회된 이탈 위험 회원이 없습니다."
-        />
+            <div className="summary-card-body">
+              <h3>{card.title}</h3>
+
+              <div className="summary-value">
+                <strong>{card.value}</strong>
+                <span>{card.unit}</span>
+              </div>
+
+              <p>{card.description}</p>
+            </div>
+
+            <SummaryChart data={card.chartData} />
+          </article>
+        ))}
+      </section>
+
+      <section className="admin-content-grid">
+        <article className="admin-panel admin-large-panel">
+          <div className="admin-panel-header">
+            <div>
+              <h3>최근 등록 매물</h3>
+              <p>딜러가 최근 등록한 차량 목록입니다.</p>
+            </div>
+            <button type="button">전체보기</button>
+          </div>
+
+          <AdminTable columns={recentCarColumns} data={adminCars.slice(0, 4)} />
+        </article>
+
+        <article className="admin-panel">
+          <div className="admin-panel-header">
+            <div>
+              <h3>처리 대기 업무</h3>
+              <p>관리자 확인이 필요한 항목입니다.</p>
+            </div>
+          </div>
+
+          <ul className="pending-list">
+            {adminPendingTasks.map((task) => (
+              <li key={task.id}>
+                <span>{task.title}</span>
+                <strong>{task.count}건</strong>
+              </li>
+            ))}
+          </ul>
+        </article>
+      </section>
+
+      <section className="admin-churn-dashboard-grid">
+        <article className="admin-panel">
+          <div className="admin-panel-header">
+            <div>
+              <h3>회사 이탈 위험 회원</h3>
+              <p>회사 계정 기준 이탈 위험 예측 결과입니다.</p>
+            </div>
+
+            <Link to="/admin/churn/company" className="admin-panel-link-btn">
+              위험군 관리
+            </Link>
+          </div>
+
+          <AdminTable
+            columns={companyChurnColumns}
+            data={companyChurnUsers}
+            emptyMessage="조회된 회사 이탈 위험 데이터가 없습니다."
+          />
+        </article>
+
+        <article className="admin-panel">
+          <div className="admin-panel-header">
+            <div>
+              <h3>딜러 이탈 위험 회원</h3>
+              <p>회사 소속이 아닌 개인딜러 기준 이탈 위험 예측 결과입니다.</p>
+            </div>
+
+            <Link to="/admin/churn/dealer" className="admin-panel-link-btn">
+              위험군 관리
+            </Link>
+          </div>
+
+          <AdminTable
+            columns={dealerChurnColumns}
+            data={dealerChurnUsers}
+            emptyMessage="조회된 딜러 이탈 위험 데이터가 없습니다."
+          />
+        </article>
       </section>
     </AdminLayout>
   );
 }
 
-export default AdminChurnManagePage;
+export default AdminDashboardPage;

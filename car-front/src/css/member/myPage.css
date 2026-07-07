@@ -1,37 +1,67 @@
 .mypage {
-  min-height: calc(100vh - 64px);
-  padding: 50px 40px;
-  background-color: #f8f4f1;
+  min-height: calc(100vh - 68px);
+  padding: 34px 34px 54px;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(207, 231, 255, 0.75), transparent 26%),
+    radial-gradient(circle at 90% 85%, rgba(220, 240, 255, 0.9), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #eef7ff 100%);
+  box-sizing: border-box;
 }
 
 .mypage-header {
   max-width: 1100px;
-  margin: 0 auto 28px;
+  margin: 0 auto 22px;
+  padding: 24px;
 
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 22px;
+
+  background-color: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
 }
 
 .mypage-header h1 {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
+  color: var(--text-main);
   font-size: 30px;
-  color: #2f241d;
+  font-weight: 900;
 }
 
 .mypage-header p {
   margin: 0;
-  color: #777777;
+  color: var(--text-sub);
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .mypage-home-btn {
-  padding: 11px 16px;
-  border-radius: 10px;
-  background-color: #5a3e2b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 116px;
+  height: 42px;
+  padding: 0 17px;
+
+  border: 1px solid var(--main-blue);
+  border-radius: 13px;
+  background-color: var(--main-blue);
   color: #ffffff;
-  text-decoration: none;
+
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.22);
+}
+
+.mypage-home-btn:hover {
+  background-color: var(--main-blue-dark);
 }
 
 .mypage-content {
@@ -39,31 +69,41 @@
   margin: 0 auto;
 
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 22px;
 }
 
 .profile-card,
 .info-card,
 .mypage-menu-card {
-  background-color: #ffffff;
-  border: 1px solid #e2d8d0;
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(70, 50, 35, 0.06);
+  background-color: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
 }
 
 .profile-card {
-  padding: 30px;
+  padding: 26px;
+
   display: flex;
   align-items: center;
   gap: 18px;
+
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.profile-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
 }
 
 .profile-icon {
-  width: 74px;
-  height: 74px;
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+
   border-radius: 50%;
-  background-color: #5a3e2b;
+  background: linear-gradient(135deg, var(--main-blue), #4da3ff);
   color: #ffffff;
 
   display: flex;
@@ -71,37 +111,49 @@
   justify-content: center;
 
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 900;
+  box-shadow: 0 10px 20px rgba(20, 115, 230, 0.25);
 }
 
 .profile-info h2 {
-  margin: 0 0 6px;
+  margin: 0 0 7px;
+  color: var(--text-main);
   font-size: 22px;
-  color: #2f241d;
+  font-weight: 900;
 }
 
 .profile-info p {
+  display: inline-block;
   margin: 0;
-  color: #777777;
+  padding: 6px 10px;
+
+  border-radius: 999px;
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .info-card {
-  padding: 28px;
+  padding: 26px;
 }
 
 .info-card h3,
 .mypage-menu-card h3 {
-  margin: 0 0 20px;
+  margin: 0 0 18px;
+  color: var(--text-main);
   font-size: 20px;
-  color: #2f241d;
+  font-weight: 900;
 }
 
 .info-row {
-  padding: 15px 0;
-  border-bottom: 1px solid #eeeeee;
+  padding: 14px 0;
+  border-bottom: 1px solid #edf3fa;
 
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 20px;
 }
 
@@ -110,49 +162,85 @@
 }
 
 .info-row span {
-  color: #777777;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .info-row strong {
-  color: #333333;
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 900;
+  text-align: right;
 }
 
 .mypage-menu-card {
   grid-column: 1 / -1;
-  padding: 28px;
+  padding: 26px;
 }
 
 .mypage-menu-list {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
 .mypage-menu-list a {
-  padding: 18px;
-  border: 1px solid #e2d8d0;
-  border-radius: 14px;
-  background-color: #fbf8f6;
-  color: #4a3528;
-  text-decoration: none;
-  font-weight: 700;
+  min-height: 58px;
+  padding: 17px 14px;
+
+  border: 1px solid #dbeafe;
+  border-radius: 17px;
+  background-color: #f8fbff;
+  color: #475569;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   text-align: center;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 900;
+
+  transition: 0.18s ease;
 }
 
 .mypage-menu-list a:hover {
-  background-color: #5a3e2b;
+  transform: translateY(-2px);
+  border-color: var(--main-blue);
+  background-color: var(--main-blue);
   color: #ffffff;
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.2);
+}
+
+.mypage-menu-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px;
+
+  border: 1px dashed #bfd8f5;
+  border-radius: 17px;
+  background-color: #f8fbff;
+  color: var(--text-sub);
+
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
 }
 
 @media (max-width: 900px) {
   .mypage {
-    padding: 36px 20px;
+    padding: 24px 14px 40px;
   }
 
   .mypage-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+  }
+
+  .mypage-home-btn {
+    width: 100%;
   }
 
   .mypage-content {
@@ -160,27 +248,27 @@
   }
 
   .mypage-menu-list {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 520px) {
+  .profile-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .mypage-menu-list {
     grid-template-columns: 1fr;
   }
 
   .info-row {
     flex-direction: column;
+    align-items: flex-start;
     gap: 6px;
   }
-}
 
-.mypage-menu-empty {
-  margin: 0;
-  padding: 18px;
-  border: 1px solid #e2d8d0;
-  border-radius: 14px;
-  background-color: #fbf8f6;
-  color: #777777;
-  font-size: 14px;
+  .info-row strong {
+    text-align: left;
+  }
 }

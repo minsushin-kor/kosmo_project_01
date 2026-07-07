@@ -1,25 +1,26 @@
-/* Search Sidebar */
 .search-sidebar {
   position: sticky;
   top: 84px;
 
   align-self: start;
-  padding: 24px;
-  background-color: #ffffff;
-  border: 1px solid #dddddd;
-  border-radius: 12px;
+  padding: 22px;
+  background-color: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
 }
 
 .search-sidebar h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 22px;
+  margin: 0 0 18px;
+  font-size: 21px;
+  font-weight: 900;
+  color: var(--text-main);
 }
 
 .search-box {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 17px;
 }
 
 .form-group {
@@ -30,19 +31,25 @@
 
 .form-group label,
 .price-range-area label {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
+  color: #374151;
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
   height: 42px;
-  padding: 0 12px;
-  border: 1px solid #cccccc;
-  border-radius: 8px;
+  padding: 0 13px;
+  border: 1px solid var(--line-dark);
+  border-radius: 13px;
   background-color: #ffffff;
+  color: var(--text-main);
   font-size: 14px;
+}
+
+.form-group input::placeholder {
+  color: #aab6c5;
 }
 
 .price-range-area {
@@ -59,6 +66,7 @@
 
 .price-range-area strong {
   font-size: 15px;
+  color: var(--main-blue);
 }
 
 .dual-range {
@@ -77,11 +85,11 @@
 .range-track {
   left: 0;
   right: 0;
-  background-color: #dddddd;
+  background-color: #dbeafe;
 }
 
 .range-selected {
-  background-color: #222222;
+  background-color: var(--main-blue);
 }
 
 .dual-range input[type="range"] {
@@ -101,27 +109,30 @@
 .dual-range input[type="range"]::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
+  border: 3px solid #ffffff;
   border-radius: 50%;
-  background-color: #222222;
+  background-color: var(--main-blue);
   cursor: pointer;
   pointer-events: auto;
   appearance: none;
+  box-shadow: 0 3px 8px rgba(20, 115, 230, 0.28);
 }
 
 .dual-range input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
-  border: none;
+  border: 3px solid #ffffff;
   border-radius: 50%;
-  background-color: #222222;
+  background-color: var(--main-blue);
   cursor: pointer;
   pointer-events: auto;
+  box-shadow: 0 3px 8px rgba(20, 115, 230, 0.28);
 }
 
 .range-labels {
   display: flex;
   justify-content: space-between;
-  color: #666666;
+  color: var(--text-sub);
   font-size: 13px;
 }
 
@@ -134,24 +145,27 @@
 
 .search-button-area button {
   width: 100%;
-  height: 42px;
-  border: 1px solid #222222;
-  border-radius: 8px;
+  height: 43px;
+  border-radius: 13px;
   font-size: 14px;
+  font-weight: 900;
 }
 
 .search-button-area button[type="submit"] {
-  background-color: #222222;
+  background-color: var(--main-blue);
   color: #ffffff;
+  border: 1px solid var(--main-blue);
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.2);
 }
 
 .search-button-area button[type="button"] {
   background-color: #ffffff;
-  color: #222222;
+  color: var(--main-blue);
+  border: 1px solid #cfe3fb;
 }
 
 .search-button-area button:hover {
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 @media (max-width: 900px) {
@@ -159,4 +173,29 @@
     position: static;
     max-height: none;
   }
+}
+
+.search-sidebar .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search-sidebar .form-group label,
+.search-sidebar .price-range-area label {
+  font-weight: 800;
+  font-size: 14px;
+  color: #374151;
+}
+
+.search-sidebar .form-group input,
+.search-sidebar .form-group select {
+  width: 100%;
+  height: 42px;
+  padding: 0 13px;
+  border: 1px solid var(--line-dark);
+  border-radius: 13px;
+  background-color: #ffffff;
+  color: var(--text-main);
+  font-size: 14px;
 }

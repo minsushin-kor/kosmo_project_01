@@ -1,4 +1,3 @@
-/* Data Table */
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -6,19 +5,35 @@
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background-color: #ffffff;
 }
 
 .data-table th,
 .data-table td {
-  padding: 12px;
-  border: 1px solid #dddddd;
-  text-align: center;
+  padding: 14px 12px;
+  border-bottom: 1px solid #edf3fa;
+  color: #374151;
+  font-size: 14px;
+  text-align: left;
   white-space: nowrap;
 }
 
 .data-table th {
-  background-color: #f0f0f0;
-  font-weight: 700;
+  background-color: #f4f9ff;
+  color: #475569;
+  font-weight: 900;
+}
+
+.data-table th:first-child {
+  border-top-left-radius: 14px;
+}
+
+.data-table th:last-child {
+  border-top-right-radius: 14px;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f8fbff;
 }

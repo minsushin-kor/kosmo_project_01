@@ -73,7 +73,7 @@ function LoginPage() {
       <section className="login-box">
         <div className="login-header">
           <h1>로그인</h1>
-          <p>계정 유형을 선택하고 로그인하세요.</p>
+          <p>계정 유형을 선택하고 로그인하하면 해당 권한 계정으로 로그인되고 아이디 비번은 아무거나 입력해도 로그인 가능</p>
         </div>
 
         {redirectPath && (
@@ -144,8 +144,8 @@ function LoginPage() {
         </form>
 
         <div className="login-guide">
-          <p>현재는 화면 이동 확인용 임시 로그인입니다.</p>
-          <p>선택한 계정 유형에 따라 탑바 메뉴가 변경됩니다.</p>
+          <p>현재는 화면 이동 확인용 임시 로그인</p>
+          <p>선택한 계정 유형에 따라 탑바 메뉴 변경</p>
         </div>
       </section>
     </main>

@@ -1,0 +1,228 @@
+.admin-modal-body {
+  padding: 24px;
+}
+
+.admin-detail-image-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.admin-detail-image-box img {
+  width: 140px;
+  height: 140px;
+  border: 1px solid #d8e6f5;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  background-color: #f8fbff;
+}
+
+.admin-detail-image-empty {
+  width: 140px;
+  height: 140px;
+  border: 1px solid #d8e6f5;
+  border-radius: 50%;
+  background-color: #eef6ff;
+  color: #1473e6;
+  font-size: 42px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 14px;
+  border: 1px solid #edf3fa;
+  border-radius: 15px;
+  background-color: #f8fbff;
+}
+
+.admin-detail-row span {
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-detail-row strong {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.dealer-list-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dealer-list-profile img {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d8e6f5;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  background-color: #f8fbff;
+}
+
+.dealer-list-profile-empty {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d8e6f5;
+  border-radius: 50%;
+  background-color: #eef6ff;
+  color: #1473e6;
+  font-size: 15px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dealer-list-profile span {
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.admin-status-btn-area {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #edf3fa;
+}
+
+.status-btn {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.status-btn.approve {
+  border: 1px solid #b8e3bf;
+  background-color: #e9f8ec;
+  color: #16822a;
+}
+
+.status-btn.wait {
+  border: 1px solid #acd7ff;
+  background-color: #e8f4ff;
+  color: #1473e6;
+}
+
+.status-btn.stop {
+  border: 1px solid #ffb8bf;
+  background-color: #fff0f1;
+  color: #d72638;
+}
+
+.admin-modal-btn-area {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.modal-sub-btn,
+.modal-main-btn {
+  min-width: 86px;
+  height: 38px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.modal-sub-btn {
+  border: 1px solid #cfe3fb;
+  background-color: #ffffff;
+  color: var(--main-blue);
+}
+
+.modal-sub-btn:hover {
+  background-color: #f0f7ff;
+}
+
+.modal-main-btn {
+  border: 1px solid var(--main-blue);
+  background-color: var(--main-blue);
+  color: #ffffff;
+}
+
+.modal-main-btn:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.modal-sub-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 86px;
+  height: 38px;
+  padding: 0 14px;
+
+  border: 1px solid #cfe3fb;
+  border-radius: 12px;
+  background-color: #ffffff;
+  color: var(--main-blue);
+
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.modal-sub-link-btn:hover {
+  background-color: #f0f7ff;
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .admin-modal-body {
+    padding: 20px;
+  }
+
+  .admin-detail-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-detail-row strong {
+    text-align: left;
+  }
+
+  .admin-status-btn-area {
+    flex-direction: column;
+  }
+
+  .status-btn {
+    width: 100%;
+  }
+
+  .admin-modal-btn-area {
+    flex-direction: column;
+  }
+
+  .modal-sub-btn,
+  .modal-main-btn,
+  .modal-sub-link-btn {
+    width: 100%;
+  }
+}

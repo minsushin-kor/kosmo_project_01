@@ -1,120 +1,287 @@
 .right-sidebar {
+  position: sticky;
+  top: 84px;
+
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+}
+
+.right-sidebar-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background-color: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
+}
+
+.right-sidebar-card h3 {
+  margin: 0 0 14px;
+  color: var(--text-main);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.right-sidebar-card p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.right-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.right-sidebar-item {
+  padding: 12px;
+  border: 1px solid #edf3fa;
+  border-radius: 15px;
+  background-color: #f8fbff;
+}
+
+.right-sidebar-item strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.right-sidebar-item span {
+  display: block;
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.right-sidebar-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px 13px;
+  border: 1px solid #dbeafe;
+  border-radius: 15px;
+  background-color: #f8fbff;
+  color: #475569;
+
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+
+  transition: 0.18s ease;
+}
+
+.right-sidebar-link:hover {
+  border-color: var(--main-blue);
+  background-color: var(--main-blue);
+  color: #ffffff;
+}
+
+.right-sidebar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 28px;
+  height: 22px;
+  padding: 0 8px;
+
+  border-radius: 999px;
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.right-sidebar-link:hover .right-sidebar-badge {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.right-sidebar-highlight {
+  padding: 18px;
+  border: 1px solid #cfe3fb;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.8), transparent 26%),
+    linear-gradient(135deg, #eaf4ff, #f8fbff);
+}
+
+.right-sidebar-highlight strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--main-blue);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.right-sidebar-highlight p {
+  margin: 0 0 14px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.right-sidebar-highlight a,
+.right-sidebar-highlight button {
+  width: 100%;
+  height: 38px;
+
+  border: 1px solid var(--main-blue);
+  border-radius: 12px;
+  background-color: var(--main-blue);
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.right-sidebar-highlight a:hover,
+.right-sidebar-highlight button:hover {
+  background-color: var(--main-blue-dark);
+}
+
+@media (max-width: 1200px) {
+  .right-sidebar {
+    display: none;
+  }
 }
 
 .right-widget {
-  padding: 16px;
-  border: 1px solid #e2d6ce;
-  border-radius: 12px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(60, 45, 35, 0.04);
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background-color: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
 }
 
 .right-widget h3 {
-  margin: 0 0 12px;
-  color: #2c211c;
-  font-size: 15px;
-  font-weight: 800;
+  margin: 0 0 14px;
+  color: var(--text-main);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.right-widget p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .right-widget-title-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .right-widget-title-row h3 {
-  margin-bottom: 0;
+  margin: 0;
 }
 
 .right-widget-title-row button {
   border: none;
   background: none;
-  color: #8a7b72;
-  font-size: 11px;
+  color: var(--main-blue);
+  font-size: 12px;
+  font-weight: 900;
   cursor: pointer;
 }
 
 .recent-car-empty {
-  padding: 20px 10px;
-  border-radius: 10px;
-  background-color: #f8f3ef;
-  color: #8a7b72;
+  padding: 18px 12px;
+  border: 1px dashed #bfd8f5;
+  border-radius: 16px;
+  background-color: #f8fbff;
+  color: var(--text-sub);
   font-size: 13px;
+  font-weight: 800;
   text-align: center;
 }
 
 .keyword-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
 .keyword-list button {
-  padding: 7px 9px;
-  border: 1px solid #e4d8d0;
-  border-radius: 999px;
-  background-color: #faf6f2;
-  color: #5d4a40;
-  font-size: 12px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background-color: #f8fbff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: left;
   cursor: pointer;
 }
 
 .keyword-list button:hover {
-  background-color: #efe4dc;
+  border-color: var(--main-blue);
+  background-color: var(--main-blue);
+  color: #ffffff;
 }
 
-.dealer-guide p {
-  margin: 0 0 12px;
-  color: #6f625a;
-  font-size: 13px;
-  line-height: 1.5;
+.dealer-guide {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.8), transparent 26%),
+    linear-gradient(135deg, #eaf4ff, #f8fbff);
 }
 
 .dealer-guide button {
   width: 100%;
   height: 38px;
-  border: none;
-  border-radius: 8px;
-  background-color: #2f241f;
+  margin-top: 14px;
+  border: 1px solid var(--main-blue);
+  border-radius: 12px;
+  background-color: var(--main-blue);
   color: #ffffff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
 }
 
+.dealer-guide button:hover {
+  background-color: var(--main-blue-dark);
+}
+
 .notice-widget ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .notice-widget li {
-  padding: 8px 0;
-  border-bottom: 1px solid #f0e7e1;
-  color: #5b4b42;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.notice-widget li:last-child {
-  border-bottom: none;
-}
-
-.notice-widget li {
+  padding: 11px 12px;
+  border: 1px solid #edf3fa;
+  border-radius: 14px;
+  background-color: #f8fbff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
   cursor: pointer;
 }
 
 .notice-widget li:hover {
-  color: #2f241f;
-  font-weight: 700;
-}
-
-.keyword-list button:active,
-.dealer-guide button:active,
-.right-widget-title-row button:active {
-  transform: translateY(1px);
+  color: var(--main-blue);
+  border-color: #cfe3fb;
 }

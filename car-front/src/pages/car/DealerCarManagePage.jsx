@@ -1,104 +1,172 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import cars from "../../data/cars";
+import {
+  getDealerCarsFromStorage,
+  deleteDealerCarFromStorage,
+} from "../../utils/dealerCarStorage";
 import "../../css/car/dealerCarManagePage.css";
 
 function DealerCarManagePage() {
-  const dealerCars = cars.filter((car) => car.sellerType !== "일반회원");
+  const [dealerCars, setDealerCars] = useState([]);
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState("전체");
 
-  const summary = {
-    total: dealerCars.length,
-    onSale: dealerCars.filter((car) => car.status === "판매중").length,
-    consulting: dealerCars.filter((car) => car.status === "상담중").length,
-    sold: dealerCars.filter((car) => car.status === "판매완료").length,
-  };
+  useEffect(() => {
+    const storageCars = getDealerCarsFromStorage();
+
+    // 지금은 임시로 dealerId가 1인 매물만 내 매물로 처리
+    const myCars = cars.filter((car) => car.dealerId === 1);
+
+    setDealerCars([...storageCars, ...myCars]);
+  }, []);
+
+  function handleDeleteCar(carId) {
+    const confirmDelete = window.confirm("해당 매물을 삭제하시겠습니까?");
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    deleteDealerCarFromStorage(carId);
+
+    setDealerCars((prev) => prev.filter((car) => car.id !== carId));
+
+    alert("매물이 삭제되었습니다.");
+  }
+
+  const filteredCars = dealerCars.filter((car) => {
+    const carName =
+      car.name || car.carName || `${car.year} ${car.make} ${car.model}`;
+
+    const carStatus = car.status || "판매중";
+
+    const keywordMatch =
+      carName.includes(searchText) ||
+      String(car.make || "").includes(searchText) ||
+      String(car.model || "").includes(searchText);
+
+    const statusMatch =
+      statusFilter === "전체" || carStatus === statusFilter;
+
+    return keywordMatch && statusMatch;
+  });
 
   return (
     <main className="dealer-car-manage-page">
-      <div className="dealer-car-manage-container">
-        <section className="dealer-car-manage-header">
-          <div>
-            <p className="page-label">DEALER CAR MANAGEMENT</p>
-            <h2>내 매물 관리</h2>
-            <p>딜러가 등록한 차량의 판매 상태, 가격, 기본 정보를 관리합니다.</p>
-          </div>
+      <section className="dealer-car-manage-header">
+        <div>
+          <h2>딜러 매물 관리</h2>
+          <p>내가 등록한 차량 매물을 관리합니다.</p>
+        </div>
 
-          <Link to="/dealer/register-car" className="primary-link-button">
-            새 매물 등록
-          </Link>
-        </section>
+        <Link to="/dealer/register-car" className="dealer-car-add-btn">
+          매물 등록
+        </Link>
+      </section>
 
-        <section className="dealer-summary-grid">
-          <article>
-            <span>전체 매물</span>
-            <strong>{summary.total}</strong>
-            <em>대</em>
-          </article>
-          <article>
-            <span>판매중</span>
-            <strong>{summary.onSale}</strong>
-            <em>대</em>
-          </article>
-          <article>
-            <span>상담중</span>
-            <strong>{summary.consulting}</strong>
-            <em>대</em>
-          </article>
-          <article>
-            <span>판매완료</span>
-            <strong>{summary.sold}</strong>
-            <em>대</em>
-          </article>
-        </section>
+      <section className="dealer-car-filter-box">
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="차량명, 제조사, 모델명 검색"
+        />
 
-        <section className="dealer-car-panel">
-          <div className="dealer-car-panel-header">
-            <div>
-              <h3>등록 매물 목록</h3>
-              <p>현재는 임시 데이터 기준이며, 백엔드 연결 시 API 응답으로 교체합니다.</p>
-            </div>
-          </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="전체">전체 상태</option>
+          <option value="판매중">판매중</option>
+          <option value="예약중">예약중</option>
+          <option value="판매완료">판매완료</option>
+        </select>
 
-          <div className="dealer-car-table-wrap">
-            <table className="dealer-car-table">
-              <thead>
-                <tr>
-                  <th>차량명</th>
-                  <th>연식</th>
-                  <th>주행거리</th>
-                  <th>지역</th>
-                  <th>가격</th>
-                  <th>상태</th>
-                  <th>관리</th>
-                </tr>
-              </thead>
+        <button
+          type="button"
+          onClick={() => {
+            setSearchText("");
+            setStatusFilter("전체");
+          }}
+        >
+          초기화
+        </button>
+      </section>
 
-              <tbody>
-                {dealerCars.map((car) => (
+      <section className="dealer-car-table-box">
+        <div className="dealer-car-count">
+          총 {filteredCars.length}개의 매물이 있습니다.
+        </div>
+
+        <table className="dealer-car-table">
+          <thead>
+            <tr>
+              <th>차량명</th>
+              <th>연식</th>
+              <th>주행거리</th>
+              <th>가격</th>
+              <th>상태</th>
+              <th>등록일</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredCars.length > 0 ? (
+              filteredCars.map((car) => {
+                const carName =
+                  car.name ||
+                  car.carName ||
+                  `${car.year} ${car.make} ${car.model}`;
+
+                const price = car.sellingprice || car.price || 0;
+                const mileage = car.odometer || car.mileage || 0;
+                const status = car.status || "판매중";
+
+                return (
                   <tr key={car.id}>
                     <td>
-                      <strong>{car.carName}</strong>
-                      <span>{car.companyName}</span>
+                      <Link to={`/cars/${car.id}`}>{carName}</Link>
                     </td>
-                    <td>{car.year}년식</td>
-                    <td>{car.mileage.toLocaleString()}km</td>
-                    <td>{car.region}</td>
-                    <td>{car.price.toLocaleString()}만원</td>
+
+                    <td>{car.year || "-"}</td>
+
+                    <td>{Number(mileage).toLocaleString()}km</td>
+
+                    <td>{Number(price).toLocaleString()}원</td>
+
                     <td>
-                      <span className={`dealer-status ${car.status}`}>{car.status}</span>
+                      <span className={`dealer-status-badge ${status}`}>
+                        {status}
+                      </span>
                     </td>
+
+                    <td>{car.createdAt || car.date || "-"}</td>
+
                     <td>
-                      <div className="dealer-table-actions">
-                        <Link to={`/cars/${car.id}`}>상세</Link>
-                        <button type="button">수정</button>
-                      </div>
+                      <button type="button">수정</button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCar(car.id)}
+                      >
+                        삭제
+                      </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="7" className="empty-table-message">
+                  등록된 매물이 없습니다.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </section>
     </main>
   );
 }
