@@ -1,0 +1,149 @@
+.dealer-create-panel {
+  margin-top: 24px;
+  padding: 26px;
+  border: 1px solid #e3edf8;
+  border-radius: 22px;
+  background-color: #ffffff;
+  box-shadow: 0 14px 34px rgba(30, 70, 120, 0.08);
+}
+
+.dealer-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dealer-create-section {
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf3fa;
+}
+
+.dealer-create-section:last-of-type {
+  border-bottom: none;
+}
+
+.dealer-create-section h3 {
+  margin: 0 0 18px;
+  color: #1f2d3d;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.dealer-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px 20px;
+}
+
+.dealer-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dealer-form-group label {
+  color: #34495e;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.dealer-form-group input,
+.dealer-form-group textarea {
+  width: 100%;
+  border: 1px solid #d8e6f5;
+  border-radius: 14px;
+  background-color: #ffffff;
+  padding: 13px 14px;
+  color: #26384d;
+  font-size: 14px;
+  outline: none;
+}
+
+.dealer-form-group input:focus,
+.dealer-form-group textarea:focus {
+  border-color: #1473e6;
+  box-shadow: 0 0 0 3px rgba(20, 115, 230, 0.1);
+}
+
+.dealer-form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.dealer-create-guide {
+  padding: 16px 18px;
+  border: 1px solid #d8e6f5;
+  border-radius: 16px;
+  background-color: #f7fbff;
+}
+
+.dealer-create-guide strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #1565c0;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.dealer-create-guide p {
+  margin: 0;
+  color: #5b6f86;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dealer-create-btn-area {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dealer-cancel-btn,
+.dealer-submit-btn {
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.dealer-cancel-btn {
+  border: 1px solid #d8e6f5;
+  background-color: #ffffff;
+  color: #5b6f86;
+}
+
+.dealer-cancel-btn:hover {
+  background-color: #f5f8fb;
+}
+
+.dealer-submit-btn {
+  border: 1px solid #1473e6;
+  background-color: #1473e6;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.2);
+}
+
+.dealer-submit-btn:hover {
+  background-color: #0f5fc0;
+}
+
+@media (max-width: 768px) {
+  .dealer-create-panel {
+    padding: 18px;
+  }
+
+  .dealer-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dealer-create-btn-area {
+    flex-direction: column;
+  }
+
+  .dealer-cancel-btn,
+  .dealer-submit-btn {
+    width: 100%;
+  }
+}

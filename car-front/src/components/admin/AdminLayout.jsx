@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import "../../css/admin/adminLayout.css";
 
 const adminMenus = [
@@ -25,11 +25,27 @@ const adminMenus = [
   {
     id: 5,
     name: "이탈 위험 관리",
-    path: "/admin/churn",
+    path: "/admin/churn/company",
+    children: [
+      {
+        id: 51,
+        name: "회사 이탈 위험관리",
+        path: "/admin/churn/company",
+      },
+      {
+        id: 52,
+        name: "딜러 이탈 위험관리",
+        path: "/admin/churn/dealer",
+      },
+    ],
   },
 ];
 
 function AdminLayout({ title, description, children, actions }) {
+  const location = useLocation();
+
+  const isChurnMenuOpen = location.pathname.startsWith("/admin/churn");
+
   return (
     <main className="admin-layout-page">
       <aside className="admin-sidebar">
@@ -39,18 +55,57 @@ function AdminLayout({ title, description, children, actions }) {
         </div>
 
         <nav className="admin-sidebar-menu">
-          {adminMenus.map((menu) => (
-            <NavLink
-              key={menu.id}
-              to={menu.path}
-              end={menu.path === "/admin"}
-              className={({ isActive }) =>
-                isActive ? "admin-menu-link active" : "admin-menu-link"
-              }
-            >
-              {menu.name}
-            </NavLink>
-          ))}
+          {adminMenus.map((menu) => {
+            const hasChildren = menu.children && menu.children.length > 0;
+
+            if (hasChildren) {
+              return (
+                <div className="admin-menu-group" key={menu.id}>
+                  <NavLink
+                    to={menu.path}
+                    className={() =>
+                      isChurnMenuOpen
+                        ? "admin-menu-link active"
+                        : "admin-menu-link"
+                    }
+                  >
+                    {menu.name}
+                  </NavLink>
+
+                  {isChurnMenuOpen && (
+                    <div className="admin-sub-menu">
+                      {menu.children.map((child) => (
+                        <NavLink
+                          key={child.id}
+                          to={child.path}
+                          className={({ isActive }) =>
+                            isActive
+                              ? "admin-sub-menu-link active"
+                              : "admin-sub-menu-link"
+                          }
+                        >
+                          {child.name}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <NavLink
+                key={menu.id}
+                to={menu.path}
+                end={menu.path === "/admin"}
+                className={({ isActive }) =>
+                  isActive ? "admin-menu-link active" : "admin-menu-link"
+                }
+              >
+                {menu.name}
+              </NavLink>
+            );
+          })}
         </nav>
       </aside>
 

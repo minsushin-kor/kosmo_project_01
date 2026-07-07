@@ -1,0 +1,145 @@
+.ui-card {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background-color: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
+}
+
+.ui-card-hover {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.ui-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: #cfe3fb;
+  box-shadow: var(--shadow-hover);
+}
+
+.ui-panel {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background-color: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
+}
+
+.ui-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.ui-panel-header h2,
+.ui-panel-header h3 {
+  margin: 0;
+  color: var(--text-main);
+  font-weight: 900;
+}
+
+.ui-panel-header h2 {
+  font-size: 24px;
+}
+
+.ui-panel-header h3 {
+  font-size: 20px;
+}
+
+.ui-panel-header p {
+  margin: 6px 0 0;
+  color: var(--text-sub);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 24px;
+  padding: 0 10px;
+
+  border-radius: 999px;
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ui-primary-btn {
+  min-height: 40px;
+  padding: 0 16px;
+
+  border: 1px solid var(--main-blue);
+  border-radius: 13px;
+  background-color: var(--main-blue);
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.2);
+}
+
+.ui-primary-btn:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.ui-outline-btn {
+  min-height: 40px;
+  padding: 0 16px;
+
+  border: 1px solid #cfe3fb;
+  border-radius: 13px;
+  background-color: #ffffff;
+  color: var(--main-blue);
+
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-outline-btn:hover {
+  background-color: #f0f7ff;
+}
+
+.ui-empty-box {
+  padding: 42px 20px;
+  border: 1px dashed #bfd8f5;
+  border-radius: 20px;
+  background-color: #f8fbff;
+  color: var(--text-sub);
+
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .ui-panel {
+    padding: 20px;
+  }
+
+  .ui-panel-header {
+    flex-direction: column;
+  }
+
+  .ui-primary-btn,
+  .ui-outline-btn {
+    width: 100%;
+  }
+}

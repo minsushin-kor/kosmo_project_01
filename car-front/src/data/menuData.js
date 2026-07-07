@@ -23,6 +23,16 @@ export const ROLE_MENU_LIST = {
       name: "회사",
       path: "/company",
     },
+    {
+      id: 2,
+      name: "딜러 관리",
+      path: "/company/dealers",
+    },
+    {
+      id: 3,
+      name: "공지사항",
+      path: "/company/notices",
+    },
   ],
 
   [AUTH_ROLES.DEALER]: [

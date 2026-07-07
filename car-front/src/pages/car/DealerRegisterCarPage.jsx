@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerCar } from "../../api/carApi";
+import ImageUploader from "../../components/common/ImageUploader";
 import "../../css/car/dealerRegisterCarPage.css";
+import { saveDealerCarToStorage } from "../../utils/dealerCarStorage";
 
 function DealerRegisterCarPage() {
     const navigate = useNavigate();
+    const [carImages, setCarImages] = useState([]);
 
     const carOptions = [
         "네비게이션",
@@ -52,26 +55,63 @@ function DealerRegisterCarPage() {
     async function handleSubmit(e) {
         e.preventDefault();
 
-        const requestData = {
-            ...formData,
+        if (carImages.length === 0) {
+            alert("차량 사진을 1장 이상 첨부해주세요.");
+            return;
+        }
 
-            // 숫자로 저장해야 하는 값 변환
+        const requestData = new FormData();
+
+        requestData.append("year", Number(formData.year));
+        requestData.append("make", formData.make);
+        requestData.append("model", formData.model);
+        requestData.append("option", formData.option.join(", "));
+        requestData.append("body", formData.body);
+        requestData.append("transmission", formData.transmission);
+        requestData.append("state", formData.state);
+        requestData.append("odometer", Number(formData.odometer));
+        requestData.append("color", formData.color);
+        requestData.append("interior", formData.interior);
+        requestData.append("sellingprice", Number(formData.sellingprice));
+        requestData.append("status", formData.status);
+
+        carImages.forEach((image) => {
+            requestData.append("carImages", image.file);
+        });
+
+        const newCar = {
+            id: Date.now(),
             year: Number(formData.year),
-            odometer: Number(formData.odometer),
-            sellingprice: Number(formData.sellingprice),
-
-            // 체크박스 배열을 문자열로 변환
+            make: formData.make,
+            model: formData.model,
+            name: `${formData.year} ${formData.make} ${formData.model}`,
             option: formData.option.join(", "),
+            body: formData.body,
+            transmission: formData.transmission,
+            state: formData.state,
+            odometer: Number(formData.odometer),
+            color: formData.color,
+            interior: formData.interior,
+            sellingprice: Number(formData.sellingprice),
+            status: formData.status,
+            imageName: carImages[0]?.file?.name || "",
+            createdAt: new Date().toISOString().slice(0, 10),
         };
 
         try {
-            console.log("매물 등록 요청 데이터:", requestData);
+            console.log("매물 등록 FormData 확인");
 
-            await registerCar(requestData);
+            for (const pair of requestData.entries()) {
+                console.log(pair[0], pair[1]);
+            }
+
+            saveDealerCarToStorage(newCar);
+
+            // 백엔드 연결 전이라 일단 주석 처리
+            // await registerCar(requestData);
 
             alert("매물이 등록되었습니다.");
 
-            // 등록 성공 후 딜러 매물 목록 페이지로 이동
             navigate("/dealer/cars");
         } catch (error) {
             console.error(error);
@@ -160,6 +200,18 @@ function DealerRegisterCarPage() {
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    <div className="form-section">
+                        <h3>차량 사진</h3>
+
+                        <ImageUploader
+                            label="차량 사진 첨부"
+                            images={carImages}
+                            setImages={setCarImages}
+                            multiple={true}
+                            maxCount={10}
+                        />
                     </div>
 
                     <div className="form-section">

@@ -1,8 +1,9 @@
 .header {
-  height: 64px;
-  padding: 0 40px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #dddddd;
+  height: 68px;
+  padding: 0 42px;
+  background-color: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(14px);
 
   display: flex;
   align-items: center;
@@ -16,52 +17,67 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: 36px;
+  gap: 38px;
 }
 
 .logo {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 21px;
+  font-weight: 900;
   white-space: nowrap;
 }
 
 .logo a {
-  color: #2f241d;
-  text-decoration: none;
+  color: var(--main-blue);
 }
 
 .nav {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 26px;
 }
 
 .nav a {
+  position: relative;
   font-size: 15px;
-  color: #333333;
-  text-decoration: none;
+  color: #374151;
+  font-weight: 700;
 }
 
 .nav a:hover {
-  color: #6b4f3f;
-  font-weight: 600;
+  color: var(--main-blue);
+}
+
+.nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 0;
+  height: 2px;
+  border-radius: 999px;
+  background-color: var(--main-blue);
+  transition: width 0.2s ease;
+}
+
+.nav a:hover::after {
+  width: 100%;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
 
 .login-btn,
 .mypage-link,
 .logout-btn,
 .notification-btn {
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 8px;
+  height: 38px;
+  padding: 0 15px;
+  border-radius: 999px;
   font-size: 14px;
-  cursor: pointer;
+  font-weight: 800;
   text-decoration: none;
 
   display: flex;
@@ -70,21 +86,26 @@
 }
 
 .login-btn {
-  background-color: #5a3e2b;
+  background-color: var(--main-blue);
   color: #ffffff;
-  border: 1px solid #5a3e2b;
+  border: 1px solid var(--main-blue);
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.22);
+}
+
+.login-btn:hover {
+  background-color: var(--main-blue-dark);
 }
 
 .mypage-link {
   background-color: #ffffff;
-  color: #5a3e2b;
-  border: 1px solid #c8b8ac;
+  color: var(--main-blue);
+  border: 1px solid #cfe3fb;
 }
 
 .logout-btn {
-  background-color: #f7f2ee;
-  color: #5a3e2b;
-  border: 1px solid #c8b8ac;
+  background-color: #f5f9ff;
+  color: #4b5563;
+  border: 1px solid #dbeafe;
 }
 
 .notification-wrap {
@@ -93,8 +114,8 @@
 
 .notification-btn {
   background-color: #ffffff;
-  color: #333333;
-  border: 1px solid #dddddd;
+  color: #374151;
+  border: 1px solid #dbeafe;
   position: relative;
 }
 
@@ -105,7 +126,7 @@
   margin-left: 6px;
 
   border-radius: 999px;
-  background-color: #b94a48;
+  background-color: #ff4b5c;
   color: #ffffff;
 
   font-size: 12px;
@@ -115,15 +136,15 @@
 
 .notification-list {
   position: absolute;
-  top: 44px;
+  top: 48px;
   right: 0;
 
-  width: 260px;
+  width: 280px;
   padding: 14px;
   background-color: #ffffff;
-  border: 1px solid #dddddd;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
 
   z-index: 300;
 }
@@ -131,17 +152,16 @@
 .notification-title {
   margin: 0 0 10px;
   font-size: 14px;
-  font-weight: 700;
-  color: #2f241d;
+  font-weight: 900;
+  color: var(--text-main);
 }
 
 .notification-list a {
   display: block;
-  padding: 9px 0;
-  color: #333333;
+  padding: 10px 0;
+  color: #4b5563;
   font-size: 14px;
-  text-decoration: none;
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid #edf3fa;
 }
 
 .notification-list a:last-child {
@@ -149,8 +169,15 @@
 }
 
 .notification-list a:hover {
-  color: #6b4f3f;
-  font-weight: 600;
+  color: var(--main-blue);
+  font-weight: 800;
+}
+
+.notification-empty {
+  margin: 8px 0 0;
+  padding: 10px 0;
+  color: var(--text-sub);
+  font-size: 14px;
 }
 
 @media (max-width: 900px) {
@@ -183,11 +210,4 @@
     left: 0;
     right: auto;
   }
-}
-
-.notification-empty {
-  margin: 8px 0 0;
-  padding: 10px 0;
-  color: #777777;
-  font-size: 14px;
 }

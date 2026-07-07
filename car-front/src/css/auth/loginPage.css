@@ -1,7 +1,10 @@
 .login-page {
-  min-height: calc(100vh - 64px);
-  padding: 70px 20px;
-  background-color: #f8f4f1;
+  min-height: calc(100vh - 68px);
+  padding: 72px 20px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(207, 231, 255, 0.8), transparent 28%),
+    radial-gradient(circle at 80% 80%, rgba(218, 239, 255, 0.9), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #eef7ff 100%);
 
   display: flex;
   justify-content: center;
@@ -10,59 +13,63 @@
 
 .login-box {
   width: 100%;
-  max-width: 460px;
-  padding: 36px;
-  background-color: #ffffff;
-  border: 1px solid #e2d8d0;
-  border-radius: 18px;
-  box-shadow: 0 10px 28px rgba(70, 50, 35, 0.08);
+  max-width: 430px;
+  padding: 38px 34px;
+  background-color: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
 }
 
 .login-header {
-  margin-bottom: 28px;
+  margin-bottom: 26px;
   text-align: center;
 }
 
 .login-header h1 {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-size: 28px;
-  color: #2f241d;
+  color: var(--text-main);
+  font-weight: 900;
 }
 
 .login-header p {
   margin: 0;
-  font-size: 15px;
-  color: #777777;
+  font-size: 14px;
+  color: var(--text-sub);
+  line-height: 1.6;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 17px;
 }
 
 .login-type-group {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 7px;
+  margin-bottom: 4px;
+  padding: 5px;
+  background-color: #f3f8ff;
+  border-radius: 14px;
 }
 
 .login-type-group button {
-  height: 40px;
-  border: 1px solid #d8c9be;
+  height: 36px;
+  border: none;
   border-radius: 10px;
-  background-color: #ffffff;
-  color: #5a3e2b;
-  font-size: 14px;
-  cursor: pointer;
+  background-color: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .login-type-group button.active {
-  background-color: #5a3e2b;
-  color: #ffffff;
-  border-color: #5a3e2b;
-  font-weight: 700;
+  background-color: #ffffff;
+  color: var(--main-blue);
+  box-shadow: 0 5px 14px rgba(20, 115, 230, 0.12);
 }
 
 .form-row {
@@ -73,77 +80,81 @@
 
 .form-row label {
   font-size: 14px;
-  font-weight: 700;
-  color: #3a2c23;
+  font-weight: 800;
+  color: #374151;
 }
 
 .form-row input {
-  height: 44px;
-  padding: 0 14px;
-  border: 1px solid #d8c9be;
-  border-radius: 10px;
+  height: 46px;
+  padding: 0 15px;
+  border: 1px solid var(--line-dark);
+  border-radius: 13px;
+  background-color: #ffffff;
+  color: var(--text-main);
   font-size: 15px;
-  outline: none;
 }
 
-.form-row input:focus {
-  border-color: #5a3e2b;
+.form-row input::placeholder {
+  color: #aab6c5;
 }
 
 .login-submit-btn {
   height: 48px;
   margin-top: 8px;
   border: none;
-  border-radius: 12px;
-  background-color: #5a3e2b;
+  border-radius: 14px;
+  background-color: var(--main-blue);
   color: #ffffff;
   font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
+  font-weight: 900;
+  box-shadow: 0 10px 18px rgba(20, 115, 230, 0.24);
 }
 
 .login-submit-btn:hover {
-  background-color: #463020;
+  background-color: var(--main-blue-dark);
 }
 
 .login-guide {
   margin-top: 24px;
   padding: 14px;
-  background-color: #f8f4f1;
-  border-radius: 12px;
+  background-color: #f4f9ff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
 }
 
 .login-guide p {
   margin: 4px 0;
   font-size: 13px;
-  color: #6b5a50;
-}
-
-@media (max-width: 600px) {
-  .login-box {
-    padding: 28px 22px;
-  }
-
-  .login-type-group {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  color: var(--text-sub);
+  line-height: 1.5;
 }
 
 .login-redirect-guide {
   margin-bottom: 20px;
   padding: 14px;
-  background-color: #fbf8f6;
-  border: 1px solid #e2d8d0;
-  border-radius: 12px;
+  background-color: #f4f9ff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
 }
 
 .login-redirect-guide p {
   margin: 0 0 6px;
   font-size: 13px;
-  color: #6f625a;
+  color: var(--text-sub);
 }
 
 .login-redirect-guide strong {
   font-size: 14px;
-  color: #5a3e2b;
+  color: var(--main-blue);
+}
+
+@media (max-width: 600px) {
+  .login-box {
+    padding: 30px 22px;
+    border-radius: 22px;
+  }
+
+  .login-type-group {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

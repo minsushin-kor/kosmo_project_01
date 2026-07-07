@@ -11,6 +11,8 @@ import MemberPage from "../pages/member/MemberPage";
 
 import CompanyPage from "../pages/company/CompanyPage";
 import CompanyNoticesPage from "../pages/company/CompanyNoticesPage";
+import CompanyDealerManagePage from "../pages/company/CompanyDealerManagePage";
+import CompanyDealerCreatePage from "../pages/company/CompanyDealerCreatePage";
 import DealerPage from "../pages/company/DealerPage";
 
 import CarDetailPage from "../pages/car/CarDetailPage";
@@ -140,8 +142,32 @@ export const PROTECTED_ROUTES = [
   {
     id: 13,
     path: "/admin/churn",
-    element: <AdminChurnManagePage />,
+    element: <AdminChurnManagePage churnType="company" />,
     allowedRoles: [AUTH_ROLES.ADMIN],
+  },
+  {
+    id: 14,
+    path: "/admin/churn/company",
+    element: <AdminChurnManagePage churnType="company" />,
+    allowedRoles: [AUTH_ROLES.ADMIN],
+  },
+  {
+    id: 15,
+    path: "/admin/churn/dealer",
+    element: <AdminChurnManagePage churnType="dealer" />,
+    allowedRoles: [AUTH_ROLES.ADMIN],
+  },
+  {
+    id: 16,
+    path: "/company/dealers",
+    element: <CompanyDealerManagePage />,
+    allowedRoles: [AUTH_ROLES.COMPANY],
+  },
+  {
+    id: 17,
+    path: "/company/dealers/create",
+    element: <CompanyDealerCreatePage />,
+    allowedRoles: [AUTH_ROLES.COMPANY],
   },
 ];
 

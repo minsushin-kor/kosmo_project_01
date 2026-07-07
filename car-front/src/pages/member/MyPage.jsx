@@ -31,7 +31,7 @@ function MyPage() {
       <section className="mypage-header">
         <div>
           <h1>마이페이지</h1>
-          <p>로그인한 사용자의 기본 정보를 확인합니다.</p>
+          <p>로그인한 사용자의 기본 정보출력 페이지</p>
         </div>
 
         <Link to="/" className="mypage-home-btn">
