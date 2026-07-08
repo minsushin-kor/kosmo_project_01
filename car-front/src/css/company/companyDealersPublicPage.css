@@ -1,0 +1,222 @@
+.company-dealers-public-page {
+  min-height: calc(100vh - 68px);
+  padding: 34px 34px 56px;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(207, 231, 255, 0.75), transparent 26%),
+    radial-gradient(circle at 90% 85%, rgba(220, 240, 255, 0.9), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #eef7ff 100%);
+  box-sizing: border-box;
+}
+
+.company-dealers-public-header,
+.company-dealers-public-section {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.company-dealers-public-header {
+  margin-bottom: 18px;
+  padding: 28px;
+  border: 1px solid #c7ddff;
+  border-radius: 26px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 22px;
+}
+
+.company-dealers-public-header span {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.company-dealers-public-header h1 {
+  margin: 14px 0 10px;
+  color: var(--text-main);
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.company-dealers-public-header p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.company-dealers-public-back-btn {
+  min-width: 112px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--main-blue);
+  border-radius: 13px;
+  background-color: var(--main-blue);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.22);
+}
+
+.company-dealers-public-back-btn:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.company-dealers-public-section {
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+}
+
+.company-dealers-public-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.company-dealers-public-card {
+  padding: 22px;
+  border: 1px solid #dbeafe;
+  border-radius: 22px;
+  background-color: #f8fbff;
+}
+
+.company-dealers-public-card img,
+.company-dealers-public-profile-empty {
+  width: 70px;
+  height: 70px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+}
+
+.company-dealers-public-card img {
+  object-fit: cover;
+}
+
+.company-dealers-public-profile-empty {
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.company-dealers-public-info h2 {
+  margin: 0 0 7px;
+  color: var(--text-main);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.company-dealers-public-info p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.company-dealers-public-meta {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+}
+
+.company-dealers-public-meta div {
+  padding: 12px;
+  border-radius: 16px;
+  background-color: #ffffff;
+}
+
+.company-dealers-public-meta span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.company-dealers-public-meta strong {
+  color: var(--text-main);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.company-dealers-public-link {
+  width: 100%;
+  height: 40px;
+  margin-top: 16px;
+  border-radius: 13px;
+  border: 1px solid var(--main-blue);
+  background-color: var(--main-blue);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.company-dealers-public-link:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.company-dealers-public-empty {
+  padding: 34px;
+  border: 1px dashed #bfd8f5;
+  border-radius: 20px;
+  background-color: #f8fbff;
+  color: var(--text-sub);
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+@media (max-width: 1050px) {
+  .company-dealers-public-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 650px) {
+  .company-dealers-public-page {
+    padding: 24px 14px 44px;
+  }
+
+  .company-dealers-public-header {
+    flex-direction: column;
+    padding: 22px;
+  }
+
+  .company-dealers-public-header h1 {
+    font-size: 28px;
+  }
+
+  .company-dealers-public-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-dealers-public-back-btn {
+    width: 100%;
+  }
+}

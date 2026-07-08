@@ -1,9 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { initialSearchCondition } from "./SearchBox";
+import { AUTH_ROLES } from "../../data/authUser";
+import useAuth from "../../hooks/useAuth";
 import "../../css/common/rightSidebar.css";
 
 function RightSidebar({ setSearchCondition, setCurrentPage }) {
   const navigate = useNavigate();
+  const { loginUser } = useAuth();
+
+  const isCompany = loginUser?.role === AUTH_ROLES.COMPANY;
 
   function applyPopularSearch(type) {
     const nextCondition = { ...initialSearchCondition };
@@ -70,14 +75,16 @@ function RightSidebar({ setSearchCondition, setCurrentPage }) {
         </div>
       </section>
 
-      <section className="right-widget dealer-guide">
-        <h3>딜러 매물 등록</h3>
-        <p>보유 차량을 등록하고 일반 회원에게 판매할 수 있습니다.</p>
+      {!isCompany && (
+        <section className="right-widget dealer-guide">
+          <h3>딜러 매물 등록</h3>
+          <p>보유 차량을 등록하고 일반 회원에게 판매할 수 있습니다.</p>
 
-        <button type="button" onClick={() => navigate("/dealer/register-car")}>
-          매물 등록하기
-        </button>
-      </section>
+          <button type="button" onClick={() => navigate("/dealer/register-car")}>
+            매물 등록하기
+          </button>
+        </section>
+      )}
 
       <section className="right-widget notice-widget">
         <div className="right-widget-title-row">

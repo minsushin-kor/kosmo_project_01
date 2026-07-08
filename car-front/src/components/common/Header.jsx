@@ -1,7 +1,9 @@
 import { Link, useNavigate } from "react-router-dom";
 import { getHeaderMenus } from "../../data/menuData";
+import { AUTH_ROLES } from "../../data/authUser";
 import { useAuth } from "../../hooks/useAuth";
 import NotificationDropdown from "./NotificationDropdown";
+import MessageDropdown from "../message/MessageDropdown";
 import "../../css/common/header.css";
 
 function Header() {
@@ -10,6 +12,11 @@ function Header() {
   const { loginUser, isLogin, logout } = useAuth();
 
   const menus = getHeaderMenus(loginUser?.role);
+
+  const isCompany = loginUser?.role === AUTH_ROLES.COMPANY;
+
+  const myPagePath = isCompany ? "/company/mypage" : "/mypage";
+  const myPageName = isCompany ? "회사관리" : "마이페이지";
 
   const handleLogout = () => {
     logout();
@@ -34,15 +41,23 @@ function Header() {
 
       <div className="header-right">
         {!isLogin ? (
-          <Link to="/login" className="login-btn">
-            로그인
-          </Link>
+          <>
+            <Link to="/signup" className="mypage-link">
+              회원가입
+            </Link>
+
+            <Link to="/login" className="login-btn">
+              로그인
+            </Link>
+          </>
         ) : (
           <>
             <NotificationDropdown loginUser={loginUser} />
 
-            <Link to="/mypage" className="mypage-link">
-              마이페이지
+            <MessageDropdown />
+
+            <Link to={myPagePath} className="mypage-link">
+              {myPageName}
             </Link>
 
             <button

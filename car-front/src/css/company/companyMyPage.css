@@ -1,0 +1,482 @@
+.company-dashboard {
+  min-height: calc(100vh - 68px);
+  padding: 34px 34px 54px;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(207, 231, 255, 0.75), transparent 26%),
+    radial-gradient(circle at 90% 85%, rgba(220, 240, 255, 0.9), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #eef7ff 100%);
+  box-sizing: border-box;
+}
+
+.company-dashboard-header {
+  max-width: 1200px;
+  margin: 0 auto 22px;
+  padding: 24px;
+  border: 1px solid #c7ddff;
+  border-radius: 24px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 22px;
+}
+
+.company-dashboard-header h1 {
+  margin: 0 0 10px;
+  color: var(--text-main);
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.company-dashboard-header p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.company-dashboard-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.company-dashboard-header-btn,
+.company-dashboard-outline-btn {
+  min-width: 122px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.company-dashboard-header-btn {
+  border: 1px solid var(--main-blue);
+  background-color: var(--main-blue);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.22);
+}
+
+.company-dashboard-header-btn:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.company-dashboard-outline-btn {
+  border: 1px solid #bfd8f5;
+  background-color: #ffffff;
+  color: var(--main-blue);
+}
+
+.company-dashboard-outline-btn:hover {
+  border-color: var(--main-blue);
+}
+
+.company-dashboard-profile {
+  max-width: 1200px;
+  margin: 0 auto 18px;
+  display: grid;
+  grid-template-columns: 2fr repeat(3, 1fr);
+  gap: 16px;
+}
+
+.company-profile-card,
+.company-info-mini-card,
+.company-stat-card,
+.company-management-card,
+.company-alert-card,
+.company-table-card {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+}
+
+.company-profile-card {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.company-profile-icon {
+  width: 74px;
+  height: 74px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--main-blue), #4da3ff);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 900;
+  flex-shrink: 0;
+  box-shadow: 0 10px 20px rgba(20, 115, 230, 0.25);
+}
+
+.company-profile-info span {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.company-profile-info h2 {
+  margin: 0 0 7px;
+  color: var(--text-main);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.company-profile-info p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.company-info-mini-card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.company-info-mini-card span,
+.company-stat-card span {
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.company-info-mini-card strong {
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 900;
+  word-break: break-all;
+}
+
+.company-stat-grid {
+  max-width: 1200px;
+  margin: 0 auto 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.company-stat-card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.company-stat-card strong {
+  color: var(--text-main);
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.company-dashboard-grid {
+  max-width: 1200px;
+  margin: 0 auto 18px;
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 18px;
+}
+
+.company-management-card,
+.company-alert-card,
+.company-table-card {
+  padding: 24px;
+}
+
+.company-management-card h3,
+.company-alert-card h3,
+.company-table-card h3 {
+  margin: 0 0 18px;
+  color: var(--text-main);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.company-management-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.company-management-list a {
+  min-height: 76px;
+  padding: 17px;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background-color: #f8fbff;
+  text-decoration: none;
+  transition: 0.18s ease;
+}
+
+.company-management-list a:hover {
+  transform: translateY(-2px);
+  border-color: var(--main-blue);
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.15);
+}
+
+.company-management-list strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.company-management-list span {
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.company-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.company-alert-item {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid #dbeafe;
+  background-color: #f8fbff;
+}
+
+.company-alert-item span {
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.company-alert-item strong {
+  display: block;
+  margin: 6px 0;
+  color: var(--text-main);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.company-alert-item p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.company-alert-item.danger {
+  border-color: #fecaca;
+  background-color: #fff7f7;
+}
+
+.company-alert-item.warning {
+  border-color: #fde68a;
+  background-color: #fffaf0;
+}
+
+.company-alert-item.normal {
+  border-color: #bbf7d0;
+  background-color: #f5fff8;
+}
+
+.company-table-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.company-card-header {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.company-card-header h3 {
+  margin-bottom: 8px;
+}
+
+.company-card-header p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.company-card-header a {
+  min-width: 82px;
+  height: 36px;
+  padding: 0 13px;
+  border-radius: 12px;
+  border: 1px solid var(--main-blue);
+  background-color: var(--main-blue);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.company-card-header a:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.company-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.company-dashboard-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+}
+
+.company-dashboard-table th,
+.company-dashboard-table td {
+  padding: 13px 11px;
+  border-bottom: 1px solid #edf3fa;
+  text-align: left;
+  font-size: 14px;
+}
+
+.company-dashboard-table th {
+  background-color: #f8fbff;
+  color: #475569;
+  font-weight: 900;
+}
+
+.company-dashboard-table td {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.company-dealer-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.company-dealer-profile img,
+.company-dealer-profile-empty {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.company-dealer-profile img {
+  object-fit: cover;
+}
+
+.company-dealer-profile-empty {
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.company-status-badge,
+.company-car-status {
+  min-width: 66px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.company-status-badge.정상,
+.company-car-status.판매중 {
+  background-color: #e8f7ef;
+  color: #15803d;
+}
+
+.company-status-badge.승인대기,
+.company-car-status.상담중 {
+  background-color: #fff7df;
+  color: #b7791f;
+}
+
+.company-status-badge.정지,
+.company-car-status.판매완료,
+.company-car-status.거래완료 {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.company-empty-cell {
+  padding: 28px !important;
+  text-align: center !important;
+  color: var(--text-sub) !important;
+}
+
+@media (max-width: 1100px) {
+  .company-dashboard-profile,
+  .company-stat-grid,
+  .company-table-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .company-profile-card {
+    grid-column: 1 / -1;
+  }
+
+  .company-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .company-dashboard {
+    padding: 24px 14px 44px;
+  }
+
+  .company-dashboard-header,
+  .company-dashboard-header-actions,
+  .company-card-header {
+    flex-direction: column;
+  }
+
+  .company-dashboard-profile,
+  .company-stat-grid,
+  .company-management-list,
+  .company-table-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-dashboard-header-btn,
+  .company-dashboard-outline-btn {
+    width: 100%;
+  }
+}

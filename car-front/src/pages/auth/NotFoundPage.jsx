@@ -1,7 +1,18 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "../../css/auth/notFoundPage.css";
 
 function NotFoundPage() {
+  const navigate = useNavigate();
+
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/");
+  };
+
   return (
     <main className="not-found-page">
       <section className="not-found-box">
@@ -16,13 +27,13 @@ function NotFoundPage() {
         </p>
 
         <div className="not-found-actions">
-          <Link to="/" className="not-found-main-btn">
-            홈으로 이동
-          </Link>
-
-          <Link to="/login" className="not-found-sub-btn">
-            로그인 페이지로 이동
-          </Link>
+          <button
+            type="button"
+            className="not-found-main-btn"
+            onClick={handleGoBack}
+          >
+            뒤로가기
+          </button>
         </div>
       </section>
     </main>

@@ -16,7 +16,7 @@ export const ROLE_NAME_MAP = {
 
 export const ROLE_HOME_PATH_MAP = {
   ADMIN: "/admin",
-  COMPANY: "/company",
+  COMPANY: "/company/mypage",
   DEALER: "/dealer",
   MEMBER: "/member",
 };
@@ -32,9 +32,16 @@ export function getRoleHomePath(role) {
 export function createTempUser(role) {
   const roleName = getRoleName(role);
 
+  const TEMP_USER_ID_MAP = {
+    ADMIN: 1,
+    COMPANY: 2,
+    DEALER: 3,
+    MEMBER: 4,
+  };
+
   return {
     isLogin: true,
-    id: Date.now(),
+    id: TEMP_USER_ID_MAP[role] || 999,
     loginId: role.toLowerCase(),
     name: roleName,
     role,

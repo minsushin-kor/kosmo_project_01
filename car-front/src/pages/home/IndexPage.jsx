@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import SearchBox, { initialSearchCondition } from "../../components/common/SearchBox";
+import SearchBox, {
+  initialSearchCondition,
+} from "../../components/common/SearchBox";
 import CarCard from "../../components/car/CarCard";
 import RightSidebar from "../../components/common/RightSidebar";
-import cars from "../../data/cars";
+import { getAllCars } from "../../utils/carViewUtils";
 import "../../css/home/indexPage.css";
 
 function IndexPage() {
@@ -11,8 +13,10 @@ function IndexPage() {
   const [viewCount, setViewCount] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const allCars = useMemo(() => getAllCars(), []);
+
   const filteredCars = useMemo(() => {
-    let result = cars.filter((car) => {
+    let result = allCars.filter((car) => {
       const matchBrand =
         searchCondition.brand === "" || car.brand === searchCondition.brand;
 
@@ -70,7 +74,7 @@ function IndexPage() {
     }
 
     return result;
-  }, [searchCondition, sortType]);
+  }, [allCars, searchCondition, sortType]);
 
   const totalPage = Math.ceil(filteredCars.length / viewCount);
   const startIndex = (currentPage - 1) * viewCount;
@@ -129,8 +133,8 @@ function IndexPage() {
                 onChange={handleSortChange}
               >
                 <option value="latest">최근등록순</option>
-                <option value="priceLow">낮은가격순</option>
-                <option value="priceHigh">높은가격순</option>
+                <option value="priceLow">낮은시작가순</option>
+                <option value="priceHigh">높은시작가순</option>
                 <option value="yearHigh">최신연식순</option>
                 <option value="mileageLow">주행거리 짧은순</option>
               </select>
@@ -170,8 +174,9 @@ function IndexPage() {
                     <button
                       key={page}
                       type="button"
-                      className={`page-button ${currentPage === page ? "active" : ""
-                        }`}
+                      className={`page-button ${
+                        currentPage === page ? "active" : ""
+                      }`}
                       onClick={() => setCurrentPage(page)}
                     >
                       {page}

@@ -18,10 +18,8 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 22px;
-
   margin-bottom: 22px;
   padding: 24px;
-
   background-color: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--line);
   border-radius: 24px;
@@ -50,29 +48,27 @@
   line-height: 1.6;
 }
 
-.primary-link-button {
+.primary-link-button,
+.dealer-car-add-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   min-width: 132px;
   height: 42px;
   padding: 0 17px;
-
   border: 1px solid var(--main-blue);
   border-radius: 13px;
   background-color: var(--main-blue);
   color: #ffffff;
-
   font-size: 14px;
   font-weight: 900;
   text-decoration: none;
   white-space: nowrap;
-
   box-shadow: 0 8px 18px rgba(20, 115, 230, 0.22);
 }
 
-.primary-link-button:hover {
+.primary-link-button:hover,
+.dealer-car-add-btn:hover {
   background-color: var(--main-blue-dark);
 }
 
@@ -150,7 +146,54 @@
   line-height: 1.5;
 }
 
-.dealer-car-table-wrap {
+.dealer-car-filter-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dealer-car-filter-box input,
+.dealer-car-filter-box select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #cfe3fb;
+  border-radius: 12px;
+  background-color: #ffffff;
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 800;
+  outline: none;
+}
+
+.dealer-car-filter-box input {
+  min-width: 230px;
+}
+
+.dealer-car-filter-box button {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #cfe3fb;
+  border-radius: 12px;
+  background-color: #ffffff;
+  color: var(--main-blue);
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.dealer-car-filter-box button:hover {
+  background-color: #f0f7ff;
+}
+
+.dealer-car-count {
+  margin-bottom: 12px;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dealer-car-table-wrap,
+.dealer-car-table-box {
   width: 100%;
   overflow-x: auto;
 }
@@ -202,14 +245,43 @@
   font-weight: 700;
 }
 
+.dealer-car-table td a {
+  color: var(--text-main);
+  text-decoration: none;
+}
+
+.dealer-car-table td a:hover {
+  color: var(--main-blue);
+}
+
 .dealer-status {
   display: inline-block;
-  min-width: 68px;
+  min-width: 74px;
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 900;
   text-align: center;
+}
+
+.dealer-status.경매예정 {
+  background-color: #eef2ff;
+  color: #4f46e5;
+}
+
+.dealer-status.경매중 {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.dealer-status.경매종료 {
+  background-color: #eeeeee;
+  color: #555555;
+}
+
+.dealer-status.낙찰완료 {
+  background-color: #eaf2ff;
+  color: var(--main-blue);
 }
 
 .dealer-status.판매중 {
@@ -239,17 +311,14 @@
   min-width: 48px;
   height: 34px;
   padding: 0 11px;
-
   border: 1px solid #cfe3fb;
   border-radius: 11px;
   background-color: #ffffff;
   color: var(--main-blue);
-
   font-size: 13px;
   font-weight: 900;
   text-decoration: none;
   cursor: pointer;
-
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -258,6 +327,13 @@
 .dealer-table-actions a:hover,
 .dealer-table-actions button:hover {
   background-color: #f0f7ff;
+}
+
+.empty-table-message {
+  padding: 34px !important;
+  color: var(--text-sub) !important;
+  text-align: center !important;
+  font-weight: 900;
 }
 
 @media (max-width: 900px) {
@@ -269,7 +345,8 @@
     flex-direction: column;
   }
 
-  .primary-link-button {
+  .primary-link-button,
+  .dealer-car-add-btn {
     width: 100%;
   }
 
@@ -283,6 +360,16 @@
 
   .dealer-car-panel-header {
     flex-direction: column;
+  }
+
+  .dealer-car-filter-box {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dealer-car-filter-box input {
+    min-width: 0;
   }
 }
 

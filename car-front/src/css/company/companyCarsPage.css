@@ -1,0 +1,183 @@
+.company-cars-page {
+  min-height: calc(100vh - 68px);
+  padding: 34px 34px 56px;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(207, 231, 255, 0.75), transparent 26%),
+    radial-gradient(circle at 90% 85%, rgba(220, 240, 255, 0.9), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #eef7ff 100%);
+  box-sizing: border-box;
+}
+
+.company-cars-header,
+.company-cars-stat-grid,
+.company-cars-section {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.company-cars-header {
+  margin-bottom: 18px;
+  padding: 28px;
+  border: 1px solid #c7ddff;
+  border-radius: 26px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 22px;
+}
+
+.company-cars-header span {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.company-cars-header h1 {
+  margin: 14px 0 10px;
+  color: var(--text-main);
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.company-cars-header p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.company-cars-back-btn {
+  min-width: 112px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--main-blue);
+  border-radius: 13px;
+  background-color: var(--main-blue);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.22);
+}
+
+.company-cars-back-btn:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.company-cars-stat-grid {
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.company-cars-stat-card {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.company-cars-stat-card span {
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.company-cars-stat-card strong {
+  color: var(--text-main);
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.company-cars-section {
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+}
+
+.company-cars-section-header {
+  margin-bottom: 18px;
+}
+
+.company-cars-section-header h2 {
+  margin: 0 0 8px;
+  color: var(--text-main);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.company-cars-section-header p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.company-cars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px;
+}
+
+.company-cars-empty {
+  padding: 34px;
+  border: 1px dashed #bfd8f5;
+  border-radius: 20px;
+  background-color: #f8fbff;
+  color: var(--text-sub);
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+@media (max-width: 1050px) {
+  .company-cars-stat-grid,
+  .company-cars-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 650px) {
+  .company-cars-page {
+    padding: 24px 14px 44px;
+  }
+
+  .company-cars-header {
+    flex-direction: column;
+    padding: 22px;
+  }
+
+  .company-cars-header h1 {
+    font-size: 28px;
+  }
+
+  .company-cars-stat-grid,
+  .company-cars-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-cars-back-btn {
+    width: 100%;
+  }
+}

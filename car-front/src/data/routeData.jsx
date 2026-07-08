@@ -2,28 +2,46 @@ import { AUTH_ROLES } from "./authUser";
 
 import IndexPage from "../pages/home/IndexPage";
 
+//Auth
 import LoginPage from "../pages/auth/LoginPage";
+import SignUpPage from "../pages/auth/SignUpPage";
 import ForbiddenPage from "../pages/auth/ForbiddenPage";
 import NotFoundPage from "../pages/auth/NotFoundPage";
 
+//member
 import MyPage from "../pages/member/MyPage";
 import MemberPage from "../pages/member/MemberPage";
+import MemberCarsPage from "../pages/member/MemberCarsPage";
+import MemberAuctionBidsPage from "../pages/member/MemberAuctionBidsPage";
+import MemberAuctionTradePage from "../pages/member/MemberAuctionTradePage";
 
+//Company
+import CompanyMyPage from "../pages/company/MyPage";
 import CompanyPage from "../pages/company/CompanyPage";
+import CompanyCarsPage from "../pages/company/CompanyCarsPage";
 import CompanyNoticesPage from "../pages/company/CompanyNoticesPage";
 import CompanyDealerManagePage from "../pages/company/CompanyDealerManagePage";
 import CompanyDealerCreatePage from "../pages/company/CompanyDealerCreatePage";
+import CompanyDealersPublicPage from "../pages/company/CompanyDealersPublicPage";
+import CompanyDealerCarsPage from "../pages/company/CompanyDealerCarsPage";
 import DealerPage from "../pages/company/DealerPage";
 
+
+//car
 import CarDetailPage from "../pages/car/CarDetailPage";
 import DealerRegisterCarPage from "../pages/car/DealerRegisterCarPage";
 import DealerCarManagePage from "../pages/car/DealerCarManagePage";
 
+//Auction
+import DealerAuctionBidManagePage from "../pages/auction/DealerAuctionBidManagePage";
+
+//Admin
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import AdminMemberManagePage from "../pages/admin/AdminMemberManagePage";
 import AdminCarManagePage from "../pages/admin/AdminCarManagePage";
 import AdminReportManagePage from "../pages/admin/AdminReportManagePage";
 import AdminChurnManagePage from "../pages/admin/AdminChurnManagePage";
+import AdminFinalDealManagePage from "../pages/admin/AdminFinalDealManagePage";
 
 /*
   protected: false
@@ -47,13 +65,43 @@ export const PUBLIC_ROUTES = [
   },
   {
     id: 3,
+    path: "/signup",
+    element: <SignUpPage />,
+  },
+  {
+    id: 4,
     path: "/forbidden",
     element: <ForbiddenPage />,
   },
   {
-    id: 4,
+    id: 5,
     path: "/cars/:id",
     element: <CarDetailPage />,
+  },
+  {
+    id: 6,
+    path: "/company",
+    element: <CompanyPage />,
+  },
+  {
+    id: 7,
+    path: "/company/cars",
+    element: <CompanyCarsPage />,
+  },
+  {
+    id: 8,
+    path: "/company/dealers/public",
+    element: <CompanyDealersPublicPage />,
+  },
+  {
+    id: 9,
+    path: "/company/dealers/:dealerId/cars",
+    element: <CompanyDealerCarsPage />,
+  },
+  {
+    id: 10,
+    path: "/members/:memberId/cars",
+    element: <MemberCarsPage />,
   },
 ];
 
@@ -64,17 +112,9 @@ export const PROTECTED_ROUTES = [
     element: <MyPage />,
     allowedRoles: [
       AUTH_ROLES.ADMIN,
-      AUTH_ROLES.COMPANY,
       AUTH_ROLES.DEALER,
       AUTH_ROLES.MEMBER,
     ],
-  },
-
-  {
-    id: 2,
-    path: "/company",
-    element: <CompanyPage />,
-    allowedRoles: [AUTH_ROLES.COMPANY],
   },
   {
     id: 3,
@@ -82,7 +122,6 @@ export const PROTECTED_ROUTES = [
     element: <CompanyNoticesPage />,
     allowedRoles: [AUTH_ROLES.COMPANY],
   },
-
   {
     id: 4,
     path: "/dealer",
@@ -96,19 +135,29 @@ export const PROTECTED_ROUTES = [
     allowedRoles: [AUTH_ROLES.DEALER],
   },
   {
+    id: 19,
+    path: "/dealer/cars/:carId/bids",
+    element: <DealerAuctionBidManagePage />,
+    allowedRoles: [AUTH_ROLES.DEALER],
+  },
+  {
     id: 6,
     path: "/dealer/register-car",
     element: <DealerRegisterCarPage />,
     allowedRoles: [AUTH_ROLES.DEALER],
   },
-
   {
     id: 7,
     path: "/member",
     element: <MemberPage />,
     allowedRoles: [AUTH_ROLES.MEMBER],
   },
-
+  {
+    id: 20,
+    path: "/member/auction-bids",
+    element: <MemberAuctionBidsPage />,
+    allowedRoles: [AUTH_ROLES.MEMBER],
+  },
   {
     id: 8,
     path: "/admin",
@@ -131,6 +180,12 @@ export const PROTECTED_ROUTES = [
     id: 11,
     path: "/admin/cars",
     element: <AdminCarManagePage />,
+    allowedRoles: [AUTH_ROLES.ADMIN],
+  },
+  {
+    id: 22,
+    path: "/admin/final-deals",
+    element: <AdminFinalDealManagePage />,
     allowedRoles: [AUTH_ROLES.ADMIN],
   },
   {
@@ -168,6 +223,18 @@ export const PROTECTED_ROUTES = [
     path: "/company/dealers/create",
     element: <CompanyDealerCreatePage />,
     allowedRoles: [AUTH_ROLES.COMPANY],
+  },
+  {
+    id: 18,
+    path: "/company/mypage",
+    element: <CompanyMyPage />,
+    allowedRoles: [AUTH_ROLES.COMPANY],
+  },
+  {
+    id: 21,
+    path: "/member/auction-trades/:winnerId",
+    element: <MemberAuctionTradePage />,
+    allowedRoles: [AUTH_ROLES.MEMBER],
   },
 ];
 
