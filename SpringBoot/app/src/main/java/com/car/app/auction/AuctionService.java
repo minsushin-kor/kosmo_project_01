@@ -4,10 +4,13 @@ import com.car.app.car.Car;
 import com.car.app.car.CarRepository;
 import com.car.app.dealer.Dealer;
 import com.car.app.dealer.DealerRepository;
+import com.car.app.transaction.Transaction;
+import com.car.app.transaction.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +27,7 @@ public class AuctionService {
     private final BidRepository bidRepository;
     private final DealerRepository dealerRepository;
     private final CarRepository carRepository;
+    private final TransactionRepository transactionRepository;
 
     /**
      * 특정 경매 세션에 딜러가 입찰을 등록하는 메서드입니다.
@@ -106,5 +110,110 @@ public class AuctionService {
                         .createdAt(bid.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 특정 경매를 수동으로 마감 처리하고 낙찰자를 결정합니다. (판매자 또는 관리자 요청 시)
+     *
+     * @param auctionId   경매 ID
+     * @param sellerEmail 요청자의 이메일 (null인 경우 권한 검증 패스)
+     * @return 마감 및 낙찰 처리된 경매 엔티티
+     */
+    @Transactional
+    public Auction closeAuction(Long auctionId, String sellerEmail) {
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 경매입니다."));
+        
+        // 판매자 본인 소유의 차량인지 검증
+        if (sellerEmail != null && (auction.getCar().getMember() == null || 
+            !auction.getCar().getMember().getEmail().equalsIgnoreCase(sellerEmail))) {
+            throw new SecurityException("본인이 등록한 차량의 경매만 종료할 수 있습니다.");
+        }
+
+        return closeAuctionInternal(auction);
+    }
+
+    /**
+     * 기한이 만료된 모든 진행 중인 경매를 마감 및 낙찰 처리합니다. (스케줄러 호출용)
+     */
+    @Transactional
+    public void closeExpiredAuctions() {
+        List<Auction> expiredAuctions = auctionRepository.findByStatusAndEndTimeBefore("ACTIVE", LocalDateTime.now());
+        for (Auction auction : expiredAuctions) {
+            try {
+                closeAuctionInternal(auction);
+            } catch (Exception e) {
+                // 특정 경매의 마감 실패 시 다른 경매 진행에 영향이 없도록 로깅 후 계속 진행
+                System.err.println("자동 경매 종료 실패 [ID: " + auction.getAuctionId() + "]: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 경매 종료 및 낙찰 로직을 수행하는 내부 공통 메소드
+     */
+    private Auction closeAuctionInternal(Auction auction) {
+        if (!"ACTIVE".equalsIgnoreCase(auction.getStatus())) {
+            throw new IllegalArgumentException("이미 마감되었거나 활성 상태가 아닌 경매입니다.");
+        }
+
+        // 경매에 들어온 모든 입찰 내역 조회
+        List<Bid> bids = bidRepository.findByAuctionAuctionId(auction.getAuctionId());
+        Bid winningBid = null;
+
+        if (bids != null && !bids.isEmpty()) {
+            // 최고 입찰 금액을 제시한 입찰을 선택 (입찰 금액이 같으면 ID가 작아 먼저 등록된 입찰자 우선)
+            winningBid = bids.stream()
+                    .max((b1, b2) -> {
+                        int amtCompare = b1.getBidAmount().compareTo(b2.getBidAmount());
+                        if (amtCompare != 0) {
+                            return amtCompare;
+                        }
+                        return b2.getBidId().compareTo(b1.getBidId());
+                    })
+                    .orElse(null);
+        }
+
+        // 경매 상태를 COMPLETED로 변경 및 낙찰 정보 기록
+        auction.setStatus("COMPLETED");
+        auction.setWinningBid(winningBid);
+        
+        // 예정된 마감 시간 전 조기 종료 시 종료 시간을 현재 시간으로 갱신
+        if (LocalDateTime.now().isBefore(auction.getEndTime())) {
+            auction.setEndTime(LocalDateTime.now());
+        }
+
+        Auction savedAuction = auctionRepository.save(auction);
+
+        // 낙찰자(winningBid)가 존재하는 경우 거래내역(Transaction) 생성 및 차량 상태 SOLD 변경
+        Car car = auction.getCar();
+        if (winningBid != null) {
+            car.setStatus("SOLD");
+            carRepository.save(car);
+
+            // 기본 수수료율 0.3% (0.0030) 적용. (4단계에서 Churn Risk 딜러 여부에 따른 요율 할인 고도화 예정)
+            BigDecimal commissionRate = new BigDecimal("0.0030");
+            long dealPrice = winningBid.getBidAmount();
+            long commissionAmount = (long) (dealPrice * commissionRate.doubleValue());
+
+            Transaction transaction = Transaction.builder()
+                    .car(car)
+                    .buyerType("DEALER")
+                    .buyerId(winningBid.getDealer().getDealerId())
+                    .sellerType("MEMBER")
+                    .sellerId(car.getMember().getMemberId())
+                    .dealPrice(dealPrice)
+                    .commissionRate(commissionRate)
+                    .commissionAmount(commissionAmount)
+                    .build();
+
+            transactionRepository.save(transaction);
+        } else {
+            // 입찰자가 없어 유찰된 경우 차량 상태를 다시 REGISTERED로 세팅하여 재경매 가능하도록 처리
+            car.setStatus("REGISTERED");
+            carRepository.save(car);
+        }
+
+        return savedAuction;
     }
 }

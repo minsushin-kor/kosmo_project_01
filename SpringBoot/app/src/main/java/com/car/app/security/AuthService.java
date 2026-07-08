@@ -11,8 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-
 /**
  * 일반 회원가입, 상사 마스터 가입 및 통합 로그인 인증 업무를 처리하는 서비스 클래스입니다.
  */
@@ -45,6 +43,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
                 .phone(request.getPhone())
+                .profileImageUrl(request.getProfileImageUrl())
                 .role("MEMBER") // 기본 권한 지정
                 .build();
                 
@@ -76,6 +75,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .address(request.getAddress())
                 .phone(request.getPhone())
+                .profileImageUrl(request.getProfileImageUrl())
                 .membershipStatus(false) // 최초 가입 시 비활성화 상태
                 .build();
 

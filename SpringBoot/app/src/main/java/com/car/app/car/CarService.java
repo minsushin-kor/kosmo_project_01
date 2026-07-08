@@ -5,10 +5,15 @@ import com.car.app.dealer.DealerRepository;
 import com.car.app.member.Member;
 import com.car.app.member.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -119,5 +124,48 @@ public class CarService {
         }
 
         return savedCar;
+    }
+
+    /**
+     * 다중 필터와 페이징을 지원하는 차량 목록 검색 메서드입니다.
+     */
+    @Transactional(readOnly = true)
+    public Page<Car> searchCars(String make, String model, String transmission, String state, String status,
+                               Long minPrice, Long maxPrice, Integer minYear, Integer maxYear, Pageable pageable) {
+        Specification<Car> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (StringUtils.hasText(make)) {
+                predicates.add(criteriaBuilder.equal(root.get("make"), make));
+            }
+            if (StringUtils.hasText(model)) {
+                predicates.add(criteriaBuilder.equal(root.get("model"), model));
+            }
+            if (StringUtils.hasText(transmission)) {
+                predicates.add(criteriaBuilder.equal(root.get("transmission"), transmission));
+            }
+            if (StringUtils.hasText(state)) {
+                predicates.add(criteriaBuilder.equal(root.get("state"), state));
+            }
+            if (StringUtils.hasText(status)) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
+            if (minPrice != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("sellingPrice"), minPrice));
+            }
+            if (maxPrice != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("sellingPrice"), maxPrice));
+            }
+            if (minYear != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("year"), minYear));
+            }
+            if (maxYear != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("year"), maxYear));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return carRepository.findAll(spec, pageable);
     }
 }

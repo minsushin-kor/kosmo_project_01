@@ -37,6 +37,10 @@ public class Auction {
     @Builder.Default
     private String status = "ACTIVE"; // 'ACTIVE', 'COMPLETED', 'CANCELLED'
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "winning_bid_id")
+    private Bid winningBid;
+
     @OneToMany(mappedBy = "auction", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Bid> bids = new ArrayList<>();
