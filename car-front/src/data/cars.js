@@ -11,19 +11,36 @@ const cars = [
     sellerType: "딜러",
     fuel: "가솔린",
     transmission: "자동",
-    status: "판매중",
+    status: "경매중",
     imageText: "AVANTE",
     color: "화이트",
     displacement: "1,598cc",
     accident: "무사고",
     carNumber: "12가 3456",
+
+    dealerId: 1,
+    memberId: null,
+    companyId: 1,
+
     sellerName: "김딜러",
     sellerPhone: "010-1234-5678",
     companyName: "Kosmo 인증모터스",
+
     registeredDate: "2026-07-01",
     description:
       "출퇴근과 첫차 용도로 적합한 준중형 세단입니다. 실내 관리 상태가 양호하고 연비 부담이 적은 차량입니다.",
     options: ["후방카메라", "열선시트", "스마트키", "블루투스", "차선이탈 경고"],
+
+    auction: {
+      auctionId: 1,
+      startPrice: 1650,
+      bidCount: 4,
+      startDate: "2026-07-08T09:00:00",
+      endDate: "2026-07-15T18:00:00",
+      status: "경매중",
+      winningBidPrice: null,
+      winningBidderName: null,
+    },
   },
   {
     id: 2,
@@ -37,19 +54,36 @@ const cars = [
     sellerType: "딜러",
     fuel: "가솔린",
     transmission: "자동",
-    status: "상담중",
+    status: "경매중",
     imageText: "K5",
     color: "블랙",
     displacement: "1,999cc",
     accident: "단순교환",
     carNumber: "34나 8721",
+
+    dealerId: 2,
+    memberId: null,
+    companyId: 2,
+
     sellerName: "이딜러",
     sellerPhone: "010-2222-7788",
     companyName: "천안 오토플러스",
+
     registeredDate: "2026-06-29",
     description:
       "중형 세단 특유의 안정감이 있고 옵션 구성이 좋은 차량입니다. 현재 구매 상담이 진행 중입니다.",
     options: ["내비게이션", "전방센서", "후방센서", "통풍시트", "크루즈 컨트롤"],
+
+    auction: {
+      auctionId: 2,
+      startPrice: 1980,
+      bidCount: 2,
+      startDate: "2026-07-08T09:00:00",
+      endDate: "2026-07-14T20:00:00",
+      status: "경매중",
+      winningBidPrice: null,
+      winningBidderName: null,
+    },
   },
   {
     id: 3,
@@ -63,19 +97,36 @@ const cars = [
     sellerType: "회사 딜러",
     fuel: "가솔린",
     transmission: "자동",
-    status: "판매중",
+    status: "경매중",
     imageText: "G80",
     color: "그레이",
     displacement: "3,342cc",
     accident: "무사고",
     carNumber: "56다 9012",
+
+    dealerId: 3,
+    memberId: null,
+    companyId: 3,
+
     sellerName: "박딜러",
     sellerPhone: "010-3333-9000",
     companyName: "서울 프리미엄카",
+
     registeredDate: "2026-06-25",
     description:
       "고급 세단을 찾는 고객에게 적합한 차량입니다. 승차감과 정숙성이 좋고 관리 이력이 안정적입니다.",
     options: ["어라운드뷰", "HUD", "전동시트", "메모리시트", "렉시콘 사운드"],
+
+    auction: {
+      auctionId: 3,
+      startPrice: 3250,
+      bidCount: 6,
+      startDate: "2026-07-08T09:00:00",
+      endDate: "2026-07-16T18:00:00",
+      status: "경매중",
+      winningBidPrice: null,
+      winningBidderName: null,
+    },
   },
   {
     id: 4,
@@ -89,19 +140,36 @@ const cars = [
     sellerType: "일반회원",
     fuel: "가솔린",
     transmission: "자동",
-    status: "판매중",
+    status: "경매중",
     imageText: "XM3",
     color: "레드",
     displacement: "1,332cc",
     accident: "무사고",
     carNumber: "78라 1122",
+
+    dealerId: null,
+    memberId: 1,
+    companyId: null,
+
     sellerName: "정회원",
     sellerPhone: "010-4444-1212",
     companyName: "개인 판매",
+
     registeredDate: "2026-06-22",
     description:
       "쿠페형 SUV 디자인이 특징인 차량입니다. 개인 판매 차량이며 실사용 위주로 관리되었습니다.",
     options: ["후방카메라", "스마트키", "열선핸들", "열선시트", "오토라이트"],
+
+    auction: {
+      auctionId: 4,
+      startPrice: 1720,
+      bidCount: 1,
+      startDate: "2026-07-08T09:00:00",
+      endDate: "2026-07-13T18:00:00",
+      status: "경매중",
+      winningBidPrice: null,
+      winningBidderName: null,
+    },
   },
   {
     id: 5,
@@ -115,19 +183,36 @@ const cars = [
     sellerType: "딜러",
     fuel: "LPG",
     transmission: "자동",
-    status: "판매중",
+    status: "경매중",
     imageText: "SONATA",
     color: "실버",
     displacement: "1,999cc",
     accident: "무사고",
     carNumber: "90마 3344",
+
+    dealerId: 4,
+    memberId: null,
+    companyId: 4,
+
     sellerName: "최딜러",
     sellerPhone: "010-5555-3434",
     companyName: "창원 굿카",
+
     registeredDate: "2026-06-20",
     description:
       "LPG 차량으로 유지비 부담이 적습니다. 넓은 실내 공간이 필요한 고객에게 적합합니다.",
     options: ["내비게이션", "후방카메라", "열선시트", "전동트렁크", "스마트키"],
+
+    auction: {
+      auctionId: 5,
+      startPrice: 2050,
+      bidCount: 3,
+      startDate: "2026-07-08T09:00:00",
+      endDate: "2026-07-17T19:00:00",
+      status: "경매중",
+      winningBidPrice: null,
+      winningBidderName: null,
+    },
   },
   {
     id: 6,
@@ -141,19 +226,36 @@ const cars = [
     sellerType: "일반회원",
     fuel: "디젤",
     transmission: "자동",
-    status: "판매중",
+    status: "경매중",
     imageText: "SPORTAGE",
     color: "화이트",
     displacement: "1,598cc",
     accident: "무사고",
     carNumber: "11바 5566",
+
+    dealerId: null,
+    memberId: 2,
+    companyId: null,
+
     sellerName: "강회원",
     sellerPhone: "010-6666-5656",
     companyName: "개인 판매",
+
     registeredDate: "2026-06-18",
     description:
       "연식 대비 주행거리가 낮은 SUV입니다. 가족용 차량이나 장거리 운행용으로 적합합니다.",
     options: ["4륜구동", "후방카메라", "스마트크루즈", "통풍시트", "차선유지 보조"],
+
+    auction: {
+      auctionId: 6,
+      startPrice: 2750,
+      bidCount: 5,
+      startDate: "2026-07-08T09:00:00",
+      endDate: "2026-07-18T18:00:00",
+      status: "경매중",
+      winningBidPrice: null,
+      winningBidderName: null,
+    },
   },
   {
     id: 7,
@@ -167,19 +269,36 @@ const cars = [
     sellerType: "딜러",
     fuel: "가솔린",
     transmission: "자동",
-    status: "판매중",
+    status: "경매중",
     imageText: "BMW",
     color: "블루",
     displacement: "1,998cc",
     accident: "무사고",
     carNumber: "22사 7788",
+
+    dealerId: 5,
+    memberId: null,
+    companyId: 5,
+
     sellerName: "윤딜러",
     sellerPhone: "010-7777-7878",
     companyName: "수원 수입차센터",
+
     registeredDate: "2026-06-15",
     description:
       "스포츠 패키지가 적용된 수입 세단입니다. 주행감과 디자인을 중요하게 보는 고객에게 적합합니다.",
     options: ["M 스포츠 패키지", "HUD", "전동시트", "후방카메라", "전방충돌 경고"],
+
+    auction: {
+      auctionId: 7,
+      startPrice: 3890,
+      bidCount: 7,
+      startDate: "2026-07-08T09:00:00",
+      endDate: "2026-07-19T18:00:00",
+      status: "경매중",
+      winningBidPrice: null,
+      winningBidderName: null,
+    },
   },
   {
     id: 8,
@@ -193,19 +312,36 @@ const cars = [
     sellerType: "회사 딜러",
     fuel: "가솔린",
     transmission: "자동",
-    status: "판매완료",
+    status: "경매종료",
     imageText: "BENZ",
     color: "블랙",
     displacement: "1,991cc",
     accident: "무사고",
     carNumber: "33아 9900",
+
+    dealerId: 6,
+    memberId: null,
+    companyId: 6,
+
     sellerName: "한딜러",
     sellerPhone: "010-8888-9090",
     companyName: "청주 프리미엄모터스",
+
     registeredDate: "2026-06-10",
     description:
-      "판매 완료된 차량입니다. 상세 페이지에서는 판매 완료 상태의 버튼 비활성화 예시를 확인할 수 있습니다.",
+      "경매가 종료된 차량입니다. 상세 페이지에서는 경매 종료 상태의 버튼 비활성화 예시를 확인할 수 있습니다.",
     options: ["파노라마 선루프", "전동시트", "부메스터 사운드", "후방카메라", "LED 헤드램프"],
+
+    auction: {
+      auctionId: 8,
+      startPrice: 3650,
+      bidCount: 8,
+      startDate: "2026-07-01T09:00:00",
+      endDate: "2026-07-07T18:00:00",
+      status: "경매종료",
+      winningBidPrice: 4020,
+      winningBidderName: "낙찰자 비공개",
+    },
   },
 ];
 

@@ -585,3 +585,65 @@
   font-size: 13px;
   font-weight: 800;
 }
+.admin-summary-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-summary-mini-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background-color: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
+}
+
+.admin-summary-mini-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-summary-mini-card strong {
+  color: var(--text-main);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.admin-panel-sub-text {
+  margin: 8px 0 0;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.manage-badge.결제대기 {
+  background-color: #fff7df;
+  color: #d97706;
+}
+
+.manage-badge.결제완료 {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.manage-badge.거래취소 {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+@media (max-width: 900px) {
+  .admin-summary-mini-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-summary-mini-grid {
+    grid-template-columns: 1fr;
+  }
+}

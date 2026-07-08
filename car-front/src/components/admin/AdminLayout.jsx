@@ -19,21 +19,26 @@ const adminMenus = [
   },
   {
     id: 4,
+    name: "최종 거래 관리",
+    path: "/admin/final-deals",
+  },
+  {
+    id: 5,
     name: "신고 관리",
     path: "/admin/reports",
   },
   {
-    id: 5,
+    id: 6,
     name: "이탈 위험 관리",
     path: "/admin/churn/company",
     children: [
       {
-        id: 51,
+        id: 61,
         name: "회사 이탈 위험관리",
         path: "/admin/churn/company",
       },
       {
-        id: 52,
+        id: 62,
         name: "딜러 이탈 위험관리",
         path: "/admin/churn/dealer",
       },

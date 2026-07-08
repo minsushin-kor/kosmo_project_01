@@ -27,11 +27,26 @@ export const MYPAGE_MENU_DATA = {
   [AUTH_ROLES.COMPANY]: [
     {
       id: 1,
-      name: "회사 페이지",
-      path: "/company",
+      name: "회사 관리 대시보드",
+      path: "/company/mypage",
     },
     {
       id: 2,
+      name: "공개 회사 페이지",
+      path: "/company",
+    },
+    {
+      id: 3,
+      name: "딜러 관리",
+      path: "/company/dealers",
+    },
+    {
+      id: 4,
+      name: "딜러 계정 생성",
+      path: "/company/dealers/create",
+    },
+    {
+      id: 5,
       name: "공지사항 관리",
       path: "/company/notices",
     },
