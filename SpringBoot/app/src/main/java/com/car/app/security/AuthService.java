@@ -11,8 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-
 /**
  * 일반 회원가입, 상사 마스터 가입 및 통합 로그인 인증 업무를 처리하는 서비스 클래스입니다.
  */
