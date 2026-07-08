@@ -14,6 +14,7 @@ public class DealerDto {
         private String password;
         private String name;
         private String phone;
+        private String profileImageUrl;
     }
 
     @Getter
@@ -29,5 +30,6 @@ public class DealerDto {
         private String status;
         private String tier;
         private Double riskScore;
+        private String profileImageUrl;
     }
 }

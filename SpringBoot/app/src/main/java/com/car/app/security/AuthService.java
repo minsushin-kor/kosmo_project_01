@@ -45,6 +45,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
                 .phone(request.getPhone())
+                .profileImageUrl(request.getProfileImageUrl())
                 .role("MEMBER") // 기본 권한 지정
                 .build();
                 
@@ -76,6 +77,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .address(request.getAddress())
                 .phone(request.getPhone())
+                .profileImageUrl(request.getProfileImageUrl())
                 .membershipStatus(false) // 최초 가입 시 비활성화 상태
                 .build();
 

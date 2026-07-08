@@ -28,4 +28,16 @@ public class AuctionDto {
         private Long bidAmount;
         private LocalDateTime createdAt;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CloseResponse {
+        private Long auctionId;
+        private String status;
+        private LocalDateTime endTime;
+        private BidResponse winningBid;
+    }
 }
