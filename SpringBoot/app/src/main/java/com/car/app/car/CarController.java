@@ -63,6 +63,11 @@ public class CarController {
                             .build())
                     .collect(Collectors.toList());
 
+            boolean goldenBadgeStatus = false;
+            if (car.getDealer() != null) {
+                goldenBadgeStatus = car.getDealer().getCompany().getGoldenBadgeStatus();
+            }
+
             // 최종 API 응답 포맷 조립
             CarDto.Response response = CarDto.Response.builder()
                     .carId(car.getCarId())
@@ -83,6 +88,7 @@ public class CarController {
                     .ownerId(ownerId)
                     .ownerName(ownerName)
                     .images(imageDtos)
+                    .goldenBadgeStatus(goldenBadgeStatus)
                     .build();
 
             return ResponseEntity.ok(ApiResponse.success(response, "중고차 매물이 성공적으로 등록되었습니다."));
@@ -136,6 +142,11 @@ public class CarController {
                             .build())
                     .collect(Collectors.toList());
 
+            boolean goldenBadgeStatus = false;
+            if (car.getDealer() != null) {
+                goldenBadgeStatus = car.getDealer().getCompany().getGoldenBadgeStatus();
+            }
+
             return CarDto.Response.builder()
                     .carId(car.getCarId())
                     .year(car.getYear())
@@ -155,6 +166,7 @@ public class CarController {
                     .ownerId(ownerId)
                     .ownerName(ownerName)
                     .images(imageDtos)
+                    .goldenBadgeStatus(goldenBadgeStatus)
                     .build();
         });
 
@@ -188,6 +200,11 @@ public class CarController {
                             .build())
                     .collect(Collectors.toList());
 
+            boolean goldenBadgeStatus = false;
+            if (car.getDealer() != null) {
+                goldenBadgeStatus = car.getDealer().getCompany().getGoldenBadgeStatus();
+            }
+
             CarDto.Response response = CarDto.Response.builder()
                     .carId(car.getCarId())
                     .year(car.getYear())
@@ -207,6 +224,7 @@ public class CarController {
                     .ownerId(ownerId)
                     .ownerName(ownerName)
                     .images(imageDtos)
+                    .goldenBadgeStatus(goldenBadgeStatus)
                     .build();
 
             return ResponseEntity.ok(ApiResponse.success(response, "차량 상세 조회가 완료되었습니다."));

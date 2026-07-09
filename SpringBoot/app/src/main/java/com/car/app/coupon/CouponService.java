@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.car.app.company.CompanyRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,6 +20,7 @@ public class CouponService {
     private final CouponRepository couponRepository;
     private final DealerRepository dealerRepository;
     private final TransactionRepository transactionRepository;
+    private final CompanyRepository companyRepository;
 
     /**
      * 이탈위험 점수가 75점 이상인 활성 딜러에게 50% 수수료 감면 쿠폰을 자동 발행합니다.
@@ -127,5 +129,80 @@ public class CouponService {
         return couponRepository.findByDealerDealerIdAndCouponTypeAndStatus(
                 dealer.getDealerId(), "COMMISSION_DISCOUNT", "UNUSED"
         );
+    }
+
+    /**
+     * 상위 5% 최우수 상사를 실적(소속 딜러들의 거래 건수) 기준 정렬하여 식별하고
+     * 골든 뱃지 상태를 갱신하며 멤버십 가입 할인 쿠폰을 자동 발급합니다.
+     */
+    @Transactional
+    public void updateCompanyTiersAndBadges() {
+        List<com.car.app.company.Company> companies = companyRepository.findAll();
+        if (companies.isEmpty()) {
+            return;
+        }
+
+        // 1. 각 상사의 소속 딜러 실적(성사 거래 건수)을 취합합니다.
+        class CompanyScore implements Comparable<CompanyScore> {
+            com.car.app.company.Company company;
+            int score;
+
+            CompanyScore(com.car.app.company.Company company, int score) {
+                this.company = company;
+                this.score = score;
+            }
+
+            @Override
+            public int compareTo(CompanyScore o) {
+                return Integer.compare(o.score, this.score); // 성적 내림차순 정렬
+            }
+        }
+
+        List<CompanyScore> scores = new java.util.ArrayList<>();
+        for (com.car.app.company.Company company : companies) {
+            List<Dealer> dealers = dealerRepository.findByCompanyCompanyId(company.getCompanyId());
+            int totalDeals = 0;
+            for (Dealer dealer : dealers) {
+                totalDeals += transactionRepository.findBySellerTypeAndSellerId("DEALER", dealer.getDealerId()).size();
+                totalDeals += transactionRepository.findByBuyerTypeAndBuyerId("DEALER", dealer.getDealerId()).size();
+            }
+            scores.add(new CompanyScore(company, totalDeals));
+        }
+
+        java.util.Collections.sort(scores);
+
+        // 상위 5% 상사 개수 결정 (최소 1개 상사 보장)
+        int topCount = (int) Math.ceil(companies.size() * 0.05);
+
+        for (int i = 0; i < scores.size(); i++) {
+            com.car.app.company.Company company = scores.get(i).company;
+            if (i < topCount) {
+                // 상위 5% 상사 지정
+                company.setTier("TOP_5");
+                company.setGoldenBadgeStatus(true);
+
+                // 멤버십 20% 할인 쿠폰 자동 발급 (중복 발급 방지: 이미 UNUSED 상태의 MEMBERSHIP_DISCOUNT 쿠폰이 있는지 검사)
+                boolean hasUnusedCoupon = couponRepository.existsByCompanyCompanyIdAndCouponTypeAndStatus(
+                        company.getCompanyId(), "MEMBERSHIP_DISCOUNT", "UNUSED"
+                );
+                if (!hasUnusedCoupon) {
+                    Coupon coupon = Coupon.builder()
+                            .name("최우수 상사 5% 멤버십 가입 20% 할인 쿠폰")
+                            .couponType("MEMBERSHIP_DISCOUNT")
+                            .discountRate(new BigDecimal("0.2000")) // 20% 할인
+                            .company(company)
+                            .status("UNUSED")
+                            .issuedAt(LocalDateTime.now())
+                            .expiredAt(LocalDateTime.now().plusDays(90)) // 90일 유효
+                            .build();
+                    couponRepository.save(coupon);
+                }
+            } else {
+                // 상위 5% 외 상사들 강등 및 골든 뱃지 박탈
+                company.setTier("NORMAL");
+                company.setGoldenBadgeStatus(false);
+            }
+            companyRepository.save(company);
+        }
     }
 }

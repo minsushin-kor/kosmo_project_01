@@ -64,5 +64,6 @@ public class CarDto {
         private Long ownerId;
         private String ownerName;
         private List<ImageDto> images;
+        private Boolean goldenBadgeStatus;
     }
 }

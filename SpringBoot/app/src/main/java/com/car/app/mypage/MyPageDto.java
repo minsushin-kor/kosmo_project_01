@@ -54,6 +54,9 @@ public class MyPageDto {
         private String tier;
         private Double riskScore;
         private String companyName;
+        
+        // 골든 뱃지 상태 (상사 마스터 및 딜러 공통)
+        private Boolean goldenBadgeStatus;
     }
 
     @Getter

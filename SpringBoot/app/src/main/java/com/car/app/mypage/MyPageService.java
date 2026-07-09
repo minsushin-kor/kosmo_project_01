@@ -59,6 +59,7 @@ public class MyPageService {
                     .businessNumber(company.getBusinessNumber())
                     .address(company.getAddress())
                     .membershipStatus(company.getMembershipStatus())
+                    .goldenBadgeStatus(company.getGoldenBadgeStatus())
                     .build();
 
             // 소속 딜러 목록 조회
@@ -113,6 +114,7 @@ public class MyPageService {
                     .tier(dealer.getTier())
                     .riskScore(dealer.getRiskScore())
                     .companyName(dealer.getCompany().getName())
+                    .goldenBadgeStatus(dealer.getCompany().getGoldenBadgeStatus())
                     .build();
 
             // 본인이 등록한 차량 매물 조회

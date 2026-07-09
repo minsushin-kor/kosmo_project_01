@@ -54,6 +54,10 @@ public class Company {
     @Builder.Default
     private Double riskScore = 0.0;
 
+    @Column(name = "golden_badge_status")
+    @Builder.Default
+    private Boolean goldenBadgeStatus = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

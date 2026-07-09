@@ -10,4 +10,5 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     boolean existsByUsedTransactionTransactionId(Long transactionId);
     List<Coupon> findByDealerDealerIdAndCouponTypeAndStatus(Long dealerId, String couponType, String status);
     boolean existsByDealerDealerIdAndCouponTypeAndStatus(Long dealerId, String couponType, String status);
+    boolean existsByCompanyCompanyIdAndCouponTypeAndStatus(Long companyId, String couponType, String status);
 }
