@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.car.app.transaction.Transaction;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -158,5 +159,78 @@ public class CarController {
         });
 
         return ResponseEntity.ok(ApiResponse.success(responsePage, "차량 목록 검색 및 조회가 완료되었습니다."));
+    }
+
+    /**
+     * 특정 차량 매물의 상세 정보를 단건 조회합니다.
+     * 로그인 여부 상관없이 비인증 사용자도 조회 가능합니다.
+     */
+    @GetMapping("/{carId}")
+    public ResponseEntity<ApiResponse<CarDto.Response>> getCarDetail(@PathVariable Long carId) {
+        try {
+            Car car = carService.getCarDetail(carId);
+
+            Object owner = car.getOwner();
+            Long ownerId = null;
+            String ownerName = null;
+            if (owner instanceof Member) {
+                ownerId = ((Member) owner).getMemberId();
+                ownerName = ((Member) owner).getName();
+            } else if (owner instanceof Dealer) {
+                ownerId = ((Dealer) owner).getDealerId();
+                ownerName = ((Dealer) owner).getName();
+            }
+
+            List<CarDto.ImageDto> imageDtos = car.getImages().stream()
+                    .map(img -> CarDto.ImageDto.builder()
+                            .imageUrl(img.getImageUrl())
+                            .isMain(img.getIsMain())
+                            .build())
+                    .collect(Collectors.toList());
+
+            CarDto.Response response = CarDto.Response.builder()
+                    .carId(car.getCarId())
+                    .year(car.getYear())
+                    .make(car.getMake())
+                    .model(car.getModel())
+                    .option(car.getOption())
+                    .body(car.getBody())
+                    .transmission(car.getTransmission())
+                    .state(car.getState())
+                    .condition(car.getCondition())
+                    .odometer(car.getOdometer())
+                    .color(car.getColor())
+                    .interior(car.getInterior())
+                    .sellingPrice(car.getSellingPrice())
+                    .status(car.getStatus())
+                    .ownerType(car.getOwnerType())
+                    .ownerId(ownerId)
+                    .ownerName(ownerName)
+                    .images(imageDtos)
+                    .build();
+
+            return ResponseEntity.ok(ApiResponse.success(response, "차량 상세 조회가 완료되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
+     * 일반 회원이 딜러가 등록한 매물 차량을 즉시 구매합니다.
+     * 권한: ROLE_MEMBER 필요.
+     */
+    @PostMapping("/{carId}/purchase")
+    @PreAuthorize("hasRole('MEMBER')")
+    public ResponseEntity<ApiResponse<Long>> purchaseCar(@PathVariable Long carId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String memberEmail = authentication.getName();
+
+            Transaction transaction = carService.purchaseCar(carId, memberEmail);
+
+            return ResponseEntity.ok(ApiResponse.success(transaction.getTransactionId(), "즉시 구매 요청이 성공적으로 완료되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
     }
 }

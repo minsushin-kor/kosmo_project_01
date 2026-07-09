@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.car.app.transaction.Transaction;
+import com.car.app.transaction.TransactionRepository;
+import java.math.BigDecimal;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +33,7 @@ public class CarService {
     private final MemberRepository memberRepository;
     private final DealerRepository dealerRepository;
     private final com.car.app.auction.AuctionRepository auctionRepository;
+    private final TransactionRepository transactionRepository;
 
     /**
      * 중고차 매물 및 차량 이미지들을 등록하는 트랜잭션 메서드입니다.
@@ -189,5 +193,61 @@ public class CarService {
         };
 
         return carRepository.findAll(spec, pageable);
+    }
+
+    /**
+     * 특정 차량 매물의 상세 정보 및 연관 이미지 리스트를 단건 조회합니다.
+     */
+    @Transactional(readOnly = true)
+    public Car getCarDetail(Long carId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
+        // 지연 로딩 관계인 이미지 리스트를 트랜잭션 내에서 강제 로드해 둡니다.
+        car.getImages().size();
+        return car;
+    }
+
+    /**
+     * 일반 회원이 딜러 소유의 차량을 즉시 구매합니다.
+     * 거래(Transaction) 내역을 생성하고 차량 상태를 SOLD로 변경합니다.
+     */
+    @Transactional
+    public Transaction purchaseCar(Long carId, String memberEmail) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
+
+        Member buyer = memberRepository.findByEmail(memberEmail)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
+
+        // 검증 1: 딜러가 등록한 차량 매물인지 확인
+        if (car.getDealer() == null) {
+            throw new IllegalArgumentException("딜러가 등록한 매물만 즉시 구매가 가능합니다.");
+        }
+
+        // 검증 2: 판매 중 상태(REGISTERED)인지 확인
+        if (!"REGISTERED".equalsIgnoreCase(car.getStatus())) {
+            throw new IllegalArgumentException("구매 가능한 상태의 차량이 아닙니다.");
+        }
+
+        // 3단계: 수수료 및 거래 정보 설정 (0.3% 기본 요율 적용)
+        BigDecimal commissionRate = new BigDecimal("0.0030");
+        long dealPrice = car.getSellingPrice();
+        long commissionAmount = (long) (dealPrice * commissionRate.doubleValue());
+
+        Transaction transaction = Transaction.builder()
+                .car(car)
+                .buyerType("MEMBER")
+                .buyerId(buyer.getMemberId())
+                .sellerType("DEALER")
+                .sellerId(car.getDealer().getDealerId())
+                .dealPrice(dealPrice)
+                .commissionRate(commissionRate)
+                .commissionAmount(commissionAmount)
+                .build();
+
+        // 4단계: 차량 상태를 SOLD로 갱신
+        car.setStatus("SOLD");
+
+        return transactionRepository.save(transaction);
     }
 }
