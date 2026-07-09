@@ -15,6 +15,12 @@ public class AuthDto {
         private String name;
         private String phone;
         private String profileImageUrl;
+        private Boolean hasCar;
+        private String ownedCarImageUrl;
+        private String ownedCarMake;
+        private String ownedCarModel;
+        private Double ownedCarOdometer;
+        private Integer ownedCarYear;
     }
 
     @Getter

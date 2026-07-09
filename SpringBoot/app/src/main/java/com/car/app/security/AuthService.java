@@ -44,6 +44,12 @@ public class AuthService {
                 .name(request.getName())
                 .phone(request.getPhone())
                 .profileImageUrl(request.getProfileImageUrl())
+                .hasCar(request.getHasCar())
+                .ownedCarImageUrl(request.getOwnedCarImageUrl())
+                .ownedCarMake(request.getOwnedCarMake())
+                .ownedCarModel(request.getOwnedCarModel())
+                .ownedCarOdometer(request.getOwnedCarOdometer())
+                .ownedCarYear(request.getOwnedCarYear())
                 .role("MEMBER") // 기본 권한 지정
                 .build();
                 

@@ -161,6 +161,12 @@ public class MyPageService {
                     .phone(member.getPhone())
                     .profileImageUrl(member.getProfileImageUrl())
                     .role(member.getRole())
+                    .hasCar(member.getHasCar())
+                    .ownedCarImageUrl(member.getOwnedCarImageUrl())
+                    .ownedCarMake(member.getOwnedCarMake())
+                    .ownedCarModel(member.getOwnedCarModel())
+                    .ownedCarOdometer(member.getOwnedCarOdometer())
+                    .ownedCarYear(member.getOwnedCarYear())
                     .build();
 
             // 본인이 등록한 차량 매물 조회

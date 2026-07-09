@@ -111,13 +111,35 @@ public class CarService {
             }
         }
 
-        // 5단계: [비즈니스 요건 연계] 차량 소유주가 일반 회원인 경우 3시간 신속 블라인드 경매 세션 자동 개설
+        // 5단계: [비즈니스 요건 연계] 차량 소유주가 일반 회원인 경우 경매 세션 개설 및 유효성 검증
         if (memberOwner != null) {
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            java.time.LocalDateTime startTime = request.getStartTime();
+            java.time.LocalDateTime endTime = request.getEndTime();
+
+            if (startTime == null || endTime == null) {
+                throw new IllegalArgumentException("일반 회원이 차량을 등록할 때는 경매 시작 시간과 종료 시간을 반드시 입력해야 합니다.");
+            }
+
+            // 시작 시간 검증 (현재 시간 기준 5분 이전이 아닌지 검사하여 서버 지연 시간 등 감안)
+            if (startTime.isBefore(java.time.LocalDateTime.now().minusMinutes(5))) {
+                throw new IllegalArgumentException("경매 시작 시간은 현재 시간 이전일 수 없습니다.");
+            }
+
+            // 종료 시간 검증 (시작 시간 이후인지 확인)
+            if (endTime.isBefore(startTime) || endTime.isEqual(startTime)) {
+                throw new IllegalArgumentException("경매 종료 시간은 시작 시간 이후여야 합니다.");
+            }
+
+            // 경매 기간 검증 (최대 3일 - 72시간 제한)
+            long hoursBetween = java.time.Duration.between(startTime, endTime).toHours();
+            if (hoursBetween > 72) {
+                throw new IllegalArgumentException("경매 기간은 최대 3일(72시간)을 초과할 수 없습니다.");
+            }
+
             com.car.app.auction.Auction auction = com.car.app.auction.Auction.builder()
                     .car(savedCar)
-                    .startTime(now)
-                    .endTime(now.plusHours(3)) // 3시간 신속 마감 타이머 지정
+                    .startTime(startTime)
+                    .endTime(endTime)
                     .status("ACTIVE")
                     .build();
             auctionRepository.save(auction);

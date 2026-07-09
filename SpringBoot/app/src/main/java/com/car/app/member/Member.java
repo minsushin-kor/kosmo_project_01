@@ -36,6 +36,24 @@ public class Member {
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
+    @Column(name = "has_car")
+    private Boolean hasCar;
+
+    @Column(name = "owned_car_image_url", length = 500)
+    private String ownedCarImageUrl;
+
+    @Column(name = "owned_car_make", length = 50)
+    private String ownedCarMake;
+
+    @Column(name = "owned_car_model", length = 100)
+    private String ownedCarModel;
+
+    @Column(name = "owned_car_odometer")
+    private Double ownedCarOdometer;
+
+    @Column(name = "owned_car_year")
+    private Integer ownedCarYear;
+
     @Column(name = "role", nullable = false, length = 20)
     @Builder.Default
     private String role = "MEMBER";

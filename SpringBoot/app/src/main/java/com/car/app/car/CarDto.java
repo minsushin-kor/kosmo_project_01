@@ -2,6 +2,7 @@ package com.car.app.car;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class CarDto {
@@ -25,6 +26,8 @@ public class CarDto {
         private String interior;
         private Long sellingPrice;
         private List<ImageDto> images;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
     }
 
     @Getter

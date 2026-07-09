@@ -48,6 +48,11 @@ public class AuctionService {
             throw new IllegalArgumentException("진행 중인 경매가 아니므로 입찰이 불가능합니다.");
         }
 
+        // 경매 시작 시간 이전의 입찰 차단 검증
+        if (LocalDateTime.now().isBefore(auction.getStartTime())) {
+            throw new IllegalArgumentException("아직 시작하지 않은 예약 대기 상태의 경매 세션입니다.");
+        }
+
         // 3단계: 입찰을 시도하는 딜러 정보 조회
         Dealer dealer = dealerRepository.findByLoginId(dealerLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));

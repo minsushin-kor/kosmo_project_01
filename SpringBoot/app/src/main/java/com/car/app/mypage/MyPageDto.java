@@ -37,6 +37,14 @@ public class MyPageDto {
         private String profileImageUrl;
         private String role;
         
+        // 일반 회원 보유 차량 정보
+        private Boolean hasCar;
+        private String ownedCarImageUrl;
+        private String ownedCarMake;
+        private String ownedCarModel;
+        private Double ownedCarOdometer;
+        private Integer ownedCarYear;
+        
         // 상사 마스터 전용 정보
         private String businessNumber;
         private String address;
