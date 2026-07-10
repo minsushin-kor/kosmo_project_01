@@ -4,63 +4,8 @@ import { getAllCars, normalizeCar } from "../../utils/carViewUtils";
 import { deleteDealerCarFromStorage } from "../../utils/dealerCarStorage";
 import "../../css/car/dealerCarManagePage.css";
 
-const AUCTION_WINNERS_KEY = "car_front_auction_winners";
-
-function formatDateTime(dateText) {
-  if (!dateText) {
-    return "-";
-  }
-
-  const date = new Date(dateText);
-
-  if (Number.isNaN(date.getTime())) {
-    return dateText;
-  }
-
-  return date.toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getRemainText(endDate) {
-  if (!endDate) {
-    return "마감일 미정";
-  }
-
-  const now = new Date();
-  const end = new Date(endDate);
-  const diff = end - now;
-
-  if (diff <= 0) {
-    return "경매 종료";
-  }
-
-  const day = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hour = Math.floor((diff / (1000 * 60 * 60)) % 24);
-
-  if (day > 0) {
-    return `${day}일 ${hour}시간 남음`;
-  }
-
-  return `${hour}시간 남음`;
-}
-
-function getSavedAuctionBids() {
-  return JSON.parse(localStorage.getItem("car_front_auction_bids") || "[]");
-}
-
-function getAuctionWinners() {
-  return JSON.parse(localStorage.getItem(AUCTION_WINNERS_KEY) || "[]");
-}
-
 function DealerCarManagePage() {
   const [dealerCars, setDealerCars] = useState([]);
-  const [bidList, setBidList] = useState([]);
-  const [winnerList, setWinnerList] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("전체");
 
@@ -70,12 +15,10 @@ function DealerCarManagePage() {
     // 지금은 로그인 딜러를 임시로 dealerId 1번으로 처리
     // 나중에 백엔드 연결하면 loginUser.dealerId 기준으로 바꾸면 됨
     const myDealerCars = allCars
-      .filter((car) => car.dealerId === 1)
+      .filter((car) => car.dealerId === 1 && car.saleType === "NORMAL")
       .map((car) => normalizeCar(car));
 
     setDealerCars(myDealerCars);
-    setBidList(getSavedAuctionBids());
-    setWinnerList(getAuctionWinners());
   }
 
   useEffect(() => {
@@ -89,77 +32,28 @@ function DealerCarManagePage() {
       loadDealerCars();
     }
 
-    function handleAuctionBidChange() {
-      loadDealerCars();
-    }
-
-    function handleAuctionWinnerChange() {
-      loadDealerCars();
-    }
-
     window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("auction-bid-change", handleAuctionBidChange);
-    window.addEventListener("auction-winner-change", handleAuctionWinnerChange);
 
     return () => {
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("auction-bid-change", handleAuctionBidChange);
-      window.removeEventListener(
-        "auction-winner-change",
-        handleAuctionWinnerChange
-      );
     };
   }, []);
 
   const summary = useMemo(() => {
     const totalCount = dealerCars.length;
-
-    const activeCount = dealerCars.filter((car) => {
-      const winner = winnerList.find((item) => item.carId === car.id);
-
-      if (winner) {
-        return false;
-      }
-
-      const status = car.auction?.status || car.status;
-      const remainText = getRemainText(car.auction?.endDate);
-
-      return status === "경매중" && remainText !== "경매 종료";
-    }).length;
-
-    const doneCount = dealerCars.filter((car) => {
-      const winner = winnerList.find((item) => item.carId === car.id);
-
-      if (winner) {
-        return true;
-      }
-
-      const status = car.auction?.status || car.status;
-      const remainText = getRemainText(car.auction?.endDate);
-
-      return (
-        status === "경매종료" ||
-        status === "낙찰완료" ||
-        remainText === "경매 종료"
-      );
-    }).length;
-
-    const totalBidCount = dealerCars.reduce((sum, car) => {
-      const originBidCount = car.auction?.bidCount || 0;
-      const savedBidCount = bidList.filter((bid) => bid.carId === car.id).length;
-
-      return sum + originBidCount + savedBidCount;
-    }, 0);
+    const sellingCount = dealerCars.filter((car) => car.status === "판매중").length;
+    const reservedCount = dealerCars.filter((car) => car.status === "예약중").length;
+    const soldCount = dealerCars.filter((car) => car.status === "판매완료").length;
 
     return {
       totalCount,
-      activeCount,
-      doneCount,
-      totalBidCount,
+      sellingCount,
+      reservedCount,
+      soldCount,
     };
-  }, [dealerCars, bidList, winnerList]);
+  }, [dealerCars]);
 
   function handleDeleteCar(carId) {
     const confirmDelete = window.confirm("해당 매물을 삭제하시겠습니까?");
@@ -175,41 +69,26 @@ function DealerCarManagePage() {
     alert("매물이 삭제되었습니다.");
   }
 
-  function handleEndAuction(carId) {
-    const confirmEnd = window.confirm("해당 경매를 종료하시겠습니까?");
-
-    if (!confirmEnd) {
-      return;
-    }
-
+  function handleChangeStatus(carId, nextStatus) {
     setDealerCars((prev) =>
-      prev.map((car) => {
-        if (car.id !== carId) {
-          return car;
-        }
-
-        return {
-          ...car,
-          status: "경매종료",
-          auction: {
-            ...(car.auction || {}),
-            status: "경매종료",
-            endDate: new Date().toISOString(),
-          },
-        };
-      })
+      prev.map((car) =>
+        car.id === carId
+          ? {
+              ...car,
+              status: nextStatus,
+            }
+          : car
+      )
     );
 
-    alert("경매가 종료되었습니다. 지금은 화면에서만 처리되는 임시 기능입니다.");
+    alert("지금은 화면에서만 상태가 변경되는 임시 기능입니다.");
   }
 
   const filteredCars = dealerCars.filter((car) => {
     const carName = car.carName || car.name || "";
     const brand = car.brand || car.make || "";
     const modelName = car.modelName || car.model || "";
-
-    const winner = winnerList.find((item) => item.carId === car.id);
-    const status = winner ? "낙찰완료" : car.auction?.status || car.status || "경매중";
+    const status = car.status || "판매중";
 
     const keyword = searchText.trim();
 
@@ -229,13 +108,13 @@ function DealerCarManagePage() {
       <div className="dealer-car-manage-container">
         <section className="dealer-car-manage-header">
           <div>
-            <p className="page-label">DEALER AUCTION</p>
-            <h2>딜러 경매 매물 관리</h2>
-            <p>내가 등록한 차량 경매와 비공개 입찰 현황을 관리합니다.</p>
+            <p className="page-label">DEALER SALE</p>
+            <h2>딜러 판매 매물 관리</h2>
+            <p>회사에서 생성한 딜러 계정이 등록한 일반 판매 매물을 관리합니다.</p>
           </div>
 
           <Link to="/dealer/register-car" className="primary-link-button">
-            경매 매물 등록
+            판매 매물 등록
           </Link>
         </section>
 
@@ -247,31 +126,30 @@ function DealerCarManagePage() {
           </article>
 
           <article>
-            <span>진행중 경매</span>
-            <strong>{summary.activeCount}</strong>
-            <em>건</em>
+            <span>판매중</span>
+            <strong>{summary.sellingCount}</strong>
+            <em>대</em>
           </article>
 
           <article>
-            <span>종료/낙찰 경매</span>
-            <strong>{summary.doneCount}</strong>
-            <em>건</em>
+            <span>예약중</span>
+            <strong>{summary.reservedCount}</strong>
+            <em>대</em>
           </article>
 
           <article>
-            <span>전체 입찰</span>
-            <strong>{summary.totalBidCount}</strong>
-            <em>건</em>
+            <span>판매완료</span>
+            <strong>{summary.soldCount}</strong>
+            <em>대</em>
           </article>
         </section>
 
         <section className="dealer-car-panel">
           <div className="dealer-car-panel-header">
             <div>
-              <h3>경매 매물 목록</h3>
+              <h3>판매 매물 목록</h3>
               <p>
-                구매자 화면에는 최고 입찰가가 보이지 않고, 판매자 화면에서만
-                입찰 현황을 확인합니다.
+                딜러가 등록한 차량은 경매가 아니라 판매 가격 기준으로 문의를 받습니다.
               </p>
             </div>
 
@@ -288,10 +166,9 @@ function DealerCarManagePage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="전체">전체 상태</option>
-                <option value="경매예정">경매예정</option>
-                <option value="경매중">경매중</option>
-                <option value="경매종료">경매종료</option>
-                <option value="낙찰완료">낙찰완료</option>
+                <option value="판매중">판매중</option>
+                <option value="예약중">예약중</option>
+                <option value="판매완료">판매완료</option>
               </select>
 
               <button
@@ -316,9 +193,9 @@ function DealerCarManagePage() {
                 <tr>
                   <th>차량명</th>
                   <th>연식 / 주행거리</th>
-                  <th>경매 시작가</th>
-                  <th>입찰</th>
-                  <th>마감일</th>
+                  <th>판매 가격</th>
+                  <th>거래 방식</th>
+                  <th>등록일</th>
                   <th>상태</th>
                   <th>관리</th>
                 </tr>
@@ -327,28 +204,7 @@ function DealerCarManagePage() {
               <tbody>
                 {filteredCars.length > 0 ? (
                   filteredCars.map((car) => {
-                    const auction = car.auction || {};
-                    const winner = winnerList.find(
-                      (item) => item.carId === car.id
-                    );
-
-                    const originBidCount = auction.bidCount || 0;
-
-                    const savedBidCount = bidList.filter(
-                      (bid) => bid.carId === car.id
-                    ).length;
-
-                    const totalBidCount = originBidCount + savedBidCount;
-                    const startPrice = auction.startPrice || car.price || 0;
-                    const remainText = getRemainText(auction.endDate);
-
-                    const originStatus = auction.status || car.status || "경매중";
-                    const status = winner ? "낙찰완료" : originStatus;
-
-                    const isAuctionDone =
-                      status === "경매종료" ||
-                      status === "낙찰완료" ||
-                      remainText === "경매 종료";
+                    const status = car.status || "판매중";
 
                     return (
                       <tr key={car.id}>
@@ -361,57 +217,47 @@ function DealerCarManagePage() {
 
                         <td>
                           <strong>{car.year || "-"}년식</strong>
-                          <span>
-                            {Number(car.mileage || 0).toLocaleString()}km
-                          </span>
+                          <span>{Number(car.mileage || 0).toLocaleString()}km</span>
                         </td>
 
                         <td>
-                          <strong>
-                            {Number(startPrice).toLocaleString()}만원
-                          </strong>
-                          {winner ? (
-                            <span>
-                              낙찰가 {Number(winner.bidPrice).toLocaleString()}
-                              만원
-                            </span>
-                          ) : (
-                            <span>최고가 비공개</span>
-                          )}
+                          <strong>{Number(car.price || 0).toLocaleString()}만원</strong>
+                          <span>일반 판매가</span>
                         </td>
 
                         <td>
-                          <strong>{totalBidCount}건</strong>
-                          <span>
-                            기본 {originBidCount}건 / 추가 {savedBidCount}건
-                          </span>
+                          <strong>일반 중고거래</strong>
+                          <span>문의 후 거래</span>
                         </td>
 
                         <td>
-                          <strong>{formatDateTime(auction.endDate)}</strong>
-                          <span>{winner ? "낙찰 처리 완료" : remainText}</span>
+                          <strong>{car.registeredDate || "-"}</strong>
+                          <span>등록일</span>
                         </td>
 
                         <td>
-                          <span className={`dealer-status ${status}`}>
-                            {status}
-                          </span>
+                          <span className={`dealer-status ${status}`}>{status}</span>
                         </td>
 
                         <td>
                           <div className="dealer-table-actions">
                             <Link to={`/cars/${car.id}`}>상세</Link>
 
-                            <Link to={`/dealer/cars/${car.id}/bids`}>
-                              입찰현황
-                            </Link>
-
-                            {!isAuctionDone && (
+                            {status !== "예약중" && status !== "판매완료" && (
                               <button
                                 type="button"
-                                onClick={() => handleEndAuction(car.id)}
+                                onClick={() => handleChangeStatus(car.id, "예약중")}
                               >
-                                종료
+                                예약
+                              </button>
+                            )}
+
+                            {status !== "판매완료" && (
+                              <button
+                                type="button"
+                                onClick={() => handleChangeStatus(car.id, "판매완료")}
+                              >
+                                완료
                               </button>
                             )}
 

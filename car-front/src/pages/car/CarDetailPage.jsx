@@ -64,10 +64,6 @@ function CarDetailPage() {
 
   const car = getCarById(id);
 
-  const auctionWinner = getAuctionWinners().find(
-    (winner) => winner.carId === Number(id)
-  );
-
   const [bidPrice, setBidPrice] = useState("");
   const [bidMessage, setBidMessage] = useState("");
 
@@ -78,6 +74,10 @@ function CarDetailPage() {
 
     return savedBids.filter((bid) => bid.carId === Number(id));
   });
+
+  const auctionWinner = getAuctionWinners().find(
+    (winner) => winner.carId === Number(id)
+  );
 
   const myBid = useMemo(() => {
     if (!loginUser) {
@@ -113,31 +113,41 @@ function CarDetailPage() {
     );
   }
 
-  const auction = car.auction || {
-    auctionId: car.id,
-    startPrice: car.price,
-    bidCount: 0,
-    startDate: car.registeredDate,
-    endDate: null,
-    status: car.status || "경매중",
-    winningBidPrice: null,
-    winningBidderName: null,
-  };
-
-  const remainText = getAuctionRemainText(auction.endDate);
-  const originBidCount = auction.bidCount || 0;
-  const totalBidCount = originBidCount + bidList.length;
-
-  const auctionStatus = auction.status || car.status || "경매중";
-
-  const isAuctionDone =
-    Boolean(auctionWinner) ||
-    auctionStatus === "경매종료" ||
-    auctionStatus === "낙찰완료" ||
-    remainText === "경매 종료";
-
   const isDealerCar = Boolean(car.dealerId) && !car.memberId;
   const isMemberCar = Boolean(car.memberId) && !car.dealerId;
+  const isAuctionCar = car.saleType === "AUCTION" || isMemberCar;
+  const isNormalSaleCar = car.saleType === "NORMAL" || isDealerCar;
+
+  const auction = isAuctionCar
+    ? car.auction || {
+        auctionId: car.id,
+        startPrice: car.price,
+        bidCount: 0,
+        startDate: car.registeredDate,
+        endDate: null,
+        status: car.status || "경매중",
+        winningBidPrice: null,
+        winningBidderName: null,
+      }
+    : null;
+
+  const remainText = isAuctionCar
+    ? getAuctionRemainText(auction.endDate)
+    : "일반 판매";
+
+  const originBidCount = isAuctionCar ? auction.bidCount || 0 : 0;
+  const totalBidCount = originBidCount + bidList.length;
+
+  const auctionStatus = isAuctionCar
+    ? auction.status || car.status || "경매중"
+    : "판매중";
+
+  const isAuctionDone =
+    isAuctionCar &&
+    (Boolean(auctionWinner) ||
+      auctionStatus === "경매종료" ||
+      auctionStatus === "낙찰완료" ||
+      remainText === "경매 종료");
 
   const sellerType = isDealerCar ? "DEALER" : "MEMBER";
   const sellerId = isDealerCar ? car.dealerId : car.memberId;
@@ -163,6 +173,11 @@ function CarDetailPage() {
 
   function handleBidSubmit(e) {
     e.preventDefault();
+
+    if (!isAuctionCar) {
+      setBidMessage("딜러 판매 매물은 입찰할 수 없습니다.");
+      return;
+    }
 
     const priceNumber = Number(bidPrice);
 
@@ -288,45 +303,45 @@ function CarDetailPage() {
 
     const nextRooms = hasRoom
       ? savedRooms.map((room) =>
-        room.roomId === roomId
-          ? {
-            ...room,
+          room.roomId === roomId
+            ? {
+                ...room,
+                lastMessage: firstMessageText,
+                updatedAt: now,
+                isRead: false,
+              }
+            : room
+        )
+      : [
+          {
+            roomId,
+
+            carId: car.id,
+            carName: car.carName,
+            carImage: car.image || null,
+
+            sellerType,
+            sellerId,
+            sellerName: car.sellerName,
+
+            dealerId: isDealerCar ? car.dealerId : null,
+            memberId: isMemberCar ? car.memberId : null,
+            companyId: isDealerCar ? car.companyId : null,
+            companyName: isDealerCar ? car.companyName : "개인 판매",
+
+            buyerType,
+            buyerId,
+            buyerName,
+
             lastMessage: firstMessageText,
+            messages: [firstMessage],
+
+            createdAt: now,
             updatedAt: now,
             isRead: false,
-          }
-          : room
-      )
-      : [
-        {
-          roomId,
-
-          carId: car.id,
-          carName: car.carName,
-          carImage: car.image || null,
-
-          sellerType,
-          sellerId,
-          sellerName: car.sellerName,
-
-          dealerId: isDealerCar ? car.dealerId : null,
-          memberId: isMemberCar ? car.memberId : null,
-          companyId: isDealerCar ? car.companyId : null,
-          companyName: isDealerCar ? car.companyName : "개인 판매",
-
-          buyerType,
-          buyerId,
-          buyerName,
-
-          lastMessage: firstMessageText,
-          messages: [firstMessage],
-
-          createdAt: now,
-          updatedAt: now,
-          isRead: false,
-        },
-        ...savedRooms,
-      ];
+          },
+          ...savedRooms,
+        ];
 
     localStorage.setItem("car_front_messages", JSON.stringify(nextRooms));
 
@@ -354,11 +369,15 @@ function CarDetailPage() {
         <div className="car-detail-summary">
           <div className="detail-status-row">
             <span className={`status-badge ${isAuctionDone ? "done" : ""}`}>
-              {auctionWinner ? "낙찰완료" : auctionStatus}
+              {isAuctionCar
+                ? auctionWinner
+                  ? "낙찰완료"
+                  : auctionStatus
+                : car.status || "판매중"}
             </span>
 
             <span className="seller-type-badge">
-              {isDealerCar ? "딜러 매물" : "일반회원 매물"}
+              {isDealerCar ? "회사딜러 매물" : "일반회원 경매 매물"}
             </span>
           </div>
 
@@ -369,13 +388,21 @@ function CarDetailPage() {
             {car.region}
           </p>
 
-          <div className="detail-price-box auction-price-box">
-            <span>경매 시작가</span>
-            <strong>{Number(auction.startPrice).toLocaleString()}만원</strong>
-            <p>비공개 입찰 방식이라 다른 입찰자의 금액은 공개되지 않습니다.</p>
-          </div>
+          {isAuctionCar ? (
+            <div className="detail-price-box auction-price-box">
+              <span>경매 시작가</span>
+              <strong>{Number(auction.startPrice).toLocaleString()}만원</strong>
+              <p>비공개 입찰 방식이라 다른 입찰자의 금액은 공개되지 않습니다.</p>
+            </div>
+          ) : (
+            <div className="detail-price-box">
+              <span>판매 가격</span>
+              <strong>{Number(car.price).toLocaleString()}만원</strong>
+              <p>회사 소속 딜러가 등록한 일반 판매 차량입니다.</p>
+            </div>
+          )}
 
-          {auctionWinner && (
+          {isAuctionCar && auctionWinner && (
             <div className="detail-auction-winner-box">
               <h3>낙찰완료</h3>
               <p>
@@ -387,74 +414,84 @@ function CarDetailPage() {
             </div>
           )}
 
-          <div className="auction-summary-grid">
-            <div>
-              <span>남은 시간</span>
-              <strong>{auctionWinner ? "낙찰 처리 완료" : remainText}</strong>
+          {isAuctionCar && (
+            <div className="auction-summary-grid">
+              <div>
+                <span>남은 시간</span>
+                <strong>{auctionWinner ? "낙찰 처리 완료" : remainText}</strong>
+              </div>
+
+              <div>
+                <span>입찰 수</span>
+                <strong>{totalBidCount}건</strong>
+              </div>
+
+              <div>
+                <span>입찰 시작일</span>
+                <strong>{formatDateTime(auction.startDate)}</strong>
+              </div>
+
+              <div>
+                <span>입찰 마감일</span>
+                <strong>{formatDateTime(auction.endDate)}</strong>
+              </div>
             </div>
+          )}
 
-            <div>
-              <span>입찰 수</span>
-              <strong>{totalBidCount}건</strong>
-            </div>
+          {isAuctionCar ? (
+            <form className="bid-form" onSubmit={handleBidSubmit}>
+              <label htmlFor="bidPrice">입찰 금액</label>
 
-            <div>
-              <span>입찰 시작일</span>
-              <strong>{formatDateTime(auction.startDate)}</strong>
-            </div>
+              <div className="bid-input-row">
+                <input
+                  id="bidPrice"
+                  type="number"
+                  min={auction.startPrice}
+                  step="10"
+                  value={bidPrice}
+                  onChange={(e) => setBidPrice(e.target.value)}
+                  placeholder={`${Number(auction.startPrice).toLocaleString()}만원 이상`}
+                  disabled={isAuctionDone || Boolean(myBid)}
+                />
 
-            <div>
-              <span>입찰 마감일</span>
-              <strong>{formatDateTime(auction.endDate)}</strong>
-            </div>
-          </div>
+                <span>만원</span>
+              </div>
 
-          <form className="bid-form" onSubmit={handleBidSubmit}>
-            <label htmlFor="bidPrice">입찰 금액</label>
+              {myBid && (
+                <p className="my-bid-text">
+                  내 입찰가: {Number(myBid.bidPrice).toLocaleString()}만원
+                </p>
+              )}
 
-            <div className="bid-input-row">
-              <input
-                id="bidPrice"
-                type="number"
-                min={auction.startPrice}
-                step="10"
-                value={bidPrice}
-                onChange={(e) => setBidPrice(e.target.value)}
-                placeholder={`${Number(auction.startPrice).toLocaleString()}만원 이상`}
-                disabled={isAuctionDone || Boolean(myBid)}
-              />
+              {auctionWinner && (
+                <p className="bid-message">
+                  낙찰이 완료된 차량이라 추가 입찰을 할 수 없습니다.
+                </p>
+              )}
 
-              <span>만원</span>
-            </div>
+              {bidMessage && <p className="bid-message">{bidMessage}</p>}
 
-            {myBid && (
-              <p className="my-bid-text">
-                내 입찰가: {Number(myBid.bidPrice).toLocaleString()}만원
-              </p>
-            )}
+              <div className="detail-action-buttons">
+                <button type="submit" disabled={isAuctionDone || Boolean(myBid)}>
+                  입찰하기
+                </button>
 
-            {auctionWinner && (
-              <p className="bid-message">
-                낙찰이 완료된 차량이라 추가 입찰을 할 수 없습니다.
-              </p>
-            )}
-
-            {bidMessage && <p className="bid-message">{bidMessage}</p>}
-
+                <button
+                  type="button"
+                  className="outline-button"
+                  onClick={handleMessageClick}
+                >
+                  판매자 문의
+                </button>
+              </div>
+            </form>
+          ) : (
             <div className="detail-action-buttons">
-              <button type="submit" disabled={isAuctionDone || Boolean(myBid)}>
-                입찰하기
-              </button>
-
-              <button
-                type="button"
-                className="outline-button"
-                onClick={handleMessageClick}
-              >
+              <button type="button" onClick={handleMessageClick}>
                 판매자 문의
               </button>
             </div>
-          </form>
+          )}
         </div>
       </section>
 
@@ -520,7 +557,9 @@ function CarDetailPage() {
 
             <div>
               <span>거래 방식</span>
-              <strong>기간제 비공개 입찰</strong>
+              <strong>
+                {isNormalSaleCar ? "일반 중고거래" : "기간제 비공개 입찰"}
+              </strong>
             </div>
           </div>
 

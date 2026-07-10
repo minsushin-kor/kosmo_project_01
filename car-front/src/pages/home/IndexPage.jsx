@@ -120,7 +120,7 @@ function IndexPage() {
         <section className="car-list-section">
           <div className="car-list-header">
             <div>
-              <h2>추천 차량 목록</h2>
+              <h2>차량 목록</h2>
               <p className="car-list-summary">
                 총 <strong>{filteredCars.length}</strong>대의 차량이 검색되었습니다.
               </p>

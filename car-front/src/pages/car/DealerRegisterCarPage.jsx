@@ -27,11 +27,7 @@ function DealerRegisterCarPage() {
     odometer: "",
     color: "",
     interior: "",
-
-    auctionStartPrice: "",
-    auctionStartDate: "",
-    auctionEndDate: "",
-    auctionStatus: "경매중",
+    price: "",
   });
 
   function handleChange(e) {
@@ -65,21 +61,8 @@ function DealerRegisterCarPage() {
       return false;
     }
 
-    if (!formData.auctionStartPrice) {
-      alert("경매 시작가를 입력해주세요.");
-      return false;
-    }
-
-    if (!formData.auctionStartDate || !formData.auctionEndDate) {
-      alert("입찰 시작일과 마감일을 입력해주세요.");
-      return false;
-    }
-
-    const startDate = new Date(formData.auctionStartDate);
-    const endDate = new Date(formData.auctionEndDate);
-
-    if (startDate >= endDate) {
-      alert("입찰 마감일은 시작일보다 뒤로 설정해야 합니다.");
+    if (!formData.price) {
+      alert("판매 가격을 입력해주세요.");
       return false;
     }
 
@@ -105,11 +88,8 @@ function DealerRegisterCarPage() {
     requestData.append("odometer", Number(formData.odometer));
     requestData.append("color", formData.color);
     requestData.append("interior", formData.interior);
-
-    requestData.append("auctionStartPrice", Number(formData.auctionStartPrice));
-    requestData.append("auctionStartDate", formData.auctionStartDate);
-    requestData.append("auctionEndDate", formData.auctionEndDate);
-    requestData.append("auctionStatus", formData.auctionStatus);
+    requestData.append("price", Number(formData.price));
+    requestData.append("saleType", "NORMAL");
 
     carImages.forEach((image) => {
       requestData.append("carImages", image.file);
@@ -141,11 +121,12 @@ function DealerRegisterCarPage() {
       color: formData.color,
       interior: formData.interior,
 
-      sellingprice: Number(formData.auctionStartPrice),
-      price: Number(formData.auctionStartPrice),
+      sellingprice: Number(formData.price),
+      price: Number(formData.price),
 
-      status: formData.auctionStatus,
-      sellerType: "딜러",
+      status: "판매중",
+      sellerType: "회사딜러",
+      saleType: "NORMAL",
 
       dealerId: 1,
       memberId: null,
@@ -166,22 +147,12 @@ function DealerRegisterCarPage() {
       registeredDate: new Date().toISOString().slice(0, 10),
       createdAt: new Date().toISOString().slice(0, 10),
 
-      description: "딜러가 등록한 경매 차량입니다.",
-
-      auction: {
-        auctionId: Date.now(),
-        startPrice: Number(formData.auctionStartPrice),
-        bidCount: 0,
-        startDate: formData.auctionStartDate,
-        endDate: formData.auctionEndDate,
-        status: formData.auctionStatus,
-        winningBidPrice: null,
-        winningBidderName: null,
-      },
+      description: "회사 소속 딜러가 등록한 일반 판매 차량입니다.",
+      auction: null,
     };
 
     try {
-      console.log("경매 매물 등록 FormData 확인");
+      console.log("딜러 일반 판매 매물 등록 FormData 확인");
 
       for (const pair of requestData.entries()) {
         console.log(pair[0], pair[1]);
@@ -192,12 +163,12 @@ function DealerRegisterCarPage() {
       // 백엔드 연결 전이라 일단 주석 처리
       // await registerCar(requestData);
 
-      alert("경매 매물이 등록되었습니다.");
+      alert("판매 매물이 등록되었습니다.");
 
       navigate("/dealer/cars");
     } catch (error) {
       console.error(error);
-      alert("경매 매물 등록 중 오류가 발생했습니다.");
+      alert("판매 매물 등록 중 오류가 발생했습니다.");
     }
   }
 
@@ -205,8 +176,8 @@ function DealerRegisterCarPage() {
     <div className="dealer-register-page">
       <div className="dealer-register-container">
         <div className="dealer-register-header">
-          <h2>딜러 경매 매물 등록</h2>
-          <p>경매로 진행할 차량 정보와 입찰 기간을 입력하세요.</p>
+          <h2>딜러 판매 매물 등록</h2>
+          <p>회사에서 생성한 딜러 계정은 일반 중고거래 매물을 등록합니다.</p>
         </div>
 
         <form className="dealer-register-form" onSubmit={handleSubmit}>
@@ -336,7 +307,7 @@ function DealerRegisterCarPage() {
                   name="color"
                   value={formData.color}
                   onChange={handleChange}
-                  placeholder="예: 흰색"
+                  placeholder="예: 화이트"
                 />
               </div>
 
@@ -347,72 +318,33 @@ function DealerRegisterCarPage() {
                   name="interior"
                   value={formData.interior}
                   onChange={handleChange}
-                  placeholder="예: 검정"
+                  placeholder="예: 블랙"
                 />
               </div>
-            </div>
-          </div>
 
-          <div className="form-section">
-            <h3>경매 정보</h3>
-
-            <div className="form-grid">
               <div className="form-group">
-                <label>경매 시작가</label>
+                <label>판매 가격</label>
                 <input
                   type="number"
-                  name="auctionStartPrice"
-                  value={formData.auctionStartPrice}
+                  name="price"
+                  value={formData.price}
                   onChange={handleChange}
                   placeholder="예: 1650"
                 />
-              </div>
-
-              <div className="form-group">
-                <label>입찰 시작일</label>
-                <input
-                  type="datetime-local"
-                  name="auctionStartDate"
-                  value={formData.auctionStartDate}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>입찰 마감일</label>
-                <input
-                  type="datetime-local"
-                  name="auctionEndDate"
-                  value={formData.auctionEndDate}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>경매 상태</label>
-                <select
-                  name="auctionStatus"
-                  value={formData.auctionStatus}
-                  onChange={handleChange}
-                >
-                  <option value="경매중">경매중</option>
-                  <option value="경매예정">경매예정</option>
-                </select>
               </div>
             </div>
           </div>
 
           <div className="register-info-box">
             <p>
-              비공개 입찰 방식이라 구매자 화면에는 다른 사람의 입찰 금액이나
-              최고 입찰가가 보이지 않습니다. 판매자 화면에서만 입찰 현황을
-              확인하고 낙찰처리를 할 수 있게 만들 예정입니다.
+              일반회원이 등록한 차량만 경매로 진행하고, 회사 소속 딜러가 등록한
+              차량은 일반 중고거래 방식으로 판매합니다.
             </p>
           </div>
 
           <div className="form-button-area">
             <button type="submit" className="submit-button">
-              경매 매물 등록
+              판매 매물 등록
             </button>
           </div>
         </form>

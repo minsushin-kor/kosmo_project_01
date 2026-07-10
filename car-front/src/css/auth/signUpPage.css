@@ -41,7 +41,7 @@
 
 .signup-type-group {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-bottom: 28px;
   padding: 6px;
@@ -203,7 +203,7 @@
 }
 
 @media (max-width: 900px) {
-  .signup-type-group,
+
   .signup-grid.two,
   .signup-grid.four {
     grid-template-columns: repeat(2, 1fr);
