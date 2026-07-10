@@ -43,6 +43,9 @@ import AdminReportManagePage from "../pages/admin/AdminReportManagePage";
 import AdminChurnManagePage from "../pages/admin/AdminChurnManagePage";
 import AdminFinalDealManagePage from "../pages/admin/AdminFinalDealManagePage";
 
+//test
+import TestPage from "../pages/test/TestPage";
+
 /*
   protected: false
   → 로그인 안 해도 접근 가능
@@ -102,6 +105,11 @@ export const PUBLIC_ROUTES = [
     id: 10,
     path: "/members/:memberId/cars",
     element: <MemberCarsPage />,
+  },
+  {
+    id: 11,
+    path: "/test",
+    element: <TestPage />,
   },
 ];
 
