@@ -12,6 +12,7 @@ import com.car.app.company.CompanyRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,22 +32,36 @@ public class CouponService {
         List<Dealer> activeDealers = dealerRepository.findAll(); // 이탈점수가 존재하므로 전체 조회 후 필터링
         for (Dealer dealer : activeDealers) {
             if ("ACTIVE".equalsIgnoreCase(dealer.getStatus()) && dealer.getRiskScore() != null && dealer.getRiskScore() >= 75.0) {
-                // 중복 발행 방지
+                // 1. 중복 발행 방지: 이미 미사용 상태의 감면 쿠폰을 소유하고 있다면 패스
                 boolean hasUnusedCoupon = couponRepository.existsByDealerDealerIdAndCouponTypeAndStatus(
                         dealer.getDealerId(), "COMMISSION_DISCOUNT", "UNUSED"
                 );
-                if (!hasUnusedCoupon) {
-                    Coupon coupon = Coupon.builder()
-                            .name("이탈 방지 딜러 수수료 50% 감면 쿠폰")
-                            .couponType("COMMISSION_DISCOUNT")
-                            .discountRate(new BigDecimal("0.5000")) // 50% 감면
-                            .dealer(dealer)
-                            .status("UNUSED")
-                            .issuedAt(LocalDateTime.now())
-                            .expiredAt(LocalDateTime.now().plusDays(30)) // 30일 유효
-                            .build();
-                    couponRepository.save(coupon);
+                if (hasUnusedCoupon) {
+                    continue;
                 }
+
+                // 2. 1달(30일) 재발급 기한 제약: 최근 30일 이내에 동일한 타입의 쿠폰을 이미 발급받았었다면 패스
+                Optional<Coupon> latestCouponOpt = couponRepository.findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(
+                        dealer.getDealerId(), "COMMISSION_DISCOUNT"
+                );
+                if (latestCouponOpt.isPresent()) {
+                    Coupon latest = latestCouponOpt.get();
+                    if (latest.getIssuedAt().isAfter(LocalDateTime.now().minusDays(30))) {
+                        continue;
+                    }
+                }
+
+                // 3. 신규 50% 감면 쿠폰 발행
+                Coupon coupon = Coupon.builder()
+                        .name("이탈 방지 딜러 수수료 50% 감면 쿠폰")
+                        .couponType("COMMISSION_DISCOUNT")
+                        .discountRate(new BigDecimal("0.5000")) // 50% 감면
+                        .dealer(dealer)
+                        .status("UNUSED")
+                        .issuedAt(LocalDateTime.now())
+                        .expiredAt(LocalDateTime.now().plusDays(30)) // 30일 유효
+                        .build();
+                couponRepository.save(coupon);
             }
         }
     }
