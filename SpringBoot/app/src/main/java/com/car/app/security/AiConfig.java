@@ -5,10 +5,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 /**
  * FastAPI 서버와의 연동에 필요한 RestTemplate 설정을 담당하는 클래스입니다.
  */
 @Configuration
+@EnableScheduling
 public class AiConfig {
 
     @Bean
