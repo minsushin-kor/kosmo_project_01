@@ -45,7 +45,7 @@ public class AiService {
 
         // 3. 만약 추천받은 매물이 DB에 없거나 비어있는 경우, 최신 매물 5개를 안전용 대체(Fallback) 리스트로 조회합니다.
         if (recommendedCars.isEmpty()) {
-            log.info("Recommended cars empty or not found in DB. Falling back to latest 5 cars.");
+            log.info("추천 차량 목록이 비어있거나 DB에서 매핑되는 차량이 없습니다. 최신 매물 5개로 대체하여 추천합니다.");
             recommendedCars = carRepository.findTop5ByOrderByCreatedAtDesc();
         }
 

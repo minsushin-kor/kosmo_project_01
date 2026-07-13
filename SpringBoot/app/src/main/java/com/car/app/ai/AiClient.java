@@ -47,16 +47,16 @@ public class AiClient {
                     .build()
                     .toUriString();
 
-            log.info("Sending recommendation request to FastAPI: {}", url);
+            log.info("FastAPI 서버로 차량 추천 요청 송신: {}", url);
             RecommendationResponse response = restTemplate.getForObject(url, RecommendationResponse.class);
 
             if (response != null && "success".equalsIgnoreCase(response.getStatus()) && response.getRecommendedCarIds() != null) {
-                log.info("Successfully received {} recommended car IDs from FastAPI for dealer {}",
-                        response.getRecommendedCarIds().size(), dealerId);
+                log.info("FastAPI 서버로부터 딜러 {}의 추천 차량 ID {}개를 성공적으로 수신했습니다.",
+                        dealerId, response.getRecommendedCarIds().size());
                 return response.getRecommendedCarIds();
             }
         } catch (Exception e) {
-            log.error("Failed to fetch car recommendations from FastAPI for dealer {}: {}", dealerId, e.getMessage());
+            log.error("FastAPI 서버로부터 딜러 {}의 차량 추천 정보를 가져오는데 실패했습니다: {}", dealerId, e.getMessage());
         }
         return new ArrayList<>();
     }
