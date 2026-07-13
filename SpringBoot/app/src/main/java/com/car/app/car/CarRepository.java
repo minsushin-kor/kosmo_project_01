@@ -8,4 +8,5 @@ import java.util.List;
 public interface CarRepository extends JpaRepository<Car, Long>, JpaSpecificationExecutor<Car> {
     List<Car> findByMemberMemberId(Long memberId);
     List<Car> findByDealerDealerId(Long dealerId);
+    List<Car> findTop5ByOrderByCreatedAtDesc();
 }
