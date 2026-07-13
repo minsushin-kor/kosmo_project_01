@@ -41,7 +41,7 @@ public class AiClient {
      */
     public List<Long> getRecommendedCarIds(Long dealerId) {
         try {
-            String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+            String url = UriComponentsBuilder.fromUriString(baseUrl)
                     .path("/api/ai/recommendations")
                     .queryParam("dealerId", dealerId)
                     .build()
