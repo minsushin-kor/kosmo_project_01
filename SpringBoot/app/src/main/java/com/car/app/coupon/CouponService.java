@@ -214,7 +214,10 @@ public class CouponService {
                 }
             } else {
                 // 상위 5% 외 상사들 강등 및 골든 뱃지 박탈
-                company.setTier("NORMAL");
+                // 단, 자정 배치에서 이탈 관리 대상(CARE_REQUIRED)으로 지정된 상사는 등급 유실을 방지하기 위해 덮어쓰지 않습니다.
+                if (!"CARE_REQUIRED".equals(company.getTier())) {
+                    company.setTier("NORMAL");
+                }
                 company.setGoldenBadgeStatus(false);
             }
             companyRepository.save(company);
