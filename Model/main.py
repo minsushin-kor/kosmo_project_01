@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 import joblib
 import pandas as pd
 from pathlib import Path
+from math import log1p
 
 
 # ============================================================
@@ -27,7 +28,9 @@ app.add_middleware(
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "dealer_churn_service_model.pkl"
+PROJECT_MODEL_PATH = BASE_DIR / "dealer_churn_service_model.pkl"
+ORIGINAL_MODEL_PATH = Path.home() / "Downloads" / "dealer_churn_service_model.pkl"
+MODEL_PATH = ORIGINAL_MODEL_PATH if ORIGINAL_MODEL_PATH.exists() else PROJECT_MODEL_PATH
 
 # ============================================================
 # Company Model Load
@@ -35,40 +38,26 @@ MODEL_PATH = BASE_DIR / "dealer_churn_service_model.pkl"
 
 COMPANY_MODEL_PATH = BASE_DIR / "company_churn_service_model.pkl"
 
-COMPANY_MODEL_FEATURES = [
-    "dealer_count",
-    "active_dealer_ratio",
-    "recent_trade_per_dealer",
-    "previous_trade_per_dealer",
-    "activity_growth",
-    "site_usage_rate_avg",
-    "avg_selling_price_avg"
-]
-
 model_company = None
+COMPANY_MODEL_FEATURES = []
 try:
     model_company_dict = joblib.load(COMPANY_MODEL_PATH)
     model_company = model_company_dict["model"]
+    COMPANY_MODEL_FEATURES = model_company_dict["feature_columns"]
     print(f"[Company Model] Loaded successfully from dict: {COMPANY_MODEL_PATH}")
     print(f"[Company Features] {COMPANY_MODEL_FEATURES}")
 except Exception as e:
     model_company = None
     print(f"[Company Model] Load Failed: {e}")
 
-MODEL_FEATURES = [
-    "last_activity_days",
-    "recent_60d_trade_count",
-    "trade_drop_rate",
-    "avg_selling_price",
-    "site_usage_rate"
-]
-
 model_individual = None
+MODEL_FEATURES = []
 dealer_threshold = 0.8184715639566639  # default fallback value
 
 try:
     model_individual_dict = joblib.load(MODEL_PATH)
     model_individual = model_individual_dict["model"]
+    MODEL_FEATURES = model_individual_dict["feature_columns"]
     dealer_threshold = model_individual_dict.get("threshold", 0.8184715639566639)
     print(f"[Model Load] Individual model loaded successfully from dict: {MODEL_PATH}")
     print(f"[Model Load] Threshold: {dealer_threshold}")
@@ -132,6 +121,9 @@ def normalize_input(features: DealerFeatures) -> pd.DataFrame:
     input_dict = {
         "last_activity_days": float(features.Last_Activity_Days),
         "recent_60d_trade_count": float(features.Recent_60d_Trade_Count),
+        "recent_60d_trade_count_log": log1p(float(features.Recent_60d_Trade_Count)),
+        "previous_trade_count": float(features.Previous_Trade_Count),
+        "previous_trade_count_log": log1p(float(features.Previous_Trade_Count)),
         "trade_drop_rate": trade_drop_rate,
         "avg_selling_price": float(features.Avg_Selling_Price),
         "site_usage_rate": site_usage_rate,
@@ -151,13 +143,18 @@ def normalize_company_input(features: CompanyFeatures) -> pd.DataFrame:
     recent_tpd = rtc / dc
     prev_tpd = ptc / dc
     growth = recent_tpd / (prev_tpd + 1e-5)
+    recent_tpd_log = log1p(recent_tpd)
+    prev_tpd_log = log1p(prev_tpd)
 
     input_dict = {
         "dealer_count": float(dc),
         "active_dealer_ratio": float(adr),
         "recent_trade_per_dealer": float(recent_tpd),
         "previous_trade_per_dealer": float(prev_tpd),
+        "recent_trade_per_dealer_log": recent_tpd_log,
+        "previous_trade_per_dealer_log": prev_tpd_log,
         "activity_growth": float(growth),
+        "activity_growth_log": recent_tpd_log - prev_tpd_log,
         "site_usage_rate_avg": clamp(features.Site_Usage_Rate_Avg, 0.0, 1.0),
         "avg_selling_price_avg": float(features.Avg_Selling_Price_Avg),
     }
@@ -276,7 +273,6 @@ def predict_personal(features: DealerFeatures):
 
 @app.post("/api/ai/predict-churn/company")
 def predict_company(features: CompanyFeatures):
-
     if model_company is None:
         raise HTTPException(
             status_code=503,
@@ -319,17 +315,17 @@ def predict_company(features: CompanyFeatures):
         print("--- [Prediction Result (Company)] ---")
         print(f"predicted_status: {predicted_status}")
         print(f"active_probability: {active_probability}")
-        print(f"churn_probability: {churn_probability}")
+        print(f"churn_probability: {churn_prob}")
         print(f"risk_reasons: {risk_reasons}")
 
         return {
             "status": "success",
             "predicted_status": predicted_status,
-            "churn_probability": round(churn_probability, 4),
-            "churn_probability_percent": round(churn_probability * 100, 2),
+            "churn_probability": round(churn_prob, 4),
+            "churn_probability_percent": round(churn_prob * 100, 2),
             "active_probability": round(active_probability, 4),
             "active_probability_percent": round(active_probability * 100, 2),
-            "risk_grade": get_risk_grade(churn_probability),
+            "risk_grade": get_risk_grade(churn_prob),
             "risk_reasons": risk_reasons,
             "input_features": input_df.iloc[0].to_dict()
         }
@@ -340,40 +336,39 @@ def predict_company(features: CompanyFeatures):
             detail=f"예측 도중 에러 발생: {str(e)}",
         )
 
-# ============================================================
-# 100명 딜러 및 20개 회사 더미 데이터셋 조회 및 실시간 예측 API (EC2 연동용)
-# ============================================================
-
 @app.get("/api/ai/churn/dealers")
 def get_churn_dealers():
-    dealer_csv_path = BASE_DIR.parent / "dataset" / "dealer_churn.csv"
-    if not dealer_csv_path.exists():
-        raise HTTPException(status_code=404, detail="dealer_churn.csv 파일을 찾을 수 없습니다.")
+    return get_churn_dealers_dummy()
+
+@app.get("/api/ai/churn/companies")
+def get_churn_companies():
+    return get_churn_companies_dummy()
+
+@app.get("/api/ai/churn/dealers/dummy")
+def get_churn_dealers_dummy():
+    dummy_path = BASE_DIR.parent / "dataset" / "dummy_output" / "dealer_churn_dummy.json"
+    if not dummy_path.exists():
+        raise HTTPException(status_code=404, detail="dealer_churn_dummy.json 파일을 찾을 수 없습니다.")
     
-    df = pd.read_csv(dealer_csv_path)
+    import json
+    with open(dummy_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
     result_list = []
-    
-    for _, row in df.iterrows():
+    for row in data:
         d_id = int(row["dealer_id"])
         last_days = int(row["last_activity_days"])
         recent_trades = int(row["recent_60d_trade_count"])
         prev_trades = int(row["previous_trade_count"])
         usage = float(row["site_usage_rate"])
-        asp = float(row["avg_selling_price"])
-        
-        # trade_drop_rate 계산
-        expected_60d = max(1.0, float(prev_trades) / 3.0)
-        trade_drop_rate = 0.0 if prev_trades == 0 else max(0.0, 1.0 - float(recent_trades) / expected_60d)
-        
-        # 모델 예측
         input_df = pd.DataFrame([{
             "last_activity_days": float(last_days),
             "recent_60d_trade_count": float(recent_trades),
-            "trade_drop_rate": float(trade_drop_rate),
-            "avg_selling_price": float(asp),
-            "site_usage_rate": float(usage)
+            "recent_60d_trade_count_log": float(row["recent_60d_trade_count_log"]),
+            "previous_trade_count": float(prev_trades),
+            "previous_trade_count_log": float(row["previous_trade_count_log"]),
+            "site_usage_rate": usage,
         }])[MODEL_FEATURES]
-        
         _, _, prob = get_probability(model_individual, input_df)
         prob_pct = round(prob * 100, 2)
         
@@ -381,29 +376,37 @@ def get_churn_dealers():
         risk_reasons = []
         if last_days >= 14:
             risk_reasons.append(f"마지막 접속 후 {last_days}일간 로그인이 없어 장기 휴면 상태입니다.")
+        expected_60d = max(1.0, float(prev_trades) / 3.0)
+        trade_drop_rate = (
+            0.0
+            if prev_trades == 0
+            else max(0.0, 1.0 - float(recent_trades) / expected_60d)
+        )
         if trade_drop_rate >= 0.50 and prev_trades >= 30:
-            risk_reasons.append(f"과거 누적 실적({prev_trades}회) 대비 최근 거래가 {int(trade_drop_rate * 100)}% 급락했습니다.")
+            risk_reasons.append(
+                f"과거 누적 실적({prev_trades}회) 대비 최근 거래가 "
+                f"{int(trade_drop_rate * 100)}% 급락했습니다."
+            )
         elif recent_trades == 0:
             risk_reasons.append("최근 60일 동안 성사된 차량 거래가 전무합니다.")
         if usage <= 0.30:
             risk_reasons.append(f"사이트 매물 조회 이용률이 {int(usage * 100)}%로 매우 저조합니다.")
-        if asp <= 3000000.0:
-            risk_reasons.append(f"평균 판매 단가가 {int(asp / 10000)}만원으로 초저가/영세 차량 위주입니다.")
-            
+
         if prob < 0.50:
             risk_reasons = ["특이 위험 징후가 감지되지 않았으며 정상 유지 중입니다."]
-            
-        # 프론트엔드 형식 매핑
-        risk_grade_kr = "낮음"
-        if prob >= 0.75:
+
+        model_risk_grade = get_risk_grade(prob)
+        if model_risk_grade in {"Critical", "High"}:
             risk_grade_kr = "높음"
-        elif prob >= 0.40:
+        elif model_risk_grade == "Medium":
             risk_grade_kr = "보통"
+        else:
+            risk_grade_kr = "낮음"
             
         action = "모니터링"
-        if prob >= 0.75:
+        if risk_grade_kr == "높음":
             action = "수수료 50% 쿠폰발송"
-        elif prob >= 0.40:
+        elif risk_grade_kr == "보통":
             action = "전화 상담 필요"
 
         result_list.append({
@@ -412,41 +415,43 @@ def get_churn_dealers():
             "memberType": "개인딜러",
             "name": f"딜러_{d_id - 1000:03d}",
             "recentActivity": f"{last_days}일 전",
-            "churnRate": f"{int(prob_pct)}%",
-            "churnRateRaw": prob_pct, # 정렬 및 가변 기준선용
+            "churnRate": f"{prob_pct:.2f}%",
+            "churnRateRaw": prob_pct,
             "risk": risk_grade_kr,
             "action": action,
-            "status": "처리전",
+            "status": row.get("predicted_status", "처리전"),
             "reason": ", ".join(risk_reasons)
         })
-    
-    # 이탈 위험도 내림차순 정렬 (최고 위험 고객이 맨 위에 배치)
+        
     result_list = sorted(result_list, key=lambda x: x["churnRateRaw"], reverse=True)
     return result_list
 
 
-@app.get("/api/ai/churn/companies")
-def get_churn_companies():
-    company_csv_path = BASE_DIR.parent / "dataset" / "company_churn.csv"
-    if not company_csv_path.exists():
-        raise HTTPException(status_code=404, detail="company_churn.csv 파일을 찾을 수 없습니다.")
+@app.get("/api/ai/churn/companies/dummy")
+def get_churn_companies_dummy():
+    dummy_path = BASE_DIR.parent / "dataset" / "dummy_output" / "company_churn_dummy.json"
+    if not dummy_path.exists():
+        raise HTTPException(status_code=404, detail="company_churn_dummy.json 파일을 찾을 수 없습니다.")
         
-    df = pd.read_csv(company_csv_path)
+    import json
+    with open(dummy_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
     result_list = []
-    
-    for _, row in df.iterrows():
+    for row in data:
         comp_id = int(row["company_id"])
         dc = int(row["dealer_count"])
         adc = int(row["active_dealer_count"])
         adr = float(row["active_dealer_ratio"])
         rtc = int(row["recent_60d_trade_count"])
-        ptc = int(row["previous_trade_count"])
+        ptc = int(row["previous_60d_trade_count"])
         recent_tpd = float(row["recent_trade_per_dealer"])
         prev_tpd = float(row["previous_trade_per_dealer"])
-        growth = float(row["activity_growth"])
+        recent_tpd_log = float(row["recent_trade_per_dealer_log"])
+        prev_tpd_log = float(row["previous_trade_per_dealer_log"])
+        growth_log = float(row["activity_growth_log"])
+        growth = recent_tpd / (prev_tpd + 1e-5)
         sur = float(row["site_usage_rate_avg"])
-        asp_avg = float(row["avg_selling_price_avg"])
-        is_churn = int(row["is_company_churn"])
         
         # 모델 예측
         input_df = pd.DataFrame([{
@@ -454,9 +459,11 @@ def get_churn_companies():
             "active_dealer_ratio": float(adr),
             "recent_trade_per_dealer": float(recent_tpd),
             "previous_trade_per_dealer": float(prev_tpd),
+            "recent_trade_per_dealer_log": recent_tpd_log,
+            "previous_trade_per_dealer_log": prev_tpd_log,
             "activity_growth": float(growth),
+            "activity_growth_log": growth_log,
             "site_usage_rate_avg": float(sur),
-            "avg_selling_price_avg": float(asp_avg)
         }])[COMPANY_MODEL_FEATURES]
         
         _, _, prob = get_probability(model_company, input_df)
@@ -477,13 +484,13 @@ def get_churn_companies():
             risk_reasons = ["특이 위험 징후가 감지되지 않았으며 정상 유지 중입니다."]
 
         risk_grade_kr = "낮음"
-        if prob >= 0.70 or is_churn == 1:
+        if prob >= 0.80:
             risk_grade_kr = "높음"
         elif prob >= 0.40:
             risk_grade_kr = "보통"
             
         action = "모니터링"
-        if prob >= 0.70 or is_churn == 1:
+        if prob >= 0.80:
             action = "멤버십 30% 쿠폰발송"
         elif prob >= 0.40:
             action = "전화 상담 필요"
@@ -494,16 +501,17 @@ def get_churn_companies():
             "memberType": "회사",
             "name": f"상사_{comp_id:02d}",
             "recentActivity": "최근 거래 있음" if rtc > 0 else "활동 이력 없음",
-            "churnRate": f"{int(prob_pct)}%",
+            "churnRate": f"{prob_pct:.2f}%",
             "churnRateRaw": prob_pct,
             "risk": risk_grade_kr,
             "action": action,
-            "status": "처리전",
+            "status": row.get("predicted_status", "처리전"),
             "reason": ", ".join(risk_reasons)
         })
         
     # 이탈 위험도 내림차순 정렬
     result_list = sorted(result_list, key=lambda x: x["churnRateRaw"], reverse=True)
     return result_list
+
 
 
