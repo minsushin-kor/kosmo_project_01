@@ -1,0 +1,13 @@
+**
+
+!Model/
+!Model/Dockerfile
+!Model/requirements.txt
+!Model/main.py
+!Model/dealer_churn_service_model.pkl
+!Model/company_churn_service_model.pkl
+
+!dataset/
+!dataset/dummy_output/
+!dataset/dummy_output/dealer_churn_dummy.json
+!dataset/dummy_output/company_churn_dummy.json
