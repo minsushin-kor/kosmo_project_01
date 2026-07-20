@@ -8,9 +8,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.car.app.company.Company;
 import com.car.app.company.CompanyRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -152,17 +155,17 @@ public class CouponService {
      */
     @Transactional
     public void updateCompanyTiersAndBadges() {
-        List<com.car.app.company.Company> companies = companyRepository.findAll();
+        List<Company> companies = companyRepository.findAll();
         if (companies.isEmpty()) {
             return;
         }
 
         // 1. 각 상사의 소속 딜러 실적(성사 거래 건수)을 취합합니다.
         class CompanyScore implements Comparable<CompanyScore> {
-            com.car.app.company.Company company;
+            Company company;
             int score;
 
-            CompanyScore(com.car.app.company.Company company, int score) {
+            CompanyScore(Company company, int score) {
                 this.company = company;
                 this.score = score;
             }
@@ -173,8 +176,8 @@ public class CouponService {
             }
         }
 
-        List<CompanyScore> scores = new java.util.ArrayList<>();
-        for (com.car.app.company.Company company : companies) {
+        List<CompanyScore> scores = new ArrayList<>();
+        for (Company company : companies) {
             List<Dealer> dealers = dealerRepository.findByCompanyCompanyId(company.getCompanyId());
             int totalDeals = 0;
             for (Dealer dealer : dealers) {
@@ -184,13 +187,13 @@ public class CouponService {
             scores.add(new CompanyScore(company, totalDeals));
         }
 
-        java.util.Collections.sort(scores);
+        Collections.sort(scores);
 
         // 상위 5% 상사 개수 결정 (최소 1개 상사 보장)
         int topCount = (int) Math.ceil(companies.size() * 0.05);
 
         for (int i = 0; i < scores.size(); i++) {
-            com.car.app.company.Company company = scores.get(i).company;
+            Company company = scores.get(i).company;
             if (i < topCount) {
                 // 상위 5% 상사 지정
                 company.setTier("TOP_5");
