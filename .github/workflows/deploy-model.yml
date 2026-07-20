@@ -1,5 +1,5 @@
 name: Deploy churn model API
-run-name: 모델 API 배포 (${{ github.ref_name }})
+run-name: "모델 API 배포 #${{ github.run_number }} (${{ github.ref_name }})"
 
 on:
   push:
