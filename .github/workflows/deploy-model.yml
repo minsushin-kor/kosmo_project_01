@@ -1,0 +1,215 @@
+name: Deploy churn model API
+
+on:
+  push:
+    branches:
+      - PythonModel
+    paths:
+      - ".github/workflows/deploy-model.yml"
+      - "Model/main.py"
+      - "Model/requirements.txt"
+      - "Model/Dockerfile"
+      - "Model/Dockerfile.dockerignore"
+      - "Model/dealer_churn_service_model.pkl"
+      - "Model/company_churn_service_model.pkl"
+      - "dataset/dummy_output/dealer_churn_dummy.json"
+      - "dataset/dummy_output/company_churn_dummy.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: churn-model-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DOCKERHUB_TOKEN"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Model/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/kosmo-churn-api:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/kosmo-churn-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy image to EC2
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Validate required secrets
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          test -n "$EC2_HOST"
+          test -n "$EC2_USER"
+          test -n "$EC2_SSH_KEY"
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DOCKERHUB_TOKEN"
+
+      - name: Configure SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$EC2_SSH_KEY" > "$HOME/.ssh/ec2_key"
+          chmod 600 "$HOME/.ssh/ec2_key"
+          ssh-keyscan -H "$EC2_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Pull and replace container
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/kosmo-churn-api:${{ github.sha }}
+        run: |
+          SSH_TARGET="${EC2_USER}@${EC2_HOST}"
+          SSH_OPTIONS=(-i "$HOME/.ssh/ec2_key" -o BatchMode=yes)
+
+          # shellcheck disable=SC2029
+          printf '%s' "$DOCKERHUB_TOKEN" |
+            ssh "${SSH_OPTIONS[@]}" "$SSH_TARGET" \
+              "sudo -n docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
+
+          # shellcheck disable=SC2029
+          ssh "${SSH_OPTIONS[@]}" "$SSH_TARGET" "IMAGE='$IMAGE' bash -s" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+
+          CONTAINER_NAME="kosmo-churn-api"
+          CANDIDATE_NAME="${CONTAINER_NAME}-candidate"
+          OLD_IMAGE=""
+
+          docker_cmd() {
+            sudo -n docker "$@"
+          }
+
+          wait_until_healthy() {
+            container_name="$1"
+
+            for attempt in $(seq 1 30); do
+              status=$(
+                docker_cmd inspect \
+                  --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+                  "$container_name" 2>/dev/null || true
+              )
+
+              if [ "$status" = "healthy" ]; then
+                return 0
+              fi
+
+              if [ "$status" = "unhealthy" ] || [ "$status" = "exited" ]; then
+                break
+              fi
+
+              sleep 2
+            done
+
+            return 1
+          }
+
+          run_api_container() {
+            container_name="$1"
+            image="$2"
+            port_options="$3"
+
+            docker_cmd run -d \
+              --name "$container_name" \
+              --restart unless-stopped \
+              --health-interval 5s \
+              --health-timeout 3s \
+              --health-start-period 5s \
+              --health-retries 5 \
+              $port_options \
+              "$image"
+          }
+
+          rollback() {
+            docker_cmd rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+
+            if [ -n "$OLD_IMAGE" ]; then
+              run_api_container "$CONTAINER_NAME" "$OLD_IMAGE" "-p 8000:8000"
+            fi
+          }
+
+          docker_cmd pull "$IMAGE"
+          docker_cmd rm -f "$CANDIDATE_NAME" >/dev/null 2>&1 || true
+
+          run_api_container "$CANDIDATE_NAME" "$IMAGE" ""
+
+          if ! wait_until_healthy "$CANDIDATE_NAME"; then
+            docker_cmd logs "$CANDIDATE_NAME" || true
+            docker_cmd rm -f "$CANDIDATE_NAME" >/dev/null 2>&1 || true
+            docker_cmd logout
+            exit 1
+          fi
+
+          docker_cmd rm -f "$CANDIDATE_NAME" >/dev/null
+
+          if docker_cmd inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+            OLD_IMAGE=$(docker_cmd inspect --format '{{.Image}}' "$CONTAINER_NAME")
+          fi
+
+          docker_cmd rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+
+          if ! run_api_container "$CONTAINER_NAME" "$IMAGE" "-p 8000:8000"; then
+            rollback
+            docker_cmd logout
+            exit 1
+          fi
+
+          if ! wait_until_healthy "$CONTAINER_NAME"; then
+            docker_cmd logs "$CONTAINER_NAME" || true
+            rollback
+            docker_cmd logout
+            exit 1
+          fi
+
+          if ! docker_cmd exec "$CONTAINER_NAME" python -c \
+            "import json, urllib.request as u; assert len(json.load(u.urlopen('http://127.0.0.1:8000/api/ai/churn/dealers')))==100; assert len(json.load(u.urlopen('http://127.0.0.1:8000/api/ai/churn/companies')))==20"; then
+            docker_cmd logs "$CONTAINER_NAME" || true
+            rollback
+            docker_cmd logout
+            exit 1
+          fi
+
+          docker_cmd logout
+          docker_cmd image prune -f
+          REMOTE_SCRIPT
