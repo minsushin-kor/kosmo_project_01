@@ -51,6 +51,7 @@ class AuctionBiddingTests {
         memberRepository.save(member);
 
         // 2. Prepare car creation request
+        LocalDateTime now = LocalDateTime.now();
         CarDto.CreateRequest request = CarDto.CreateRequest.builder()
                 .year(2026)
                 .make("Kia")
@@ -64,6 +65,8 @@ class AuctionBiddingTests {
                 .color("white")
                 .interior("black")
                 .sellingPrice(21500000L)
+                .startTime(now)
+                .endTime(now.plusHours(3))
                 .images(Collections.singletonList(
                         CarDto.ImageDto.builder().imageUrl("https://test.com/img.jpg").isMain(true).build()
                 ))
@@ -125,6 +128,8 @@ class AuctionBiddingTests {
                 .make("Kia")
                 .model("Sorento")
                 .sellingPrice(21500000L)
+                .startTime(LocalDateTime.now())
+                .endTime(LocalDateTime.now().plusHours(24))
                 .build();
 
         Car car = carService.registerCar(
@@ -208,6 +213,8 @@ class AuctionBiddingTests {
                 .make("Kia")
                 .model("Sorento")
                 .sellingPrice(21500000L)
+                .startTime(LocalDateTime.now())
+                .endTime(LocalDateTime.now().plusHours(24))
                 .build();
 
         Car car = carService.registerCar(
