@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import {
@@ -9,7 +8,7 @@ import {
 } from "react-router-dom";
 import {
   initialSearchCondition,
-} from "./SearchBox";
+} from "../../data/searchData";
 import {
   AUTH_ROLES,
 } from "../../data/authUser";
@@ -64,10 +63,8 @@ function RightSidebar({
   const navigate = useNavigate();
   const { loginUser } = useAuth();
 
-  const [
-    recentVersion,
-    setRecentVersion,
-  ] = useState(0);
+  const [, setRecentVersion] =
+    useState(0);
 
   const isMember =
     loginUser?.role ===
@@ -97,29 +94,18 @@ function RightSidebar({
     };
   }, []);
 
-  const recentCars = useMemo(() => {
-    return getRecentCars(
+  const recentCars =
+    getRecentCars(
       allCars
     ).slice(0, 3);
-  }, [
-    allCars,
-    recentVersion,
-  ]);
 
   const recommendedCars =
-    useMemo(() => {
-      return getRecommendedCars({
-        candidateCars,
-        allCars,
-        loginUser,
-        limit: 4,
-      });
-    }, [
+    getRecommendedCars({
       candidateCars,
       allCars,
       loginUser,
-      recentVersion,
-    ]);
+      limit: 4,
+    });
 
   function applyPopularSearch(type) {
     const nextCondition = {

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import SearchBox, {
+import SearchBox from "../../components/common/SearchBox";
+import {
   initialSearchCondition,
-} from "../../components/common/SearchBox";
+} from "../../data/searchData";
 import CarCard from "../../components/car/CarCard";
 import RightSidebar from "../../components/common/RightSidebar";
 import { getAllCars } from "../../utils/carViewUtils";

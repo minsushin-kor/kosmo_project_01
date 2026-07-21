@@ -9,7 +9,7 @@ export function getCompanyDealersFromStorage() {
 
   try {
     return JSON.parse(savedDealers);
-  } catch (error) {
+  } catch {
     localStorage.removeItem(COMPANY_DEALER_STORAGE_KEY);
     return [];
   }
@@ -28,9 +28,9 @@ export function updateCompanyDealerStatus(dealerId, status) {
   const nextDealers = savedDealers.map((dealer) =>
     dealer.id === dealerId
       ? {
-          ...dealer,
-          status,
-        }
+        ...dealer,
+        status,
+      }
       : dealer
   );
 

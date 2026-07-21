@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { AUTH_ROLES, getRoleName } from "../../data/authUser";
+import { getRoleName } from "../../data/authUser";
 import { companyDealers } from "../../data/companyData";
 import cars from "../../data/cars";
 import { getCompanyDealersFromStorage } from "../../utils/companyDealerStorage";
