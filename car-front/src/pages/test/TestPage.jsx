@@ -20,7 +20,9 @@ function TestPage() {
   
   // 서버 상태 및 설정
   const [serverStatus, setServerStatus] = useState("checking");
-  const activeServerUrl = "http://localhost:8000";
+  const activeServerUrl =
+    import.meta.env.VITE_FASTAPI_BASE_URL?.replace(/\/$/, "") ||
+    "http://3.35.233.190:8000";
   const [issuedCoupons, setIssuedCoupons] = useState(new Set()); // 쿠폰 발송 기록 ("type-id")
 
   // 더보기 데이터셋 로드 여부
