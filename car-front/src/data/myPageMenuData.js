@@ -70,18 +70,7 @@ export const MYPAGE_MENU_DATA = {
     },
   ],
 
-  [AUTH_ROLES.MEMBER]: [
-    {
-      id: 1,
-      name: "일반회원 페이지",
-      path: "/member",
-    },
-    {
-      id: 2,
-      name: "차량 둘러보기",
-      path: "/",
-    },
-  ],
+  [AUTH_ROLES.MEMBER]: [],
 };
 
 export function getMyPageMenusByRole(role) {

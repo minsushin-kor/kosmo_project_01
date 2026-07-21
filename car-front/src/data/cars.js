@@ -1,302 +1,319 @@
+const dealerCarTemplates = [
+  ["현대", "아반떼", "현대 아반떼 CN7", "가솔린", 1600],
+  ["기아", "K5", "기아 K5 3세대", "가솔린", 2050],
+  ["제네시스", "G80", "제네시스 G80", "가솔린", 3450],
+  ["현대", "쏘나타", "현대 쏘나타 DN8", "LPG", 2180],
+  ["기아", "쏘렌토", "기아 쏘렌토 MQ4", "디젤", 3380],
+  ["BMW", "520i", "BMW 520i M Sport", "가솔린", 4150],
+  ["벤츠", "E300", "벤츠 E300 Avantgarde", "가솔린", 3980],
+  ["쉐보레", "트레일블레이저", "쉐보레 트레일블레이저", "가솔린", 2250],
+  ["르노", "QM6", "르노 QM6", "LPG", 1890],
+  ["KG모빌리티", "토레스", "KG모빌리티 토레스", "가솔린", 2860],
+];
+
+const memberCarTemplates = [
+  ["현대", "그랜저", "현대 그랜저 IG", "가솔린", 2200],
+  ["기아", "스포티지", "기아 스포티지 NQ5", "디젤", 2680],
+  ["르노", "XM3", "르노 XM3", "가솔린", 1650],
+  ["현대", "투싼", "현대 투싼 NX4", "하이브리드", 2850],
+  ["기아", "카니발", "기아 카니발 KA4", "디젤", 3400],
+  ["제네시스", "GV70", "제네시스 GV70", "가솔린", 4550],
+  ["쉐보레", "말리부", "쉐보레 더 뉴 말리부", "가솔린", 1480],
+  ["KG모빌리티", "코란도", "KG모빌리티 코란도", "디젤", 1720],
+  ["BMW", "320i", "BMW 320i", "가솔린", 3150],
+  ["벤츠", "C200", "벤츠 C200", "가솔린", 2980],
+];
+
+const regions = [
+  "서울특별시",
+  "경기도",
+  "인천광역시",
+  "충청남도",
+  "충청북도",
+  "전라북도",
+  "경상남도",
+  "강원도",
+];
+
+const colors = [
+  "화이트",
+  "블랙",
+  "그레이",
+  "실버",
+  "블루",
+  "레드",
+];
+
+const dealerNames = [
+  "김딜러",
+  "이딜러",
+  "박딜러",
+  "최딜러",
+  "윤딜러",
+  "한딜러",
+];
+
+const companyNames = [
+  "Kosmo 인증모터스",
+  "천안 오토플러스",
+  "서울 프리미엄카",
+  "창원 굿카",
+  "수원 수입차센터",
+  "청주 프리미엄모터스",
+];
+
+const memberNames = [
+  "정회원",
+  "강회원",
+  "김회원",
+  "이회원",
+  "박회원",
+  "최회원",
+];
+
+function padNumber(value, length = 2) {
+  return String(value).padStart(length, "0");
+}
+
+function makeRegisteredDate(index) {
+  const day = 30 - index;
+
+  return `2026-07-${padNumber(day)}`;
+}
+
+function makeCarNumber(index, prefix) {
+  const koreanLetters = [
+    "가",
+    "나",
+    "다",
+    "라",
+    "마",
+    "바",
+    "사",
+    "아",
+  ];
+
+  return `${padNumber((index % 89) + 10)}${
+    koreanLetters[index % koreanLetters.length]
+  } ${prefix}${padNumber(index + 1, 3)}`;
+}
+
+const dealerCars = Array.from(
+  { length: 30 },
+  (_, index) => {
+    const template =
+      dealerCarTemplates[index % dealerCarTemplates.length];
+
+    const [
+      brand,
+      modelName,
+      baseCarName,
+      fuel,
+      basePrice,
+    ] = template;
+
+    const dealerIndex = index % dealerNames.length;
+
+    const sequence =
+      Math.floor(index / dealerCarTemplates.length) + 1;
+
+    return {
+      id: index + 1,
+
+      brand,
+      modelName,
+      carName: `${baseCarName} ${sequence}호 매물`,
+
+      year: 2018 + (index % 8),
+      mileage: 18000 + index * 2700,
+      price:
+        basePrice +
+        sequence * 70 +
+        (index % 5) * 35,
+
+      region: regions[index % regions.length],
+
+      sellerType: "회사딜러",
+      fuel,
+      transmission: "자동",
+
+      status:
+        index === 28 || index === 29
+          ? "판매완료"
+          : "판매중",
+
+      saleType: "NORMAL",
+
+      imageText: modelName.toUpperCase(),
+      color: colors[index % colors.length],
+
+      displacement:
+        fuel === "전기"
+          ? "전기모터"
+          : `${1598 + (index % 4) * 400}cc`,
+
+      accident:
+        index % 6 === 0
+          ? "단순교환"
+          : "무사고",
+
+      carNumber: makeCarNumber(index, 1),
+
+      dealerId: dealerIndex + 1,
+      memberId: null,
+      companyId: dealerIndex + 1,
+
+      sellerName: dealerNames[dealerIndex],
+
+      sellerPhone:
+        `010-${padNumber(
+          1200 + dealerIndex,
+          4,
+        )}-${padNumber(
+          5600 + index,
+          4,
+        )}`,
+
+      companyName: companyNames[dealerIndex],
+
+      registeredDate: makeRegisteredDate(index),
+
+      description:
+        "회사 소속 딜러가 등록한 일반 중고거래 테스트 매물입니다. 일반회원 계정에서 구매 가능한 차량으로 표시됩니다.",
+
+      options: [
+        "후방카메라",
+        "스마트키",
+        "열선시트",
+        "내비게이션",
+        "차선이탈 경고",
+      ],
+
+      auction: null,
+    };
+  },
+);
+
+const memberCars = Array.from(
+  { length: 30 },
+  (_, index) => {
+    const template =
+      memberCarTemplates[index % memberCarTemplates.length];
+
+    const [
+      brand,
+      modelName,
+      baseCarName,
+      fuel,
+      basePrice,
+    ] = template;
+
+    const memberIndex = index % memberNames.length;
+
+    const sequence =
+      Math.floor(index / memberCarTemplates.length) + 1;
+
+    const id = 101 + index;
+
+    const startPrice =
+      basePrice +
+      sequence * 50 +
+      (index % 4) * 30;
+
+    return {
+      id,
+
+      brand,
+      modelName,
+      carName: `${baseCarName} 개인 경매 ${sequence}호`,
+
+      year: 2017 + (index % 9),
+      mileage: 24000 + index * 3100,
+      price: startPrice,
+
+      region:
+        regions[(index + 2) % regions.length],
+
+      sellerType: "일반회원",
+      fuel,
+      transmission: "자동",
+
+      status: "경매중",
+      saleType: "AUCTION",
+
+      imageText: modelName.toUpperCase(),
+
+      color:
+        colors[(index + 1) % colors.length],
+
+      displacement:
+        fuel === "전기"
+          ? "전기모터"
+          : `${1598 + (index % 5) * 300}cc`,
+
+      accident:
+        index % 7 === 0
+          ? "단순교환"
+          : "무사고",
+
+      carNumber: makeCarNumber(index, 7),
+
+      dealerId: null,
+      memberId: memberIndex + 1,
+      companyId: null,
+
+      sellerName: memberNames[memberIndex],
+
+      sellerPhone:
+        `010-${padNumber(
+          4400 + memberIndex,
+          4,
+        )}-${padNumber(
+          1200 + index,
+          4,
+        )}`,
+
+      companyName: "개인 판매",
+
+      registeredDate: makeRegisteredDate(index),
+
+      description:
+        "일반회원이 등록한 비공개 입찰 경매 테스트 매물입니다. 회사 또는 딜러 계정에서 입찰 가능한 차량으로 표시됩니다.",
+
+      options: [
+        "후방카메라",
+        "스마트키",
+        "열선핸들",
+        "열선시트",
+        "오토라이트",
+      ],
+
+      auction: {
+        auctionId: id,
+        startPrice,
+        bidCount: index % 8,
+
+        startDate:
+          `2026-07-${padNumber(
+            20 + (index % 8),
+          )}T09:00:00`,
+
+        endDate:
+          `2026-08-${padNumber(
+            1 + (index % 20),
+          )}T18:00:00`,
+
+        status: "경매중",
+        winningBidPrice: null,
+        winningBidderName: null,
+      },
+    };
+  },
+);
+
 const cars = [
-  {
-    id: 1,
-    brand: "현대",
-    modelName: "아반떼",
-    carName: "현대 아반떼 CN7",
-    year: 2021,
-    mileage: 35000,
-    price: 1650,
-    region: "경기도",
-    sellerType: "회사딜러",
-    fuel: "가솔린",
-    transmission: "자동",
-    status: "판매중",
-    saleType: "NORMAL",
-    imageText: "AVANTE",
-    color: "화이트",
-    displacement: "1,598cc",
-    accident: "무사고",
-    carNumber: "12가 3456",
-
-    dealerId: 1,
-    memberId: null,
-    companyId: 1,
-
-    sellerName: "김딜러",
-    sellerPhone: "010-1234-5678",
-    companyName: "Kosmo 인증모터스",
-
-    registeredDate: "2026-07-01",
-    description:
-      "출퇴근과 첫차 용도로 적합한 준중형 세단입니다. 실내 관리 상태가 양호하고 연비 부담이 적은 차량입니다.",
-    options: ["후방카메라", "열선시트", "스마트키", "블루투스", "차선이탈 경고"],
-
-    auction: null,
-  },
-  {
-    id: 2,
-    brand: "기아",
-    modelName: "K5",
-    carName: "기아 K5 3세대",
-    year: 2020,
-    mileage: 48000,
-    price: 1980,
-    region: "충청남도",
-    sellerType: "회사딜러",
-    fuel: "가솔린",
-    transmission: "자동",
-    status: "판매중",
-    saleType: "NORMAL",
-    imageText: "K5",
-    color: "블랙",
-    displacement: "1,999cc",
-    accident: "단순교환",
-    carNumber: "34나 8721",
-
-    dealerId: 2,
-    memberId: null,
-    companyId: 2,
-
-    sellerName: "이딜러",
-    sellerPhone: "010-2222-7788",
-    companyName: "천안 오토플러스",
-
-    registeredDate: "2026-06-29",
-    description:
-      "중형 세단 특유의 안정감이 있고 옵션 구성이 좋은 차량입니다. 현재 구매 상담이 진행 중입니다.",
-    options: ["내비게이션", "전방센서", "후방센서", "통풍시트", "크루즈 컨트롤"],
-
-    auction: null,
-  },
-  {
-    id: 3,
-    brand: "제네시스",
-    modelName: "G80",
-    carName: "제네시스 G80",
-    year: 2019,
-    mileage: 62000,
-    price: 3250,
-    region: "서울특별시",
-    sellerType: "회사딜러",
-    fuel: "가솔린",
-    transmission: "자동",
-    status: "판매중",
-    saleType: "NORMAL",
-    imageText: "G80",
-    color: "그레이",
-    displacement: "3,342cc",
-    accident: "무사고",
-    carNumber: "56다 9012",
-
-    dealerId: 3,
-    memberId: null,
-    companyId: 3,
-
-    sellerName: "박딜러",
-    sellerPhone: "010-3333-9000",
-    companyName: "서울 프리미엄카",
-
-    registeredDate: "2026-06-25",
-    description:
-      "고급 세단을 찾는 고객에게 적합한 차량입니다. 승차감과 정숙성이 좋고 관리 이력이 안정적입니다.",
-    options: ["어라운드뷰", "HUD", "전동시트", "메모리시트", "렉시콘 사운드"],
-
-    auction: null,
-  },
-  {
-    id: 4,
-    brand: "르노",
-    modelName: "XM3",
-    carName: "르노 XM3",
-    year: 2020,
-    mileage: 51000,
-    price: 1720,
-    region: "전라북도",
-    sellerType: "일반회원",
-    fuel: "가솔린",
-    transmission: "자동",
-    status: "경매중",
-    saleType: "AUCTION",
-    imageText: "XM3",
-    color: "레드",
-    displacement: "1,332cc",
-    accident: "무사고",
-    carNumber: "78라 1122",
-
-    dealerId: null,
-    memberId: 1,
-    companyId: null,
-
-    sellerName: "정회원",
-    sellerPhone: "010-4444-1212",
-    companyName: "개인 판매",
-
-    registeredDate: "2026-06-22",
-    description:
-      "쿠페형 SUV 디자인이 특징인 차량입니다. 개인 판매 차량이며 실사용 위주로 관리되었습니다.",
-    options: ["후방카메라", "스마트키", "열선핸들", "열선시트", "오토라이트"],
-
-    auction: {
-      auctionId: 4,
-      startPrice: 1720,
-      bidCount: 1,
-      startDate: "2026-07-08T09:00:00",
-      endDate: "2026-07-13T18:00:00",
-      status: "경매중",
-      winningBidPrice: null,
-      winningBidderName: null,
-    },
-  },
-  {
-    id: 5,
-    brand: "현대",
-    modelName: "쏘나타",
-    carName: "현대 쏘나타 DN8",
-    year: 2021,
-    mileage: 42000,
-    price: 2050,
-    region: "경상남도",
-    sellerType: "회사딜러",
-    fuel: "LPG",
-    transmission: "자동",
-    status: "판매중",
-    saleType: "NORMAL",
-    imageText: "SONATA",
-    color: "실버",
-    displacement: "1,999cc",
-    accident: "무사고",
-    carNumber: "90마 3344",
-
-    dealerId: 4,
-    memberId: null,
-    companyId: 4,
-
-    sellerName: "최딜러",
-    sellerPhone: "010-5555-3434",
-    companyName: "창원 굿카",
-
-    registeredDate: "2026-06-20",
-    description:
-      "LPG 차량으로 유지비 부담이 적습니다. 넓은 실내 공간이 필요한 고객에게 적합합니다.",
-    options: ["내비게이션", "후방카메라", "열선시트", "전동트렁크", "스마트키"],
-
-    auction: null,
-  },
-  {
-    id: 6,
-    brand: "기아",
-    modelName: "스포티지",
-    carName: "기아 스포티지 NQ5",
-    year: 2022,
-    mileage: 28000,
-    price: 2750,
-    region: "강원도",
-    sellerType: "일반회원",
-    fuel: "디젤",
-    transmission: "자동",
-    status: "경매중",
-    saleType: "AUCTION",
-    imageText: "SPORTAGE",
-    color: "화이트",
-    displacement: "1,598cc",
-    accident: "무사고",
-    carNumber: "11바 5566",
-
-    dealerId: null,
-    memberId: 2,
-    companyId: null,
-
-    sellerName: "강회원",
-    sellerPhone: "010-6666-5656",
-    companyName: "개인 판매",
-
-    registeredDate: "2026-06-18",
-    description:
-      "연식 대비 주행거리가 낮은 SUV입니다. 가족용 차량이나 장거리 운행용으로 적합합니다.",
-    options: ["4륜구동", "후방카메라", "스마트크루즈", "통풍시트", "차선유지 보조"],
-
-    auction: {
-      auctionId: 6,
-      startPrice: 2750,
-      bidCount: 5,
-      startDate: "2026-07-08T09:00:00",
-      endDate: "2026-07-18T18:00:00",
-      status: "경매중",
-      winningBidPrice: null,
-      winningBidderName: null,
-    },
-  },
-  {
-    id: 7,
-    brand: "BMW",
-    modelName: "520i",
-    carName: "BMW 520i M Sport",
-    year: 2020,
-    mileage: 59000,
-    price: 3890,
-    region: "경기도",
-    sellerType: "회사딜러",
-    fuel: "가솔린",
-    transmission: "자동",
-    status: "판매중",
-    saleType: "NORMAL",
-    imageText: "BMW",
-    color: "블루",
-    displacement: "1,998cc",
-    accident: "무사고",
-    carNumber: "22사 7788",
-
-    dealerId: 5,
-    memberId: null,
-    companyId: 5,
-
-    sellerName: "윤딜러",
-    sellerPhone: "010-7777-7878",
-    companyName: "수원 수입차센터",
-
-    registeredDate: "2026-06-15",
-    description:
-      "스포츠 패키지가 적용된 수입 세단입니다. 주행감과 디자인을 중요하게 보는 고객에게 적합합니다.",
-    options: ["M 스포츠 패키지", "HUD", "전동시트", "후방카메라", "전방충돌 경고"],
-
-    auction: null,
-  },
-  {
-    id: 8,
-    brand: "벤츠",
-    modelName: "E300",
-    carName: "벤츠 E300 Avantgarde",
-    year: 2019,
-    mileage: 73000,
-    price: 3650,
-    region: "충청북도",
-    sellerType: "회사딜러",
-    fuel: "가솔린",
-    transmission: "자동",
-    status: "판매완료",
-    saleType: "NORMAL",
-    imageText: "BENZ",
-    color: "블랙",
-    displacement: "1,991cc",
-    accident: "무사고",
-    carNumber: "33아 9900",
-
-    dealerId: 6,
-    memberId: null,
-    companyId: 6,
-
-    sellerName: "한딜러",
-    sellerPhone: "010-8888-9090",
-    companyName: "청주 프리미엄모터스",
-
-    registeredDate: "2026-06-10",
-    description:
-      "판매완료 처리된 딜러 일반 판매 차량입니다. 상세 페이지에서는 입찰 없이 판매자 문의만 가능합니다.",
-    options: ["파노라마 선루프", "전동시트", "부메스터 사운드", "후방카메라", "LED 헤드램프"],
-
-    auction: null,
-  }
+  ...dealerCars,
+  ...memberCars,
 ];
 
 export default cars;
