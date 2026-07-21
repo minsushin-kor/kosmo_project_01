@@ -4,7 +4,7 @@ run-name: "모델 API 배포 #${{ github.run_number }} (${{ github.ref_name }})"
 on:
   push:
     branches:
-      - PythonModel
+      - main
     paths:
       - ".github/workflows/deploy-model.yml"
       - "Model/main.py"
@@ -13,8 +13,11 @@ on:
       - "Model/Dockerfile.dockerignore"
       - "Model/dealer_churn_service_model.pkl"
       - "Model/company_churn_service_model.pkl"
+      - "Model/vehicle_condition_catboost_model.pkl"
+      - "Model/vehicle_mmr_catboost_model.pkl"
       - "dataset/dummy_output/dealer_churn_dummy.json"
       - "dataset/dummy_output/company_churn_dummy.json"
+      - "dataset/dummy_output/vehicle_recommendation_dummy.json"
   workflow_dispatch:
 
 permissions:
@@ -204,7 +207,7 @@ jobs:
           fi
 
           if ! docker_cmd exec "$CONTAINER_NAME" python -c \
-            "import json, urllib.request as u; assert len(json.load(u.urlopen('http://127.0.0.1:8000/api/ai/churn/dealers')))==100; assert len(json.load(u.urlopen('http://127.0.0.1:8000/api/ai/churn/companies')))==20"; then
+            "import json, urllib.request as u; assert len(json.load(u.urlopen('http://127.0.0.1:8000/api/ai/churn/dealers')))==100; assert len(json.load(u.urlopen('http://127.0.0.1:8000/api/ai/churn/companies')))==20; assert json.load(u.urlopen('http://127.0.0.1:8000/api/ai/vehicle-recommendations'))['count']==100"; then
             docker_cmd logs "$CONTAINER_NAME" || true
             rollback
             docker_cmd logout

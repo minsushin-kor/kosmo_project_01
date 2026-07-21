@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import json
 import joblib
+import numpy as np
 import pandas as pd
 from pathlib import Path
 from math import log1p
@@ -61,6 +62,61 @@ try:
 except Exception as e:
     model_individual = None
     print(f"[Model Load Warning] Individual model loading failed: {e}")
+
+
+# ============================================================
+# Vehicle Recommendation Model Load
+# ============================================================
+
+VEHICLE_CONDITION_MODEL_PATH = BASE_DIR / "vehicle_condition_catboost_model.pkl"
+VEHICLE_MMR_MODEL_PATH = BASE_DIR / "vehicle_mmr_catboost_model.pkl"
+VEHICLE_DUMMY_PATH = (
+    BASE_DIR.parent
+    / "dataset"
+    / "dummy_output"
+    / "vehicle_recommendation_dummy.json"
+)
+
+model_vehicle_condition = None
+model_vehicle_mmr = None
+VEHICLE_CONDITION_FEATURES = []
+VEHICLE_MMR_FEATURES = []
+VEHICLE_CONDITION_MIN = 1.0
+VEHICLE_CONDITION_MAX = 5.0
+VEHICLE_MMR_MIN = 0.0
+
+try:
+    vehicle_condition_bundle = joblib.load(VEHICLE_CONDITION_MODEL_PATH)
+    model_vehicle_condition = vehicle_condition_bundle["model"]
+    VEHICLE_CONDITION_FEATURES = vehicle_condition_bundle["features"]
+    VEHICLE_CONDITION_MIN = float(
+        vehicle_condition_bundle.get("prediction_min", 1.0)
+    )
+    VEHICLE_CONDITION_MAX = float(
+        vehicle_condition_bundle.get("prediction_max", 5.0)
+    )
+    print(
+        "[Vehicle Condition Model] Loaded successfully from dict: "
+        f"{VEHICLE_CONDITION_MODEL_PATH}"
+    )
+    print(f"[Vehicle Condition Features] {VEHICLE_CONDITION_FEATURES}")
+except Exception as e:
+    model_vehicle_condition = None
+    print(f"[Vehicle Condition Model] Load Failed: {e}")
+
+try:
+    vehicle_mmr_bundle = joblib.load(VEHICLE_MMR_MODEL_PATH)
+    model_vehicle_mmr = vehicle_mmr_bundle["model"]
+    VEHICLE_MMR_FEATURES = vehicle_mmr_bundle["features"]
+    VEHICLE_MMR_MIN = float(vehicle_mmr_bundle.get("prediction_min", 0.0))
+    print(
+        "[Vehicle MMR Model] Loaded successfully from dict: "
+        f"{VEHICLE_MMR_MODEL_PATH}"
+    )
+    print(f"[Vehicle MMR Features] {VEHICLE_MMR_FEATURES}")
+except Exception as e:
+    model_vehicle_mmr = None
+    print(f"[Vehicle MMR Model] Load Failed: {e}")
 
 
 # ============================================================
@@ -534,6 +590,112 @@ def get_churn_companies_dummy():
     # 이탈 위험도 내림차순 정렬
     result_list = sorted(result_list, key=lambda x: x["churnRateRaw"], reverse=True)
     return result_list
+
+
+@app.get("/api/ai/vehicle-recommendations")
+def get_vehicle_recommendations():
+    """시연용 차량 전체를 Condition과 MMR 모델로 일괄 예측합니다."""
+    if model_vehicle_condition is None or model_vehicle_mmr is None:
+        raise HTTPException(
+            status_code=503,
+            detail="차량 Condition 또는 MMR 예측 모델을 불러오지 못했습니다.",
+        )
+
+    if not VEHICLE_DUMMY_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="vehicle_recommendation_dummy.json 파일을 찾을 수 없습니다.",
+        )
+
+    try:
+        with open(VEHICLE_DUMMY_PATH, "r", encoding="utf-8") as f:
+            vehicles = json.load(f)
+
+        if not isinstance(vehicles, list) or not vehicles:
+            raise ValueError("차량 더미 데이터가 비어 있거나 배열 형식이 아닙니다.")
+
+        required_fields = {"vehicle_id", "year", "make", "model", "odometer"}
+        for index, vehicle in enumerate(vehicles, start=1):
+            missing_fields = required_fields - set(vehicle)
+            if missing_fields:
+                missing_text = ", ".join(sorted(missing_fields))
+                raise ValueError(
+                    f"{index}번째 차량에 필수 필드가 없습니다: {missing_text}"
+                )
+
+        condition_rows = [
+            {
+                "year": int(vehicle["year"]),
+                "make": str(vehicle["make"]),
+                "model": str(vehicle["model"]),
+                "odometer": float(vehicle["odometer"]),
+            }
+            for vehicle in vehicles
+        ]
+        condition_input_df = pd.DataFrame(condition_rows)[
+            VEHICLE_CONDITION_FEATURES
+        ]
+
+        predicted_conditions = np.asarray(
+            model_vehicle_condition.predict(condition_input_df),
+            dtype=float,
+        )
+        predicted_conditions = np.clip(
+            predicted_conditions,
+            VEHICLE_CONDITION_MIN,
+            VEHICLE_CONDITION_MAX,
+        )
+
+        mmr_input_df = condition_input_df.copy()
+        mmr_input_df["condition"] = predicted_conditions
+        mmr_input_df = mmr_input_df[VEHICLE_MMR_FEATURES]
+
+        predicted_mmrs = np.asarray(
+            model_vehicle_mmr.predict(mmr_input_df),
+            dtype=float,
+        )
+        predicted_mmrs = np.maximum(predicted_mmrs, VEHICLE_MMR_MIN)
+
+        recommendations = []
+        for vehicle, condition, mmr in zip(
+            vehicles,
+            predicted_conditions,
+            predicted_mmrs,
+        ):
+            options = vehicle.get("option", [])
+            recommendations.append(
+                {
+                    "vehicle_id": str(vehicle["vehicle_id"]),
+                    "year": int(vehicle["year"]),
+                    "make": str(vehicle["make"]),
+                    "model": str(vehicle["model"]),
+                    "odometer": int(float(vehicle["odometer"])),
+                    "option": options if isinstance(options, list) else [],
+                    "predicted_condition": round(float(condition), 2),
+                    "predicted_mmr": round(float(mmr), 2),
+                }
+            )
+
+        recommendations.sort(
+            key=lambda item: (
+                item["predicted_condition"],
+                item["predicted_mmr"],
+            ),
+            reverse=True,
+        )
+
+        return {
+            "status": "success",
+            "count": len(recommendations),
+            "recommendations": recommendations,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"차량 추천 예측 중 오류 발생: {str(e)}",
+        )
 
 
 

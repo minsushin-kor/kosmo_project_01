@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import RecomendTest from "./RecomendTest";
 
 function RiskReasonList({ reason }) {
   const reasons = String(reason || "모델 분석 사유가 없습니다.")
@@ -477,6 +478,8 @@ function TestPage() {
             </div>
           )}
         </div>
+
+        <RecomendTest activeServerUrl={activeServerUrl} />
 
       </div>
     </div>
