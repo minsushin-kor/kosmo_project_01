@@ -14,7 +14,7 @@ function readRecentCarIds() {
     return Array.isArray(savedIds)
       ? savedIds.map(Number)
       : [];
-  } catch (error) {
+  } catch {
     localStorage.removeItem(
       RECENT_CAR_STORAGE_KEY
     );
@@ -70,7 +70,7 @@ function normalizeKeyword(value) {
 
 function getPreferenceKeywords(loginUser) {
   return String(loginUser?.preferredCar || "")
-    .split(/[\s,\/]+/)
+    .split(/[\s,/]+/)
     .map(normalizeKeyword)
     .filter(Boolean);
 }
@@ -142,7 +142,7 @@ function getSimilarityScore(
         Math.abs(
           currentPrice - recentPrice
         ) <=
-          recentPrice * 0.25
+        recentPrice * 0.25
       ) {
         score += 3 * recentWeight;
       }

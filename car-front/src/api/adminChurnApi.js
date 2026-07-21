@@ -147,6 +147,8 @@ export async function updateChurnAction({
 }) {
   return {
     success: true,
+    churnType,
+    targetId,
     action,
     status,
     memo,

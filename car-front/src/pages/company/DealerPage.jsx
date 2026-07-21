@@ -23,7 +23,6 @@ import {
   getAllCars,
 } from "../../utils/carViewUtils";
 import {
-  getDealerReviews,
   getReviewsByDealerId,
   saveDealerReview,
 } from "../../utils/dealerReviewStorage";
@@ -81,7 +80,7 @@ function saveDealerProfile(
 
   profiles[String(dealerId)] = {
     ...profiles[
-      String(dealerId)
+    String(dealerId)
     ],
     ...profile,
     updatedAt:
@@ -136,20 +135,20 @@ function DealerPage() {
 
   const dealerId = Number(
     routeDealerId ||
-      loginUser?.dealerId ||
-      loginUser?.id ||
-      1
+    loginUser?.dealerId ||
+    loginUser?.id ||
+    1
   );
 
   const loginDealerId =
     Number(
       loginUser?.dealerId ||
-        loginUser?.id
+      loginUser?.id
     );
 
   const isOwnPage =
     loginUser?.role ===
-      AUTH_ROLES.DEALER &&
+    AUTH_ROLES.DEALER &&
     loginDealerId === dealerId;
 
   const [
@@ -185,9 +184,27 @@ function DealerPage() {
   ] = useState("");
 
   const [
-    selectedCarView,
-    setSelectedCarView,
-  ] = useState("all");
+    carViewState,
+    setCarViewState,
+  ] = useState(() => ({
+    dealerId,
+    view: "all",
+  }));
+
+  const selectedCarView =
+    carViewState.dealerId ===
+      dealerId
+      ? carViewState.view
+      : "all";
+
+  function setSelectedCarView(
+    view
+  ) {
+    setCarViewState({
+      dealerId,
+      view,
+    });
+  }
 
   const carSectionRef =
     useRef(null);
@@ -208,9 +225,9 @@ function DealerPage() {
       dealerCars.filter(
         (car) =>
           car.status ===
-            "판매완료" ||
+          "판매완료" ||
           car.status ===
-            "거래완료"
+          "거래완료"
       ),
     [dealerCars]
   );
@@ -307,7 +324,7 @@ function DealerPage() {
           (
             isOwnPage
               ? loginUser
-                  ?.activityRegion
+                ?.activityRegion
               : ""
           ) ||
           "서울특별시",
@@ -320,7 +337,7 @@ function DealerPage() {
           (
             isOwnPage
               ? loginUser
-                  ?.introduction
+                ?.introduction
               : ""
           ) ||
           "차량 상태를 정확하게 안내하고 안전한 거래를 진행하겠습니다.",
@@ -333,7 +350,7 @@ function DealerPage() {
           (
             isOwnPage
               ? loginUser
-                  ?.profileImage
+                ?.profileImage
               : ""
           ) ||
           "",
@@ -344,7 +361,7 @@ function DealerPage() {
           (
             isOwnPage
               ? loginUser
-                  ?.companyId
+                ?.companyId
               : ""
           ) ||
           1,
@@ -357,7 +374,7 @@ function DealerPage() {
           (
             isOwnPage
               ? loginUser
-                  ?.companyName
+                ?.companyName
               : ""
           ) ||
           "Kosmo 인증모터스",
@@ -367,7 +384,7 @@ function DealerPage() {
           (
             isOwnPage
               ? loginUser
-                  ?.joinDate
+                ?.joinDate
               : ""
           ) ||
           "2026-07-01",
@@ -440,11 +457,6 @@ function DealerPage() {
     };
   }, [dealerId]);
 
-  useEffect(() => {
-    setSelectedCarView(
-      "all"
-    );
-  }, [dealerId]);
 
   useEffect(() => {
     function loadReviews() {
@@ -516,49 +528,43 @@ function DealerPage() {
     };
   }, [isProfileEditing]);
 
-  const reviewableTrades =
-    useMemo(() => {
-      if (
-        loginUser?.role !==
-        AUTH_ROLES.MEMBER
-      ) {
-        return [];
-      }
+  const reviewableTrades = (() => {
+    if (
+      loginUser?.role !==
+      AUTH_ROLES.MEMBER
+    ) {
+      return [];
+    }
 
-      const writtenTradeIds =
-        new Set(
-          getDealerReviews()
-            .filter(
-              (review) =>
-                Number(
-                  review.memberId
-                ) ===
-                Number(
-                  loginUser.id
-                )
-            )
-            .map((review) =>
-              String(
-                review.tradeId
+    const writtenTradeIds =
+      new Set(
+        reviews
+          .filter(
+            (review) =>
+              Number(
+                review.memberId
+              ) ===
+              Number(
+                loginUser.id
               )
+          )
+          .map((review) =>
+            String(
+              review.tradeId
             )
-        );
-
-      return getReviewableTrades(
-        loginUser.id,
-        dealerId
-      ).filter(
-        (trade) =>
-          !writtenTradeIds.has(
-            String(trade.id)
           )
       );
-    }, [
-      dealerId,
-      loginUser?.id,
-      loginUser?.role,
-      reviews,
-    ]);
+
+    return getReviewableTrades(
+      loginUser.id,
+      dealerId
+    ).filter(
+      (trade) =>
+        !writtenTradeIds.has(
+          String(trade.id)
+        )
+    );
+  })();
 
   const averageRating =
     useMemo(() => {
@@ -808,7 +814,7 @@ function DealerPage() {
 
     try {
       saveDealerReview({
-        id: Date.now(),
+        id: crypto.randomUUID(),
 
         tradeId:
           trade.id,
@@ -922,8 +928,8 @@ function DealerPage() {
             <strong>
               {averageRating
                 ? averageRating.toFixed(
-                    1
-                  )
+                  1
+                )
                 : "-"}
             </strong>
 
@@ -994,7 +1000,7 @@ function DealerPage() {
             type="button"
             className={
               selectedCarView ===
-              "all"
+                "all"
                 ? "active"
                 : ""
             }
@@ -1021,7 +1027,7 @@ function DealerPage() {
             type="button"
             className={
               selectedCarView ===
-              "sold"
+                "sold"
                 ? "active"
                 : ""
             }
@@ -1076,14 +1082,14 @@ function DealerPage() {
           <div>
             <h2>
               {selectedCarView ===
-              "sold"
+                "sold"
                 ? "판매 완료 매물"
                 : "등록 매물"}
             </h2>
 
             <p>
               {selectedCarView ===
-              "sold"
+                "sold"
                 ? "딜러가 판매를 완료한 차량입니다."
                 : "현재 딜러가 등록한 판매 차량입니다."}
             </p>
@@ -1095,7 +1101,7 @@ function DealerPage() {
                 type="button"
                 className={
                   selectedCarView ===
-                  "all"
+                    "all"
                     ? "active"
                     : ""
                 }
@@ -1113,7 +1119,7 @@ function DealerPage() {
                 type="button"
                 className={
                   selectedCarView ===
-                  "sold"
+                    "sold"
                     ? "active"
                     : ""
                 }
@@ -1143,10 +1149,10 @@ function DealerPage() {
         </div>
 
         {visibleDealerCars.length ===
-        0 ? (
+          0 ? (
           <div className="dealer-car-empty">
             {selectedCarView ===
-            "sold"
+              "sold"
               ? "판매 완료된 매물이 없습니다."
               : "등록된 매물이 없습니다."}
           </div>
@@ -1167,7 +1173,7 @@ function DealerPage() {
       {loginUser?.role ===
         AUTH_ROLES.MEMBER &&
         reviewableTrades.length >
-          0 && (
+        0 && (
           <section className="page-section dealer-review-write-section">
             <h2>
               구매 리뷰 작성
@@ -1341,9 +1347,9 @@ function DealerPage() {
 
                         {"☆".repeat(
                           5 -
-                            Number(
-                              review.rating
-                            )
+                          Number(
+                            review.rating
+                          )
                         )}
                       </strong>
 

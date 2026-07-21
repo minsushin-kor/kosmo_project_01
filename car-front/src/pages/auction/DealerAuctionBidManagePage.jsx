@@ -85,7 +85,7 @@ function DealerAuctionBidManagePage() {
       bidStatus: "입찰완료",
       createdAt: new Date(
         new Date(car.auction?.startDate || new Date()).getTime() +
-          (index + 1) * 1000 * 60 * 40
+        (index + 1) * 1000 * 60 * 40
       ).toISOString(),
       isDummy: true,
     }));
@@ -115,7 +115,7 @@ function DealerAuctionBidManagePage() {
     }
 
     const winnerData = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       carId: car.id,
       auctionId: car.auction?.auctionId || car.id,
 
@@ -273,9 +273,8 @@ function DealerAuctionBidManagePage() {
 
                         <td>
                           <span
-                            className={`auction-bid-status ${
-                              isWinner ? "낙찰완료" : bid.bidStatus
-                            }`}
+                            className={`auction-bid-status ${isWinner ? "낙찰완료" : bid.bidStatus
+                              }`}
                           >
                             {isWinner ? "낙찰완료" : bid.bidStatus}
                           </span>

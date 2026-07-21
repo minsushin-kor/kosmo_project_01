@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import {
+  useState,
+} from "react";
 
 function AdminTable({
   columns,
@@ -10,41 +12,78 @@ function AdminTable({
 }) {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const count = totalCount !== undefined ? totalCount : data.length;
-  const totalPage = Math.ceil(data.length / pageSize);
+  const count =
+    totalCount !== undefined
+      ? totalCount
+      : data.length;
 
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const pageData = data.slice(startIndex, endIndex);
+  const totalPage = Math.max(
+    1,
+    Math.ceil(data.length / pageSize)
+  );
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [data]);
+  /*
+   * 데이터가 줄어서 현재 페이지가 총 페이지보다 커질 경우
+   * setState를 실행하지 않고 화면에서 사용할 페이지만 보정한다.
+   *
+   * 예:
+   * 기존 4페이지 → 검색 결과가 2페이지
+   * currentPage는 4지만 safeCurrentPage는 2가 된다.
+   */
+  const safeCurrentPage = Math.min(
+    currentPage,
+    totalPage
+  );
+
+  const startIndex =
+    (safeCurrentPage - 1) * pageSize;
+
+  const endIndex =
+    startIndex + pageSize;
+
+  const pageData = data.slice(
+    startIndex,
+    endIndex
+  );
 
   const handlePrevPage = () => {
-    if (currentPage === 1) {
-      return;
-    }
+    setCurrentPage((prevPage) => {
+      const safePage = Math.min(
+        prevPage,
+        totalPage
+      );
 
-    setCurrentPage(currentPage - 1);
+      return Math.max(
+        1,
+        safePage - 1
+      );
+    });
   };
 
   const handleNextPage = () => {
-    if (currentPage === totalPage) {
-      return;
-    }
+    setCurrentPage((prevPage) => {
+      const safePage = Math.min(
+        prevPage,
+        totalPage
+      );
 
-    setCurrentPage(currentPage + 1);
+      return Math.min(
+        totalPage,
+        safePage + 1
+      );
+    });
   };
 
   return (
     <div className="admin-table-area">
       <div className="admin-table-top">
-        <div className="admin-table-count">총 {count}건</div>
+        <div className="admin-table-count">
+          총 {count}건
+        </div>
 
         {data.length > 0 && (
           <div className="admin-table-page-info">
-            {currentPage} / {totalPage}
+            {safeCurrentPage} / {totalPage}
           </div>
         )}
       </div>
@@ -54,7 +93,9 @@ function AdminTable({
           <thead>
             <tr>
               {columns.map((column) => (
-                <th key={column.key}>{column.label}</th>
+                <th key={column.key}>
+                  {column.label}
+                </th>
               ))}
             </tr>
           </thead>
@@ -66,7 +107,10 @@ function AdminTable({
                   {columns.map((column) => (
                     <td key={column.key}>
                       {column.render
-                        ? column.render(row, onRowAction)
+                        ? column.render(
+                            row,
+                            onRowAction
+                          )
                         : row[column.key]}
                     </td>
                   ))}
@@ -74,7 +118,10 @@ function AdminTable({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className="admin-empty-message">
+                <td
+                  colSpan={columns.length}
+                  className="admin-empty-message"
+                >
                   {emptyMessage}
                 </td>
               </tr>
@@ -88,19 +135,23 @@ function AdminTable({
           <button
             type="button"
             onClick={handlePrevPage}
-            disabled={currentPage === 1}
+            disabled={
+              safeCurrentPage === 1
+            }
           >
             이전
           </button>
 
           <span>
-            {currentPage} / {totalPage}
+            {safeCurrentPage} / {totalPage}
           </span>
 
           <button
             type="button"
             onClick={handleNextPage}
-            disabled={currentPage === totalPage}
+            disabled={
+              safeCurrentPage === totalPage
+            }
           >
             다음
           </button>

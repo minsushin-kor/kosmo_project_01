@@ -53,17 +53,17 @@ function readFavoriteCarIds() {
         .map((item) => {
           if (
             typeof item ===
-              "number" ||
+            "number" ||
             typeof item ===
-              "string"
+            "string"
           ) {
             return Number(item);
           }
 
           return Number(
             item.carId ||
-              item.listingId ||
-              item.id
+            item.listingId ||
+            item.id
           );
         })
         .filter((id) =>
@@ -99,11 +99,10 @@ function getOwnedCarName(car) {
 
   return (
     car.carName ||
-    `${car.brand || ""} ${
-      car.modelName ||
+    `${car.brand || ""} ${car.modelName ||
       car.model ||
       ""
-    }`.trim() ||
+      }`.trim() ||
     "차량명 없음"
   );
 }
@@ -118,10 +117,8 @@ function MyPage() {
     setSelectedOwnedCar,
   ] = useState(null);
 
-  const [
-    favoriteVersion,
-    setFavoriteVersion,
-  ] = useState(0);
+  const [, setFavoriteVersion] =
+    useState(0);
 
   const isMember =
     loginUser?.role ===
@@ -133,8 +130,8 @@ function MyPage() {
 
   const myPageMenus = loginUser
     ? getMyPageMenusByRole(
-        loginUser.role
-      )
+      loginUser.role
+    )
     : [];
 
   const ownedCars = Array.isArray(
@@ -168,26 +165,23 @@ function MyPage() {
     );
   }, []);
 
+  const favoriteIds =
+    readFavoriteCarIds();
+
+  const favoriteIdSet =
+    new Set(
+      favoriteIds.map(
+        (id) => String(id)
+      )
+    );
+
   const favoriteCars =
-    useMemo(() => {
-      const favoriteIds =
-        readFavoriteCarIds();
-
-      const favoriteIdSet =
-        new Set(
-          favoriteIds.map(Number)
-        );
-
-      return allCars.filter(
-        (car) =>
-          favoriteIdSet.has(
-            Number(car.id)
-          )
-      );
-    }, [
-      allCars,
-      favoriteVersion,
-    ]);
+    allCars.filter(
+      (car) =>
+        favoriteIdSet.has(
+          String(car.id)
+        )
+    );
 
   const inquiryList = useMemo(
     () => [
@@ -247,32 +241,46 @@ function MyPage() {
     );
 
   useEffect(() => {
-    function handleFavoriteChange() {
+    function refreshFavoriteCars() {
       setFavoriteVersion(
-        (prev) =>
-          prev + 1
+        (prev) => prev + 1
       );
+    }
+
+    function handleStorageChange(
+      event
+    ) {
+      if (
+        event.key &&
+        !FAVORITE_STORAGE_KEYS.includes(
+          event.key
+        )
+      ) {
+        return;
+      }
+
+      refreshFavoriteCars();
     }
 
     window.addEventListener(
       "favorite-change",
-      handleFavoriteChange
+      refreshFavoriteCars
     );
 
     window.addEventListener(
       "storage",
-      handleFavoriteChange
+      handleStorageChange
     );
 
     return () => {
       window.removeEventListener(
         "favorite-change",
-        handleFavoriteChange
+        refreshFavoriteCars
       );
 
       window.removeEventListener(
         "storage",
-        handleFavoriteChange
+        handleStorageChange
       );
     };
   }, []);
@@ -491,7 +499,7 @@ function MyPage() {
               </div>
 
               {favoriteCars.length ===
-              0 ? (
+                0 ? (
                 <div className="mypage-list-empty">
                   <strong>
                     찜한 차량이
@@ -544,13 +552,11 @@ function MyPage() {
                             <div className="favorite-car-title-row">
                               <h4>
                                 {car.carName ||
-                                  `${
-                                    car.brand ||
+                                  `${car.brand ||
                                     ""
-                                  } ${
-                                    car.modelName ||
+                                    } ${car.modelName ||
                                     ""
-                                  }`.trim()}
+                                    }`.trim()}
                               </h4>
 
                               <span>
@@ -567,10 +573,10 @@ function MyPage() {
 
                               <li>
                                 {car.mileage !==
-                                undefined
+                                  undefined
                                   ? `${Number(
-                                      car.mileage
-                                    ).toLocaleString()}km`
+                                    car.mileage
+                                  ).toLocaleString()}km`
                                   : "주행거리 미등록"}
                               </li>
 
@@ -584,7 +590,7 @@ function MyPage() {
                               <strong>
                                 {Number(
                                   car.price ||
-                                    0
+                                  0
                                 ).toLocaleString()}
                                 만원
                               </strong>
@@ -636,7 +642,7 @@ function MyPage() {
                 </div>
 
                 {inquiryList.length ===
-                0 ? (
+                  0 ? (
                   <div className="mypage-table-empty">
                     구매 문의 내역이
                     없습니다.
@@ -722,7 +728,7 @@ function MyPage() {
                 </div>
 
                 {registeredAuctionCars.length ===
-                0 ? (
+                  0 ? (
                   <div className="mypage-table-empty">
                     등록한 경매 차량이
                     없습니다.
@@ -784,10 +790,9 @@ function MyPage() {
 
             <div className="mypage-menu-list dealer-mypage-menu-list">
               <Link
-                to={`/company/dealers/${
-                  loginUser.dealerId ||
+                to={`/company/dealers/${loginUser.dealerId ||
                   loginUser.id
-                }/cars`}
+                  }/cars`}
               >
                 내 매물리스트
               </Link>
@@ -810,7 +815,7 @@ function MyPage() {
 
               <div className="mypage-menu-list">
                 {myPageMenus.length ===
-                0 ? (
+                  0 ? (
                   <p className="mypage-menu-empty">
                     이 계정은 아직
                     바로가기 메뉴가 없음
@@ -962,10 +967,10 @@ function MyPage() {
 
                 <dd>
                   {selectedOwnedCar.mileage !==
-                  undefined
+                    undefined
                     ? `${Number(
-                        selectedOwnedCar.mileage
-                      ).toLocaleString()}km`
+                      selectedOwnedCar.mileage
+                    ).toLocaleString()}km`
                     : "-"}
                 </dd>
               </div>

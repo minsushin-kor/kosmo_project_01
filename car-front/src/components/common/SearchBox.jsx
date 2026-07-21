@@ -1,14 +1,7 @@
+import {
+  initialSearchCondition,
+} from "../../data/searchData";
 import "../../css/common/searchBox.css";
-
-const initialSearchCondition = {
-  brand: "",
-  modelName: "",
-  minPrice: 500,
-  maxPrice: 5000,
-  year: "",
-  mileage: "",
-  region: "",
-};
 
 function SearchBox({ searchCondition, setSearchCondition }) {
   function updateCondition(name, value) {
@@ -184,5 +177,4 @@ function SearchBox({ searchCondition, setSearchCondition }) {
   );
 }
 
-export { initialSearchCondition };
 export default SearchBox;
