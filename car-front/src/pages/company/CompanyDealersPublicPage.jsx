@@ -59,10 +59,10 @@ function CompanyDealersPublicPage() {
                 </div>
 
                 <Link
-                  to={`/company/dealers/${dealer.id}/cars`}
+                  to={`/company/dealers/${dealer.id}`}
                   className="company-dealers-public-link"
                 >
-                  이 딜러 매물보기
+                  딜러 프로필 보기
                 </Link>
               </article>
             ))}

@@ -9,8 +9,25 @@ const adminMenus = [
   },
   {
     id: 2,
-    name: "회원 관리",
+    name: "계정 관리",
     path: "/admin/members",
+    children: [
+      {
+        id: 21,
+        name: "회원 관리",
+        path: "/admin/members",
+      },
+      {
+        id: 22,
+        name: "기업 관리",
+        path: "/admin/companies",
+      },
+      {
+        id: 23,
+        name: "딜러 관리",
+        path: "/admin/dealers",
+      },
+    ],
   },
   {
     id: 3,
@@ -29,6 +46,11 @@ const adminMenus = [
   },
   {
     id: 6,
+    name: "공지사항 관리",
+    path: "/admin/notices",
+  },
+  {
+    id: 7,
     name: "이탈 위험 관리",
     path: "/admin/churn/company",
     children: [
@@ -50,6 +72,11 @@ function AdminLayout({ title, description, children, actions }) {
   const location = useLocation();
 
   const isChurnMenuOpen = location.pathname.startsWith("/admin/churn");
+  const isAccountMenuOpen = [
+    "/admin/members",
+    "/admin/companies",
+    "/admin/dealers",
+  ].some((path) => location.pathname.startsWith(path));
 
   return (
     <main className="admin-layout-page">
@@ -64,12 +91,17 @@ function AdminLayout({ title, description, children, actions }) {
             const hasChildren = menu.children && menu.children.length > 0;
 
             if (hasChildren) {
+              const isMenuOpen =
+                menu.name === "계정 관리"
+                  ? isAccountMenuOpen
+                  : isChurnMenuOpen;
+
               return (
                 <div className="admin-menu-group" key={menu.id}>
                   <NavLink
                     to={menu.path}
                     className={() =>
-                      isChurnMenuOpen
+                      isMenuOpen
                         ? "admin-menu-link active"
                         : "admin-menu-link"
                     }
@@ -77,7 +109,7 @@ function AdminLayout({ title, description, children, actions }) {
                     {menu.name}
                   </NavLink>
 
-                  {isChurnMenuOpen && (
+                  {isMenuOpen && (
                     <div className="admin-sub-menu">
                       {menu.children.map((child) => (
                         <NavLink

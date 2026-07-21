@@ -1,7 +1,16 @@
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  saveRecentCarId,
+} from "../../utils/carRecommendationStorage";
 import { Link, useParams } from "react-router-dom";
 import { getCarById } from "../../utils/carViewUtils";
 import { useAuth } from "../../hooks/useAuth";
+import { AUTH_ROLES } from "../../data/authUser";
+import { saveNormalTrade } from "../../utils/normalTradeStorage";
 import "../../css/car/carDetailPage.css";
 
 const AUCTION_WINNERS_KEY = "car_front_auction_winners";
@@ -66,6 +75,7 @@ function CarDetailPage() {
 
   const [bidPrice, setBidPrice] = useState("");
   const [bidMessage, setBidMessage] = useState("");
+  const [tradeMessage, setTradeMessage] = useState("");
 
   const [bidList, setBidList] = useState(() => {
     const savedBids = JSON.parse(
@@ -74,7 +84,11 @@ function CarDetailPage() {
 
     return savedBids.filter((bid) => bid.carId === Number(id));
   });
-
+  useEffect(() => {
+    if (car?.id) {
+      saveRecentCarId(car.id);
+    }
+  }, [car?.id]);
   const auctionWinner = getAuctionWinners().find(
     (winner) => winner.carId === Number(id)
   );
@@ -120,15 +134,15 @@ function CarDetailPage() {
 
   const auction = isAuctionCar
     ? car.auction || {
-        auctionId: car.id,
-        startPrice: car.price,
-        bidCount: 0,
-        startDate: car.registeredDate,
-        endDate: null,
-        status: car.status || "경매중",
-        winningBidPrice: null,
-        winningBidderName: null,
-      }
+      auctionId: car.id,
+      startPrice: car.price,
+      bidCount: 0,
+      startDate: car.registeredDate,
+      endDate: null,
+      status: car.status || "경매중",
+      winningBidPrice: null,
+      winningBidderName: null,
+    }
     : null;
 
   const remainText = isAuctionCar
@@ -152,8 +166,8 @@ function CarDetailPage() {
   const sellerType = isDealerCar ? "DEALER" : "MEMBER";
   const sellerId = isDealerCar ? car.dealerId : car.memberId;
 
-  const sellerCarsPath = isDealerCar
-    ? `/company/dealers/${car.dealerId}/cars`
+  const sellerProfilePath = isDealerCar
+    ? `/company/dealers/${car.dealerId}`
     : `/members/${car.memberId}/cars`;
 
   const detailItems = [
@@ -188,6 +202,14 @@ function CarDetailPage() {
 
     if (isAuctionDone) {
       setBidMessage("이미 종료된 경매입니다.");
+      return;
+    }
+
+    if (
+      loginUser.role !== AUTH_ROLES.COMPANY &&
+      loginUser.role !== AUTH_ROLES.DEALER
+    ) {
+      setBidMessage("회사 또는 회사딜러 계정만 입찰할 수 있습니다.");
       return;
     }
 
@@ -254,6 +276,37 @@ function CarDetailPage() {
     setBidMessage("입찰이 완료되었습니다. 다른 입찰자의 금액은 공개되지 않습니다.");
   }
 
+  function handlePurchaseComplete() {
+    if (!loginUser) {
+      setTradeMessage("로그인 후 구매할 수 있습니다.");
+      return;
+    }
+
+    if (loginUser.role !== AUTH_ROLES.MEMBER) {
+      setTradeMessage("일반회원 계정만 딜러 매물을 구매할 수 있습니다.");
+      return;
+    }
+
+    const trade = saveNormalTrade({
+      id: `normal-${car.id}-${loginUser.id}`,
+      carId: car.id,
+      carName: car.carName,
+      dealerId: car.dealerId,
+      dealerName: car.sellerName,
+      companyId: car.companyId,
+      companyName: car.companyName,
+      buyerId: loginUser.id,
+      buyerName: loginUser.name,
+      price: car.price,
+      status: "구매완료",
+      completedAt: new Date().toISOString(),
+    });
+
+    setTradeMessage(
+      `${trade.carName} 구매완료 처리되었습니다. 딜러 프로필에서 리뷰를 작성할 수 있습니다.`
+    );
+  }
+
   function handleMessageClick() {
     const now = new Date().toISOString();
 
@@ -303,45 +356,45 @@ function CarDetailPage() {
 
     const nextRooms = hasRoom
       ? savedRooms.map((room) =>
-          room.roomId === roomId
-            ? {
-                ...room,
-                lastMessage: firstMessageText,
-                updatedAt: now,
-                isRead: false,
-              }
-            : room
-        )
-      : [
-          {
-            roomId,
-
-            carId: car.id,
-            carName: car.carName,
-            carImage: car.image || null,
-
-            sellerType,
-            sellerId,
-            sellerName: car.sellerName,
-
-            dealerId: isDealerCar ? car.dealerId : null,
-            memberId: isMemberCar ? car.memberId : null,
-            companyId: isDealerCar ? car.companyId : null,
-            companyName: isDealerCar ? car.companyName : "개인 판매",
-
-            buyerType,
-            buyerId,
-            buyerName,
-
+        room.roomId === roomId
+          ? {
+            ...room,
             lastMessage: firstMessageText,
-            messages: [firstMessage],
-
-            createdAt: now,
             updatedAt: now,
             isRead: false,
-          },
-          ...savedRooms,
-        ];
+          }
+          : room
+      )
+      : [
+        {
+          roomId,
+
+          carId: car.id,
+          carName: car.carName,
+          carImage: car.image || null,
+
+          sellerType,
+          sellerId,
+          sellerName: car.sellerName,
+
+          dealerId: isDealerCar ? car.dealerId : null,
+          memberId: isMemberCar ? car.memberId : null,
+          companyId: isDealerCar ? car.companyId : null,
+          companyName: isDealerCar ? car.companyName : "개인 판매",
+
+          buyerType,
+          buyerId,
+          buyerName,
+
+          lastMessage: firstMessageText,
+          messages: [firstMessage],
+
+          createdAt: now,
+          updatedAt: now,
+          isRead: false,
+        },
+        ...savedRooms,
+      ];
 
     localStorage.setItem("car_front_messages", JSON.stringify(nextRooms));
 
@@ -451,7 +504,11 @@ function CarDetailPage() {
                   value={bidPrice}
                   onChange={(e) => setBidPrice(e.target.value)}
                   placeholder={`${Number(auction.startPrice).toLocaleString()}만원 이상`}
-                  disabled={isAuctionDone || Boolean(myBid)}
+                  disabled={
+                    isAuctionDone ||
+                    Boolean(myBid) ||
+                    ![AUTH_ROLES.COMPANY, AUTH_ROLES.DEALER].includes(loginUser?.role)
+                  }
                 />
 
                 <span>만원</span>
@@ -472,7 +529,14 @@ function CarDetailPage() {
               {bidMessage && <p className="bid-message">{bidMessage}</p>}
 
               <div className="detail-action-buttons">
-                <button type="submit" disabled={isAuctionDone || Boolean(myBid)}>
+                <button
+                  type="submit"
+                  disabled={
+                    isAuctionDone ||
+                    Boolean(myBid) ||
+                    ![AUTH_ROLES.COMPANY, AUTH_ROLES.DEALER].includes(loginUser?.role)
+                  }
+                >
                   입찰하기
                 </button>
 
@@ -486,10 +550,26 @@ function CarDetailPage() {
               </div>
             </form>
           ) : (
-            <div className="detail-action-buttons">
-              <button type="button" onClick={handleMessageClick}>
-                판매자 문의
-              </button>
+            <div>
+              {tradeMessage && <p className="bid-message">{tradeMessage}</p>}
+
+              <div className="detail-action-buttons">
+                <button
+                  type="button"
+                  onClick={handlePurchaseComplete}
+                  disabled={loginUser?.role !== AUTH_ROLES.MEMBER || car.status === "판매완료"}
+                >
+                  구매완료 테스트
+                </button>
+
+                <button
+                  type="button"
+                  className="outline-button"
+                  onClick={handleMessageClick}
+                >
+                  판매자 문의
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -533,7 +613,7 @@ function CarDetailPage() {
             <div>
               <span>판매자</span>
 
-              <Link to={sellerCarsPath} className="seller-info-link">
+              <Link to={sellerProfilePath} className="seller-info-link">
                 {car.sellerName}
               </Link>
             </div>

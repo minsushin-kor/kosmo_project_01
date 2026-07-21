@@ -1,0 +1,115 @@
+.admin-notice-create-btn {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--main-blue);
+  border-radius: 13px;
+  background-color: var(--main-blue);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-notice-create-btn:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.admin-notice-important,
+.admin-notice-normal {
+  display: inline-flex;
+  min-width: 46px;
+  justify-content: center;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-notice-important {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.admin-notice-normal {
+  background-color: #edf3fa;
+  color: #475569;
+}
+
+.admin-detail-content-row {
+  align-items: flex-start;
+}
+
+.admin-detail-content-row strong {
+  max-width: 360px;
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+.admin-notice-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #edf3fa;
+}
+
+.admin-notice-form {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-notice-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-notice-form label > span {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-notice-form input,
+.admin-notice-form select,
+.admin-notice-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line-dark);
+  border-radius: 13px;
+  background-color: #ffffff;
+  color: #1f2937;
+  font: inherit;
+  outline: none;
+}
+
+.admin-notice-form input,
+.admin-notice-form select {
+  height: 42px;
+  padding: 0 13px;
+}
+
+.admin-notice-form textarea {
+  padding: 13px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.admin-notice-form input:focus,
+.admin-notice-form select:focus,
+.admin-notice-form textarea:focus {
+  border-color: var(--main-blue);
+}
+
+.admin-notice-check-label {
+  display: flex !important;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.admin-notice-check-label input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--main-blue);
+}

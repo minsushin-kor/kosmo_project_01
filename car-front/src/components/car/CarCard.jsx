@@ -3,41 +3,23 @@ import { normalizeCar } from "../../utils/carViewUtils";
 import "../../css/car/carCard.css";
 
 function getAuctionRemainText(endDate) {
-  if (!endDate) {
-    return "마감일 미정";
-  }
+  if (!endDate) return "마감일 미정";
 
-  const now = new Date();
-  const end = new Date(endDate);
-  const diff = end - now;
-
-  if (diff <= 0) {
-    return "경매 종료";
-  }
+  const diff = new Date(endDate) - new Date();
+  if (diff <= 0) return "경매 종료";
 
   const day = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hour = Math.floor((diff / (1000 * 60 * 60)) % 24);
-
-  if (day > 0) {
-    return `${day}일 ${hour}시간 남음`;
-  }
-
-  return `${hour}시간 남음`;
+  return day > 0 ? `${day}일 ${hour}시간 남음` : `${hour}시간 남음`;
 }
 
 function CarCard({ car }) {
   const viewCar = normalizeCar(car);
+  const isAuction = viewCar.saleType === "AUCTION";
   const auction = viewCar.auction;
-
-  const auctionStatus = auction?.status || viewCar.status;
-  const startPrice = auction?.startPrice || viewCar.price;
-  const bidCount = auction?.bidCount || 0;
-  const remainText = getAuctionRemainText(auction?.endDate);
-
-  const isDone =
-    auctionStatus === "경매종료" ||
-    auctionStatus === "낙찰완료" ||
-    remainText === "경매 종료";
+  const remainText = isAuction ? getAuctionRemainText(auction?.endDate) : "일반 판매";
+  const status = auction?.status || viewCar.status;
+  const isDone = ["경매종료", "낙찰완료", "판매완료"].includes(status) || remainText === "경매 종료";
 
   return (
     <article className="car-card">
@@ -49,10 +31,7 @@ function CarCard({ car }) {
         <div className="car-card-body">
           <div className="car-card-title-row">
             <h3>{viewCar.carName}</h3>
-
-            <span className={`status-badge ${isDone ? "done" : ""}`}>
-              {auctionStatus}
-            </span>
+            <span className={`status-badge ${isDone ? "done" : ""}`}>{status}</span>
           </div>
 
           <ul className="car-card-spec">
@@ -69,13 +48,13 @@ function CarCard({ car }) {
 
           <div className="car-card-auction-info">
             <div>
-              <span>경매 시작가</span>
-              <strong>{Number(startPrice).toLocaleString()}만원</strong>
+              <span>{isAuction ? "경매 시작가" : "판매 가격"}</span>
+              <strong>{Number(isAuction ? auction?.startPrice : viewCar.price).toLocaleString()}만원</strong>
             </div>
 
             <div>
-              <span>입찰</span>
-              <strong>{bidCount}건</strong>
+              <span>{isAuction ? "입찰" : "거래 방식"}</span>
+              <strong>{isAuction ? `${auction?.bidCount || 0}건` : "일반거래"}</strong>
             </div>
           </div>
 

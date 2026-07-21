@@ -1,26 +1,36 @@
 .header {
-  height: 68px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  min-height: 68px;
   padding: 0 42px;
-  background-color: rgba(255, 255, 255, 0.88);
-  border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(14px);
+  box-sizing: border-box;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
 
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  background-color:
+    rgba(255, 255, 255, 0.92);
+  border-bottom:
+    1px solid var(--line);
+  backdrop-filter:
+    blur(14px);
 }
 
 .header-left {
+  min-width: 0;
+
   display: flex;
   align-items: center;
   gap: 38px;
 }
 
 .logo {
+  flex-shrink: 0;
+
   font-size: 21px;
   font-weight: 900;
   white-space: nowrap;
@@ -38,9 +48,11 @@
 
 .nav a {
   position: relative;
-  font-size: 15px;
+
   color: #374151;
+  font-size: 15px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .nav a:hover {
@@ -49,14 +61,20 @@
 
 .nav a::after {
   content: "";
+
   position: absolute;
   left: 0;
   bottom: -8px;
+
   width: 0;
   height: 2px;
+
   border-radius: 999px;
-  background-color: var(--main-blue);
-  transition: width 0.2s ease;
+  background-color:
+    var(--main-blue);
+
+  transition:
+    width 0.2s ease;
 }
 
 .nav a:hover::after {
@@ -64,6 +82,8 @@
 }
 
 .header-right {
+  flex-shrink: 0;
+
   display: flex;
   align-items: center;
   gap: 10px;
@@ -72,40 +92,94 @@
 .login-btn,
 .mypage-link,
 .logout-btn,
-.notification-btn {
-  height: 38px;
+.notification-btn,
+.header-coupon-link,
+.company-name-link {
+  min-height: 38px;
   padding: 0 15px;
+  box-sizing: border-box;
+
   border-radius: 999px;
+
+  font-family: inherit;
   font-size: 14px;
   font-weight: 800;
   text-decoration: none;
 
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .login-btn {
-  background-color: var(--main-blue);
+  border:
+    1px solid var(--main-blue);
+  background-color:
+    var(--main-blue);
   color: #ffffff;
-  border: 1px solid var(--main-blue);
-  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.22);
+
+  box-shadow:
+    0 8px 18px
+    rgba(20, 115, 230, 0.22);
 }
 
 .login-btn:hover {
-  background-color: var(--main-blue-dark);
+  background-color:
+    var(--main-blue-dark);
 }
 
-.mypage-link {
+.mypage-link,
+.header-coupon-link {
+  border: 1px solid #cfe3fb;
   background-color: #ffffff;
   color: var(--main-blue);
-  border: 1px solid #cfe3fb;
+}
+
+.mypage-link:hover,
+.header-coupon-link:hover {
+  background-color: #f4f9ff;
+}
+
+.company-name-link {
+  border: 1px solid #dbeafe;
+  background-color: #f5f9ff;
+  color: #1e3a5f;
+}
+
+.company-name-link:hover {
+  border-color: #b9d8fa;
+  background-color: #edf6ff;
 }
 
 .logout-btn {
+  border: 1px solid #dbeafe;
   background-color: #f5f9ff;
   color: #4b5563;
-  border: 1px solid #dbeafe;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background-color: #edf6ff;
+}
+
+.header-coupon-link {
+  gap: 7px;
+}
+
+.header-count-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+
+  border-radius: 999px;
+  background-color:
+    var(--main-blue);
+  color: #ffffff;
+
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
 }
 
 .notification-wrap {
@@ -113,10 +187,18 @@
 }
 
 .notification-btn {
+  position: relative;
+
+  border: 1px solid #dbeafe;
   background-color: #ffffff;
   color: #374151;
-  border: 1px solid #dbeafe;
-  position: relative;
+  cursor: pointer;
+}
+
+.notification-btn:hover {
+  border-color:
+    var(--main-blue);
+  background-color: #f4f9ff;
 }
 
 .notification-badge {
@@ -138,30 +220,37 @@
   position: absolute;
   top: 48px;
   right: 0;
+  z-index: 300;
 
   width: 280px;
   padding: 14px;
-  background-color: #ffffff;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: var(--shadow-card);
+  box-sizing: border-box;
 
-  z-index: 300;
+  border:
+    1px solid var(--line);
+  border-radius: 18px;
+  background-color: #ffffff;
+  box-shadow:
+    var(--shadow-card);
 }
 
 .notification-title {
   margin: 0 0 10px;
+
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 900;
-  color: var(--text-main);
 }
 
 .notification-list a {
   display: block;
+
   padding: 10px 0;
+
+  border-bottom:
+    1px solid #edf3fa;
   color: #4b5563;
   font-size: 14px;
-  border-bottom: 1px solid #edf3fa;
 }
 
 .notification-list a:last-child {
@@ -176,24 +265,60 @@
 .notification-empty {
   margin: 8px 0 0;
   padding: 10px 0;
+
   color: var(--text-sub);
   font-size: 14px;
 }
 
-@media (max-width: 900px) {
+.dealer-account-links {
+  min-height: 38px;
+  padding: 0 14px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background-color: #f8fbff;
+}
+
+.dealer-company-link,
+.dealer-name-link {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dealer-company-link {
+  color: var(--main-blue);
+}
+
+.dealer-company-link:hover,
+.dealer-name-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.dealer-company-link::after {
+  content: "/";
+  margin-left: 8px;
+  color: #94a3b8;
+  text-decoration: none;
+}
+
+@media (max-width: 1050px) {
   .header {
-    height: auto;
-    padding: 18px 20px;
-    flex-direction: column;
+    padding: 14px 22px;
     align-items: flex-start;
-    gap: 16px;
   }
 
   .header-left {
-    width: 100%;
     flex-direction: column;
     align-items: flex-start;
-    gap: 14px;
+    gap: 12px;
   }
 
   .nav {
@@ -202,239 +327,31 @@
   }
 
   .header-right {
-    width: 100%;
     flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 760px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .header-left,
+  .header-right {
+    width: 100%;
+  }
+
+  .header-right {
+    justify-content: flex-start;
   }
 
   .notification-list {
-    left: 0;
     right: auto;
-  }
-
-  .header {
-    height: 68px;
-    padding: 0 42px;
-    background-color: rgba(255, 255, 255, 0.88);
-    border-bottom: 1px solid var(--line);
-    backdrop-filter: blur(14px);
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 38px;
-  }
-
-  .logo {
-    font-size: 21px;
-    font-weight: 900;
-    white-space: nowrap;
-  }
-
-  .logo a {
-    color: var(--main-blue);
-  }
-
-  .nav {
-    display: flex;
-    align-items: center;
-    gap: 26px;
-  }
-
-  .nav a {
-    position: relative;
-    font-size: 15px;
-    color: #374151;
-    font-weight: 700;
-  }
-
-  .nav a:hover {
-    color: var(--main-blue);
-  }
-
-  .nav a::after {
-    content: "";
-    position: absolute;
     left: 0;
-    bottom: -8px;
-    width: 0;
-    height: 2px;
-    border-radius: 999px;
-    background-color: var(--main-blue);
-    transition: width 0.2s ease;
   }
 
-  .nav a:hover::after {
-    width: 100%;
+  .dealer-account-links {
+    order: -1;
   }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .login-btn,
-  .mypage-link,
-  .logout-btn,
-  .notification-btn {
-    height: 38px;
-    padding: 0 15px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 800;
-    text-decoration: none;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .login-btn {
-    background-color: var(--main-blue);
-    color: #ffffff;
-    border: 1px solid var(--main-blue);
-    box-shadow: 0 8px 18px rgba(20, 115, 230, 0.22);
-  }
-
-  .login-btn:hover {
-    background-color: var(--main-blue-dark);
-  }
-
-  .mypage-link {
-    background-color: #ffffff;
-    color: var(--main-blue);
-    border: 1px solid #cfe3fb;
-  }
-
-  .logout-btn {
-    background-color: #f5f9ff;
-    color: #4b5563;
-    border: 1px solid #dbeafe;
-    cursor: pointer;
-  }
-
-  .logout-btn:hover,
-  .mypage-link:hover {
-    background-color: #f4f9ff;
-  }
-
-  .notification-wrap {
-    position: relative;
-  }
-
-  .notification-btn {
-    background-color: #ffffff;
-    color: #374151;
-    border: 1px solid #dbeafe;
-    position: relative;
-    cursor: pointer;
-  }
-
-  .notification-btn:hover {
-    border-color: var(--main-blue);
-    background-color: #f4f9ff;
-  }
-
-  .notification-badge {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    margin-left: 6px;
-
-    border-radius: 999px;
-    background-color: #ff4b5c;
-    color: #ffffff;
-
-    font-size: 12px;
-    line-height: 18px;
-    text-align: center;
-  }
-
-  .notification-list {
-    position: absolute;
-    top: 48px;
-    right: 0;
-
-    width: 280px;
-    padding: 14px;
-    background-color: #ffffff;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: var(--shadow-card);
-
-    z-index: 300;
-  }
-
-  .notification-title {
-    margin: 0 0 10px;
-    font-size: 14px;
-    font-weight: 900;
-    color: var(--text-main);
-  }
-
-  .notification-list a {
-    display: block;
-    padding: 10px 0;
-    color: #4b5563;
-    font-size: 14px;
-    border-bottom: 1px solid #edf3fa;
-  }
-
-  .notification-list a:last-child {
-    border-bottom: none;
-  }
-
-  .notification-list a:hover {
-    color: var(--main-blue);
-    font-weight: 800;
-  }
-
-  .notification-empty {
-    margin: 8px 0 0;
-    padding: 10px 0;
-    color: var(--text-sub);
-    font-size: 14px;
-  }
-
-  @media (max-width: 900px) {
-    .header {
-      height: auto;
-      padding: 18px 20px;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 16px;
-    }
-
-    .header-left {
-      width: 100%;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 14px;
-    }
-
-    .nav {
-      flex-wrap: wrap;
-      gap: 14px;
-    }
-
-    .header-right {
-      width: 100%;
-      flex-wrap: wrap;
-    }
-
-    .notification-list {
-      left: 0;
-      right: auto;
-    }
-  }
-
 }

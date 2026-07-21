@@ -2,7 +2,7 @@ import { AUTH_ROLES } from "./authUser";
 
 export const COMMON_MENU_LIST = [
   {
-    id: 1,
+    id: "home",
     name: "홈",
     path: "/",
   },
@@ -11,7 +11,7 @@ export const COMMON_MENU_LIST = [
 export const ROLE_MENU_LIST = {
   [AUTH_ROLES.ADMIN]: [
     {
-      id: 1,
+      id: "admin",
       name: "관리자",
       path: "/admin",
     },
@@ -19,42 +19,31 @@ export const ROLE_MENU_LIST = {
 
   [AUTH_ROLES.COMPANY]: [
     {
-      id: 1,
+      id: "company-manage",
       name: "회사관리",
       path: "/company/mypage",
     },
     {
-      id: 2,
-      name: "공개 회사페이지",
+      id: "company-public",
+      name: "회사 공개페이지",
       path: "/company",
     },
     {
-      id: 3,
-      name: "딜러 관리",
-      path: "/company/dealers",
-    },
-    {
-      id: 4,
+      id: "site-notice",
       name: "공지사항",
-      path: "/company/notices",
+      path: "/notices",
     },
   ],
 
   [AUTH_ROLES.DEALER]: [
     {
-      id: 1,
-      name: "딜러",
-      path: "/dealer",
+      id: "dealer-company",
+      name: "회사",
+      path: "/company",
     },
   ],
 
-  [AUTH_ROLES.MEMBER]: [
-    {
-      id: 1,
-      name: "일반회원",
-      path: "/member",
-    },
-  ],
+  [AUTH_ROLES.MEMBER]: [],
 };
 
 export function getMenusByRole(role) {
@@ -62,5 +51,12 @@ export function getMenusByRole(role) {
 }
 
 export function getHeaderMenus(role) {
-  return [...COMMON_MENU_LIST, ...getMenusByRole(role)];
+  if (role === AUTH_ROLES.COMPANY) {
+    return getMenusByRole(role);
+  }
+
+  return [
+    ...COMMON_MENU_LIST,
+    ...getMenusByRole(role),
+  ];
 }

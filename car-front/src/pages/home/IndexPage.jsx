@@ -5,9 +5,12 @@ import SearchBox, {
 import CarCard from "../../components/car/CarCard";
 import RightSidebar from "../../components/common/RightSidebar";
 import { getAllCars } from "../../utils/carViewUtils";
+import { useAuth } from "../../hooks/useAuth";
+import { AUTH_ROLES } from "../../data/authUser";
 import "../../css/home/indexPage.css";
 
 function IndexPage() {
+  const { loginUser } = useAuth();
   const [searchCondition, setSearchCondition] = useState(initialSearchCondition);
   const [sortType, setSortType] = useState("latest");
   const [viewCount, setViewCount] = useState(10);
@@ -15,8 +18,51 @@ function IndexPage() {
 
   const allCars = useMemo(() => getAllCars(), []);
 
+  const roleCars = useMemo(() => {
+    if (loginUser?.role === AUTH_ROLES.MEMBER) {
+      return allCars.filter(
+        (car) => car.saleType === "NORMAL" && car.sellerType === "회사딜러"
+      );
+    }
+
+    if (
+      loginUser?.role === AUTH_ROLES.COMPANY ||
+      loginUser?.role === AUTH_ROLES.DEALER
+    ) {
+      return allCars.filter(
+        (car) => car.saleType === "AUCTION" && car.sellerType === "일반회원"
+      );
+    }
+
+    return allCars;
+  }, [allCars, loginUser?.role]);
+
+  const pageGuide = useMemo(() => {
+    if (loginUser?.role === AUTH_ROLES.MEMBER) {
+      return {
+        title: "딜러 판매 차량",
+        description: "회사 소속 딜러가 등록한 일반 중고거래 매물입니다.",
+      };
+    }
+
+    if (
+      loginUser?.role === AUTH_ROLES.COMPANY ||
+      loginUser?.role === AUTH_ROLES.DEALER
+    ) {
+      return {
+        title: "일반회원 경매 차량",
+        description: "일반회원이 등록한 차량에 비공개 입찰할 수 있습니다.",
+      };
+    }
+
+    return {
+      title: "차량 목록",
+      description: "로그인 권한에 따라 구매 또는 입찰 가능한 매물이 구분됩니다.",
+    };
+  }, [loginUser?.role]);
+
   const filteredCars = useMemo(() => {
-    let result = allCars.filter((car) => {
+    let result = roleCars.filter((car) => {
       const matchBrand =
         searchCondition.brand === "" || car.brand === searchCondition.brand;
 
@@ -74,7 +120,7 @@ function IndexPage() {
     }
 
     return result;
-  }, [allCars, searchCondition, sortType]);
+  }, [roleCars, searchCondition, sortType]);
 
   const totalPage = Math.ceil(filteredCars.length / viewCount);
   const startIndex = (currentPage - 1) * viewCount;
@@ -120,8 +166,9 @@ function IndexPage() {
         <section className="car-list-section">
           <div className="car-list-header">
             <div>
-              <h2>차량 목록</h2>
+              <h2>{pageGuide.title}</h2>
               <p className="car-list-summary">
+                {pageGuide.description}<br />
                 총 <strong>{filteredCars.length}</strong>대의 차량이 검색되었습니다.
               </p>
             </div>
@@ -133,8 +180,8 @@ function IndexPage() {
                 onChange={handleSortChange}
               >
                 <option value="latest">최근등록순</option>
-                <option value="priceLow">낮은시작가순</option>
-                <option value="priceHigh">높은시작가순</option>
+                <option value="priceLow">낮은가격순</option>
+                <option value="priceHigh">높은가격순</option>
                 <option value="yearHigh">최신연식순</option>
                 <option value="mileageLow">주행거리 짧은순</option>
               </select>
@@ -174,9 +221,8 @@ function IndexPage() {
                     <button
                       key={page}
                       type="button"
-                      className={`page-button ${
-                        currentPage === page ? "active" : ""
-                      }`}
+                      className={`page-button ${currentPage === page ? "active" : ""
+                        }`}
                       onClick={() => setCurrentPage(page)}
                     >
                       {page}
@@ -201,8 +247,14 @@ function IndexPage() {
 
         <aside className="right-info-sidebar">
           <RightSidebar
-            setSearchCondition={setSearchCondition}
-            setCurrentPage={setCurrentPage}
+            setSearchCondition={
+              setSearchCondition
+            }
+            setCurrentPage={
+              setCurrentPage
+            }
+            allCars={allCars}
+            candidateCars={roleCars}
           />
         </aside>
       </section>
