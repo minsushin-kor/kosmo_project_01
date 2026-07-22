@@ -24,7 +24,8 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'me.paulschwarz:spring-dotenv:5.0.1' // Automatically loads .env file in all environments
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	implementation 'me.paulschwarz:spring-dotenv:5.0.1'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'
