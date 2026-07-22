@@ -157,6 +157,89 @@ def get_risk_grade(probability: float) -> str:
         return "Safe"
 
 
+DEFAULT_RISK_REASON = "현재 설정된 활동 위험 기준에 해당하는 특이사항이 없습니다."
+
+
+def build_dealer_risk_reasons(
+    last_activity_days: int,
+    recent_trade_count: int,
+    previous_trade_count: int,
+    site_usage_rate: float,
+    avg_selling_price: float | None = None,
+) -> list[str]:
+    """개인 딜러의 활동 지표를 동일한 규칙으로 설명 문구로 변환합니다."""
+    risk_reasons = []
+
+    if last_activity_days >= 14:
+        risk_reasons.append(
+            f"마지막 접속 후 {last_activity_days}일간 로그인이 없어 장기 휴면 상태입니다."
+        )
+
+    expected_60d = max(1.0, float(previous_trade_count) / 3.0)
+    trade_drop_rate = (
+        0.0
+        if previous_trade_count == 0
+        else max(
+            0.0,
+            1.0 - float(recent_trade_count) / expected_60d,
+        )
+    )
+    if trade_drop_rate >= 0.50 and previous_trade_count >= 30:
+        risk_reasons.append(
+            f"과거 누적 실적({previous_trade_count}회) 대비 최근 거래가 "
+            f"{int(trade_drop_rate * 100)}% 급락했습니다."
+        )
+    elif recent_trade_count == 0:
+        risk_reasons.append("최근 60일 동안 성사된 차량 거래가 전무합니다.")
+
+    if site_usage_rate <= 0.30:
+        risk_reasons.append(
+            f"사이트 매물 조회 이용률이 {int(site_usage_rate * 100)}%로 매우 저조합니다."
+        )
+
+    if avg_selling_price is not None and avg_selling_price <= 3000000.0:
+        risk_reasons.append(
+            f"평균 판매 단가가 {int(avg_selling_price / 10000)}만원으로 "
+            "초저가/영세 차량 위주입니다."
+        )
+
+    return risk_reasons or [DEFAULT_RISK_REASON]
+
+
+def build_company_risk_reasons(
+    active_dealer_ratio: float,
+    site_usage_rate_avg: float,
+    recent_trade_count: int,
+    recent_trade_per_dealer: float,
+    previous_trade_per_dealer: float,
+) -> list[str]:
+    """회사의 활동 지표를 동일한 규칙으로 설명 문구로 변환합니다."""
+    risk_reasons = []
+
+    if active_dealer_ratio <= 0.60:
+        risk_reasons.append(
+            f"소속 딜러들의 현재 활동 비율이 {int(active_dealer_ratio * 100)}%로 "
+            "과반이 비활성 상태입니다."
+        )
+    if site_usage_rate_avg <= 0.40:
+        risk_reasons.append(
+            f"상사 소속 딜러들의 평균 사이트 이용률이 "
+            f"{int(site_usage_rate_avg * 100)}%로 저조합니다."
+        )
+    if recent_trade_count == 0:
+        risk_reasons.append(
+            "상사 소속 전체 딜러들의 최근 60일간 거래가 전무합니다."
+        )
+
+    growth = recent_trade_per_dealer / (previous_trade_per_dealer + 1e-5)
+    if growth <= 0.40:
+        risk_reasons.append(
+            "과거 거래 패턴 대비 상사 전체의 활동성 성장률이 크게 하락했습니다."
+        )
+
+    return risk_reasons or [DEFAULT_RISK_REASON]
+
+
 def clamp(value: float, min_value: float, max_value: float) -> float:
     """입력값을 안전 범위로 보정"""
     return max(min_value, min(max_value, float(value)))
@@ -239,16 +322,18 @@ def get_probability_columns(model, input_df: pd.DataFrame) -> tuple:
 
 def get_probability(model, input_df: pd.DataFrame) -> tuple[int, float, float]:
     """단일 입력의 모델 예측 등급과 Active/Inactive 확률을 반환"""
-    prediction = int(model.predict(input_df)[0])
     active_probabilities, churn_probabilities = get_probability_columns(
         model,
         input_df,
     )
+    active_probability = float(active_probabilities[0])
+    churn_probability = float(churn_probabilities[0])
+    prediction = int(churn_probability > active_probability)
 
     return (
         prediction,
-        float(active_probabilities[0]),
-        float(churn_probabilities[0]),
+        active_probability,
+        churn_probability,
     )
 # API Endpoints
 # ============================================================
@@ -285,29 +370,13 @@ def predict_personal(features: DealerFeatures):
         predicted_status = "Inactive" if prediction == 1 else "Active"
         risk_grade = get_risk_grade(churn_probability)
 
-        # 실시간 이탈 위험 감지 설명 사유 빌드
-        risk_reasons = []
-        if features.Last_Activity_Days >= 14:
-            risk_reasons.append(f"마지막 접속 후 {features.Last_Activity_Days}일간 로그인이 없어 장기 휴면 상태입니다.")
-        
-        # trade_drop_rate 내부 계산식
-        expected_60d = max(1.0, features.Previous_Trade_Count / 3.0)
-        trade_drop_rate = 0.0 if features.Previous_Trade_Count == 0 else max(0.0, 1.0 - features.Recent_60d_Trade_Count / expected_60d)
-        
-        if trade_drop_rate >= 0.50 and features.Previous_Trade_Count >= 30:
-            risk_reasons.append(f"과거 누적 실적({features.Previous_Trade_Count}회) 대비 최근 거래가 {int(trade_drop_rate * 100)}% 급락했습니다.")
-        elif features.Recent_60d_Trade_Count == 0:
-            risk_reasons.append("최근 60일 동안 성사된 차량 거래가 전무합니다.")
-            
-        if features.Site_Usage_Rate <= 0.30:
-            risk_reasons.append(f"사이트 매물 조회 이용률이 {int(features.Site_Usage_Rate * 100)}%로 매우 저조합니다.")
-            
-        if features.Avg_Selling_Price <= 3000000.0:
-            risk_reasons.append(f"평균 판매 단가가 {int(features.Avg_Selling_Price / 10000)}만원으로 초저가/영세 차량 위주입니다.")
-
-        # 안전군인 경우 특이사항 없음 처리
-        if churn_probability < 0.50:
-            risk_reasons = ["특이 위험 징후가 감지되지 않았으며 정상 유지 중입니다."]
+        risk_reasons = build_dealer_risk_reasons(
+            last_activity_days=features.Last_Activity_Days,
+            recent_trade_count=features.Recent_60d_Trade_Count,
+            previous_trade_count=features.Previous_Trade_Count,
+            site_usage_rate=features.Site_Usage_Rate,
+            avg_selling_price=features.Avg_Selling_Price,
+        )
 
         print("--- [Prediction Result] ---")
         print(f"predicted_status: {predicted_status}")
@@ -355,24 +424,16 @@ def predict_company(features: CompanyFeatures):
         predicted_status = "Inactive" if prediction == 1 else "Active"
         churn_prob = float(churn_probability)
 
-        # 회사(상사) 이탈 위험 사유 진단
-        risk_reasons = []
-        if features.Active_Dealer_Ratio <= 0.60:
-            risk_reasons.append(f"소속 딜러들의 현재 활동 비율이 {int(features.Active_Dealer_Ratio * 100)}%로 과반이 비활성 상태입니다.")
-        if features.Site_Usage_Rate_Avg <= 0.40:
-            risk_reasons.append(f"상사 소속 딜러들의 평균 사이트 이용률이 {int(features.Site_Usage_Rate_Avg * 100)}%로 저조합니다.")
-        if features.Recent_Trade_Count == 0:
-            risk_reasons.append("상사 소속 전체 딜러들의 최근 60일간 거래가 전무합니다.")
-            
         dc = max(1, features.Dealer_Count)
         recent_tpd = features.Recent_Trade_Count / dc
         prev_tpd = features.Previous_Trade_Count / dc
-        growth = recent_tpd / (prev_tpd + 1e-5)
-        if growth <= 0.40:
-            risk_reasons.append("과거 거래 패턴 대비 상사 전체의 활동성 성장률이 크게 하락했습니다.")
-
-        if churn_prob < 0.50:
-            risk_reasons = ["특이 위험 징후가 감지되지 않았으며 정상 유지 중입니다."]
+        risk_reasons = build_company_risk_reasons(
+            active_dealer_ratio=features.Active_Dealer_Ratio,
+            site_usage_rate_avg=features.Site_Usage_Rate_Avg,
+            recent_trade_count=features.Recent_Trade_Count,
+            recent_trade_per_dealer=recent_tpd,
+            previous_trade_per_dealer=prev_tpd,
+        )
 
         print("--- [Prediction Result (Company)] ---")
         print(f"predicted_status: {predicted_status}")
@@ -448,28 +509,12 @@ def get_churn_dealers_dummy():
         prob = float(prob)
         prob_pct = round(prob * 100, 2)
         
-        # 설명 사유 빌드
-        risk_reasons = []
-        if last_days >= 14:
-            risk_reasons.append(f"마지막 접속 후 {last_days}일간 로그인이 없어 장기 휴면 상태입니다.")
-        expected_60d = max(1.0, float(prev_trades) / 3.0)
-        trade_drop_rate = (
-            0.0
-            if prev_trades == 0
-            else max(0.0, 1.0 - float(recent_trades) / expected_60d)
+        risk_reasons = build_dealer_risk_reasons(
+            last_activity_days=last_days,
+            recent_trade_count=recent_trades,
+            previous_trade_count=prev_trades,
+            site_usage_rate=usage,
         )
-        if trade_drop_rate >= 0.50 and prev_trades >= 30:
-            risk_reasons.append(
-                f"과거 누적 실적({prev_trades}회) 대비 최근 거래가 "
-                f"{int(trade_drop_rate * 100)}% 급락했습니다."
-            )
-        elif recent_trades == 0:
-            risk_reasons.append("최근 60일 동안 성사된 차량 거래가 전무합니다.")
-        if usage <= 0.30:
-            risk_reasons.append(f"사이트 매물 조회 이용률이 {int(usage * 100)}%로 매우 저조합니다.")
-
-        if prob < 0.50:
-            risk_reasons = ["특이 위험 징후가 감지되지 않았으며 정상 유지 중입니다."]
 
         model_risk_grade = get_risk_grade(prob)
         if model_risk_grade in {"Critical", "High"}:
@@ -545,24 +590,17 @@ def get_churn_companies_dummy():
         rtc = int(row["recent_60d_trade_count"])
         recent_tpd = float(row["recent_trade_per_dealer"])
         prev_tpd = float(row["previous_trade_per_dealer"])
-        growth = recent_tpd / (prev_tpd + 1e-5)
         sur = float(row["site_usage_rate_avg"])
         prob = float(prob)
         prob_pct = round(prob * 100, 2)
         
-        # 설명 사유
-        risk_reasons = []
-        if adr <= 0.60:
-            risk_reasons.append(f"소속 딜러들의 현재 활동 비율이 {int(adr * 100)}%로 과반이 비활성 상태입니다.")
-        if sur <= 0.40:
-            risk_reasons.append(f"상사 소속 딜러들의 평균 사이트 이용률이 {int(sur * 100)}%로 저조합니다.")
-        if rtc == 0:
-            risk_reasons.append("상사 소속 전체 딜러들의 최근 60일간 거래가 전무합니다.")
-        if growth <= 0.40:
-            risk_reasons.append("과거 거래 패턴 대비 상사 전체의 활동성 성장률이 크게 하락했습니다.")
-            
-        if prob < 0.50:
-            risk_reasons = ["특이 위험 징후가 감지되지 않았으며 정상 유지 중입니다."]
+        risk_reasons = build_company_risk_reasons(
+            active_dealer_ratio=adr,
+            site_usage_rate_avg=sur,
+            recent_trade_count=rtc,
+            recent_trade_per_dealer=recent_tpd,
+            previous_trade_per_dealer=prev_tpd,
+        )
 
         risk_grade_kr = "낮음"
         if prob >= 0.80:
