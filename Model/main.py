@@ -6,6 +6,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from difflib import SequenceMatcher
 from math import log1p
 
 
@@ -84,6 +85,7 @@ VEHICLE_MMR_FEATURES = []
 VEHICLE_CONDITION_MIN = 1.0
 VEHICLE_CONDITION_MAX = 5.0
 VEHICLE_MMR_MIN = 0.0
+vehicle_prediction_cache = None
 
 try:
     vehicle_condition_bundle = joblib.load(VEHICLE_CONDITION_MODEL_PATH)
@@ -138,6 +140,65 @@ class CompanyFeatures(BaseModel):
     Previous_Trade_Count: int = Field(..., description="이전 거래 건수")
     Site_Usage_Rate_Avg: float = Field(..., description="평균 사이트 이용률 (0~1)")
     Avg_Selling_Price_Avg: float = Field(default=13000000.0, description="소속 딜러들의 평균 판매 단가")
+
+
+class VehicleRecommendationRequest(BaseModel):
+    preferredMake: str | None = Field(
+        default=None,
+        max_length=50,
+        description="선호 제조사",
+    )
+    preferredModel: str | None = Field(
+        default=None,
+        max_length=80,
+        description="선호 차량 모델",
+    )
+    preferredYear: int | None = Field(
+        default=None,
+        ge=1990,
+        le=2030,
+        description="희망 연식",
+    )
+    maxOdometer: float | None = Field(
+        default=None,
+        gt=0,
+        description="희망 최대 주행거리(km)",
+    )
+    expectedPrice: float | None = Field(
+        default=None,
+        gt=0,
+        description="예상 구매가격(원)",
+    )
+    preferredColor: str | None = Field(
+        default=None,
+        max_length=30,
+        description="선호 색상",
+    )
+    minimumCondition: float | None = Field(
+        default=None,
+        ge=1.0,
+        le=5.0,
+        description="최소 차량 상태(5점 만점)",
+    )
+    priceTolerance: float | None = Field(
+        default=None,
+        gt=0,
+        description="예상 구매가격 기준 허용 오차(±원)",
+    )
+    options: list[str] = Field(
+        default_factory=list,
+        max_length=20,
+        description="선호 옵션 목록",
+    )
+    exactMake: bool = Field(
+        default=False,
+        description="제조사 반드시 일치",
+    )
+    exactModel: bool = Field(
+        default=False,
+        description="차량 모델 반드시 일치",
+    )
+
 
 # ============================================================
 # Helper Functions
@@ -243,6 +304,483 @@ def build_company_risk_reasons(
 def clamp(value: float, min_value: float, max_value: float) -> float:
     """입력값을 안전 범위로 보정"""
     return max(min_value, min(max_value, float(value)))
+
+
+VEHICLE_MAKE_ALIASES = {
+    "현대": "hyundai",
+    "기아": "kia",
+    "벤츠": "mercedes-benz",
+    "메르세데스벤츠": "mercedes-benz",
+    "쉐보레": "chevrolet",
+    "폭스바겐": "volkswagen",
+    "토요타": "toyota",
+    "도요타": "toyota",
+    "혼다": "honda",
+    "닛산": "nissan",
+    "렉서스": "lexus",
+    "캐딜락": "cadillac",
+    "포드": "ford",
+    "닷지": "dodge",
+    "크라이슬러": "chrysler",
+    "아우디": "audi",
+    "비엠더블유": "bmw",
+    "미니": "mini",
+    "미쓰비시": "mitsubishi",
+    "마쓰다": "mazda",
+    "인피니티": "infiniti",
+    "재규어": "jaguar",
+    "지프": "jeep",
+    "아큐라": "acura",
+    "뷰익": "buick",
+}
+
+VEHICLE_MODEL_ALIASES = {
+    "그랜저": "azera",
+    "쏘나타": "sonata",
+    "소나타": "sonata",
+    "아반떼": "elantra",
+    "엑센트": "accent",
+    "제네시스": "genesis",
+    "쏘렌토": "sorento",
+    "스포티지": "sportage",
+}
+
+
+def clean_optional_text(value: str | None) -> str | None:
+    """빈 문자열을 추천 조건에서 제외할 수 있도록 정리합니다."""
+    if value is None:
+        return None
+
+    cleaned = str(value).strip()
+    return cleaned or None
+
+
+def normalize_vehicle_text(
+    value: str | None,
+    aliases: dict[str, str] | None = None,
+) -> str:
+    """공백·대소문자와 일부 한글 차량명을 비교 가능한 값으로 변환합니다."""
+    cleaned = clean_optional_text(value)
+    if cleaned is None:
+        return ""
+
+    normalized = "".join(cleaned.casefold().split())
+    if aliases:
+        return aliases.get(normalized, normalized)
+    return normalized
+
+
+def get_text_match_ratio(
+    preferred_value: str,
+    actual_value: str,
+    aliases: dict[str, str] | None = None,
+) -> float:
+    """문자 조건의 정확 일치와 유사 일치를 0~1 점수로 변환합니다."""
+    preferred = normalize_vehicle_text(preferred_value, aliases)
+    actual = normalize_vehicle_text(actual_value, aliases)
+    if not preferred or not actual:
+        return 0.0
+    if preferred == actual:
+        return 1.0
+    if preferred in actual or actual in preferred:
+        return 0.85
+
+    similarity = SequenceMatcher(None, preferred, actual).ratio()
+    return round(similarity * 0.7, 6) if similarity >= 0.5 else 0.0
+
+
+def normalize_requested_options(options: list[str]) -> list[str]:
+    """빈 옵션과 대소문자 중복을 제거하고 입력 순서를 유지합니다."""
+    normalized_options = []
+    seen = set()
+
+    for option in options:
+        cleaned = clean_optional_text(option)
+        if cleaned is None:
+            continue
+
+        key = normalize_vehicle_text(cleaned)
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized_options.append(cleaned)
+
+    return normalized_options
+
+
+def get_option_match_ratio(
+    preferred_options: list[str],
+    vehicle_options: list[str],
+) -> tuple[float, list[str]]:
+    """사용자가 선택한 옵션 중 차량이 보유한 옵션 비율을 반환합니다."""
+    if not preferred_options:
+        return 0.0, []
+
+    actual_by_key = {
+        normalize_vehicle_text(option): str(option)
+        for option in vehicle_options
+        if clean_optional_text(str(option)) is not None
+    }
+    matched_options = [
+        option
+        for option in preferred_options
+        if normalize_vehicle_text(option) in actual_by_key
+    ]
+    return len(matched_options) / len(preferred_options), matched_options
+
+
+def get_vehicle_prediction_catalog() -> list[dict]:
+    """더미 차량을 한 번에 예측하고 이후 요청에서는 메모리 결과를 재사용합니다."""
+    global vehicle_prediction_cache
+
+    if vehicle_prediction_cache is not None:
+        return vehicle_prediction_cache
+
+    if model_vehicle_condition is None or model_vehicle_mmr is None:
+        raise HTTPException(
+            status_code=503,
+            detail="차량 Condition 또는 MMR 예측 모델을 불러오지 못했습니다.",
+        )
+
+    if not VEHICLE_DUMMY_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="vehicle_recommendation_dummy.json 파일을 찾을 수 없습니다.",
+        )
+
+    with open(VEHICLE_DUMMY_PATH, "r", encoding="utf-8") as f:
+        vehicles = json.load(f)
+
+    if not isinstance(vehicles, list) or not vehicles:
+        raise ValueError("차량 더미 데이터가 비어 있거나 배열 형식이 아닙니다.")
+
+    required_fields = {"vehicle_id", "year", "make", "model", "odometer"}
+    for index, vehicle in enumerate(vehicles, start=1):
+        missing_fields = required_fields - set(vehicle)
+        if missing_fields:
+            missing_text = ", ".join(sorted(missing_fields))
+            raise ValueError(
+                f"{index}번째 차량에 필수 필드가 없습니다: {missing_text}"
+            )
+
+    condition_rows = [
+        {
+            "year": int(vehicle["year"]),
+            "make": str(vehicle["make"]),
+            "model": str(vehicle["model"]),
+            "odometer": float(vehicle["odometer"]),
+        }
+        for vehicle in vehicles
+    ]
+    condition_input_df = pd.DataFrame(condition_rows)[
+        VEHICLE_CONDITION_FEATURES
+    ]
+
+    predicted_conditions = np.asarray(
+        model_vehicle_condition.predict(condition_input_df),
+        dtype=float,
+    )
+    predicted_conditions = np.clip(
+        predicted_conditions,
+        VEHICLE_CONDITION_MIN,
+        VEHICLE_CONDITION_MAX,
+    )
+
+    mmr_input_df = condition_input_df.copy()
+    mmr_input_df["condition"] = predicted_conditions
+    mmr_input_df = mmr_input_df[VEHICLE_MMR_FEATURES]
+
+    predicted_mmrs = np.asarray(
+        model_vehicle_mmr.predict(mmr_input_df),
+        dtype=float,
+    )
+    predicted_mmrs = np.maximum(predicted_mmrs, VEHICLE_MMR_MIN)
+
+    catalog = []
+    for vehicle, condition, mmr in zip(
+        vehicles,
+        predicted_conditions,
+        predicted_mmrs,
+    ):
+        options = vehicle.get("option", [])
+        catalog.append(
+            {
+                "vehicle_id": str(vehicle["vehicle_id"]),
+                "year": int(vehicle["year"]),
+                "make": str(vehicle["make"]),
+                "model": str(vehicle["model"]),
+                "odometer": int(float(vehicle["odometer"])),
+                "color": clean_optional_text(vehicle.get("color")),
+                "option": options if isinstance(options, list) else [],
+                "predicted_condition": round(float(condition), 2),
+                "predicted_mmr": round(float(mmr), 2),
+            }
+        )
+
+    vehicle_prediction_cache = catalog
+    return vehicle_prediction_cache
+
+
+def validate_vehicle_recommendation_request(
+    preferences: VehicleRecommendationRequest,
+) -> tuple[dict, list[str]]:
+    """추천에 사용할 입력값을 정리하고 기본 조건 개수를 검증합니다."""
+    cleaned_preferences = {
+        "preferredMake": clean_optional_text(preferences.preferredMake),
+        "preferredModel": clean_optional_text(preferences.preferredModel),
+        "preferredYear": preferences.preferredYear,
+        "maxOdometer": preferences.maxOdometer,
+        "expectedPrice": preferences.expectedPrice,
+        "preferredColor": clean_optional_text(preferences.preferredColor),
+        "minimumCondition": preferences.minimumCondition,
+        "priceTolerance": preferences.priceTolerance,
+        "options": normalize_requested_options(preferences.options),
+        "exactMake": preferences.exactMake,
+        "exactModel": preferences.exactModel,
+    }
+
+    basic_keys = [
+        "preferredMake",
+        "preferredModel",
+        "preferredYear",
+        "maxOdometer",
+        "expectedPrice",
+    ]
+    active_basic_keys = [
+        key
+        for key in basic_keys
+        if cleaned_preferences[key] is not None
+    ]
+    if len(active_basic_keys) < 2:
+        raise HTTPException(
+            status_code=422,
+            detail="기본 조건 5개 중 최소 2개를 입력해야 합니다.",
+        )
+
+    if preferences.exactMake and cleaned_preferences["preferredMake"] is None:
+        raise HTTPException(
+            status_code=422,
+            detail="제조사 필수 일치를 사용하려면 선호 제조사를 입력해야 합니다.",
+        )
+    if preferences.exactModel and cleaned_preferences["preferredModel"] is None:
+        raise HTTPException(
+            status_code=422,
+            detail="모델 필수 일치를 사용하려면 선호 차량 모델을 입력해야 합니다.",
+        )
+    if (
+        cleaned_preferences["priceTolerance"] is not None
+        and cleaned_preferences["expectedPrice"] is None
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="가격 허용 범위를 사용하려면 예상 구매가격을 입력해야 합니다.",
+        )
+
+    return cleaned_preferences, active_basic_keys
+
+
+def add_score_breakdown(
+    breakdown: list[dict],
+    condition_name: str,
+    weight: float,
+    match_ratio: float,
+) -> float:
+    """조건별 점수 내역을 추가하고 획득 점수를 반환합니다."""
+    safe_ratio = clamp(match_ratio, 0.0, 1.0)
+    earned_score = weight * safe_ratio
+    breakdown.append(
+        {
+            "condition": condition_name,
+            "weight": round(weight, 2),
+            "match_ratio": round(safe_ratio, 4),
+            "earned_score": round(earned_score, 2),
+        }
+    )
+    return earned_score
+
+
+def score_vehicle_for_buyer(
+    vehicle: dict,
+    preferences: dict,
+    active_basic_keys: list[str],
+    active_optional_keys: list[str],
+) -> dict:
+    """차량 한 대와 사용자 입력 조건을 비교해 추천 적합도를 계산합니다."""
+    basic_weight = 80.0 / len(active_basic_keys)
+    optional_weight = (
+        20.0 / len(active_optional_keys)
+        if active_optional_keys
+        else 0.0
+    )
+    maximum_score = 100.0 if active_optional_keys else 80.0
+    raw_score = 0.0
+    breakdown = []
+    reasons = []
+
+    if "preferredMake" in active_basic_keys:
+        ratio = get_text_match_ratio(
+            preferences["preferredMake"],
+            vehicle["make"],
+            VEHICLE_MAKE_ALIASES,
+        )
+        raw_score += add_score_breakdown(
+            breakdown,
+            "선호 제조사",
+            basic_weight,
+            ratio,
+        )
+        if ratio == 1.0:
+            reasons.append("선호 제조사와 정확히 일치합니다.")
+        elif ratio >= 0.7:
+            reasons.append("선호 제조사와 유사한 차량입니다.")
+
+    if "preferredModel" in active_basic_keys:
+        ratio = get_text_match_ratio(
+            preferences["preferredModel"],
+            vehicle["model"],
+            VEHICLE_MODEL_ALIASES,
+        )
+        raw_score += add_score_breakdown(
+            breakdown,
+            "선호 차량 모델",
+            basic_weight,
+            ratio,
+        )
+        if ratio == 1.0:
+            reasons.append("선호 차량 모델과 정확히 일치합니다.")
+        elif ratio >= 0.7:
+            reasons.append("선호 차량 모델과 유사합니다.")
+
+    if "preferredYear" in active_basic_keys:
+        year_difference = abs(vehicle["year"] - preferences["preferredYear"])
+        ratio = max(0.0, 1.0 - year_difference / 10.0)
+        raw_score += add_score_breakdown(
+            breakdown,
+            "희망 연식",
+            basic_weight,
+            ratio,
+        )
+        if year_difference == 0:
+            reasons.append("희망 연식과 정확히 일치합니다.")
+        elif year_difference <= 2:
+            reasons.append(
+                f"희망 연식과 {year_difference}년 차이로 가깝습니다."
+            )
+
+    if "maxOdometer" in active_basic_keys:
+        max_odometer = float(preferences["maxOdometer"])
+        if vehicle["odometer"] <= max_odometer:
+            ratio = 1.0
+            reasons.append("최대 주행거리 조건을 충족합니다.")
+        else:
+            excess_ratio = (vehicle["odometer"] - max_odometer) / max_odometer
+            ratio = max(0.0, 1.0 - excess_ratio)
+        raw_score += add_score_breakdown(
+            breakdown,
+            "최대 주행거리",
+            basic_weight,
+            ratio,
+        )
+
+    price_difference = None
+    if "expectedPrice" in active_basic_keys:
+        expected_price = float(preferences["expectedPrice"])
+        price_difference = abs(vehicle["predicted_mmr"] - expected_price)
+        ratio = max(0.0, 1.0 - price_difference / expected_price)
+        raw_score += add_score_breakdown(
+            breakdown,
+            "예상 구매가격",
+            basic_weight,
+            ratio,
+        )
+        if price_difference <= expected_price * 0.1:
+            reasons.append(
+                f"예상 MMR이 희망가격과 약 "
+                f"{round(price_difference / 10000):,}만원 차이입니다."
+            )
+
+    if "preferredColor" in active_optional_keys:
+        ratio = get_text_match_ratio(
+            preferences["preferredColor"],
+            vehicle.get("color") or "",
+        )
+        raw_score += add_score_breakdown(
+            breakdown,
+            "선호 색상",
+            optional_weight,
+            ratio,
+        )
+        if ratio == 1.0:
+            reasons.append("선호 색상과 일치합니다.")
+
+    if "minimumCondition" in active_optional_keys:
+        minimum_condition = float(preferences["minimumCondition"])
+        condition = float(vehicle["predicted_condition"])
+        ratio = (
+            1.0
+            if condition >= minimum_condition
+            else condition / minimum_condition
+        )
+        raw_score += add_score_breakdown(
+            breakdown,
+            "최소 차량 상태",
+            optional_weight,
+            ratio,
+        )
+        if condition >= minimum_condition:
+            reasons.append(
+                f"예상 Condition {condition:.2f}점으로 최소 상태 조건을 충족합니다."
+            )
+
+    if "priceTolerance" in active_optional_keys:
+        tolerance = float(preferences["priceTolerance"])
+        price_difference = price_difference or abs(
+            vehicle["predicted_mmr"] - float(preferences["expectedPrice"])
+        )
+        ratio = 1.0 if price_difference <= tolerance else 0.0
+        raw_score += add_score_breakdown(
+            breakdown,
+            "가격 허용 범위",
+            optional_weight,
+            ratio,
+        )
+        if price_difference <= tolerance:
+            reasons.append("예상 MMR이 입력한 가격 허용 범위 안에 있습니다.")
+
+    if "options" in active_optional_keys:
+        ratio, matched_options = get_option_match_ratio(
+            preferences["options"],
+            vehicle["option"],
+        )
+        raw_score += add_score_breakdown(
+            breakdown,
+            "선호 옵션",
+            optional_weight,
+            ratio,
+        )
+        if matched_options:
+            reasons.append(
+                f"선호 옵션 {len(matched_options)}개를 포함합니다: "
+                f"{', '.join(matched_options)}."
+            )
+
+    match_score = clamp(raw_score / maximum_score * 100.0, 0.0, 100.0)
+    matched_condition_count = sum(
+        1
+        for item in breakdown
+        if item["match_ratio"] >= 0.8
+    )
+
+    if not reasons:
+        reasons.append("입력 조건과의 상대적 유사도를 기준으로 추천했습니다.")
+
+    return {
+        **vehicle,
+        "match_score": round(match_score, 2),
+        "matched_condition_count": matched_condition_count,
+        "score_breakdown": breakdown,
+        "recommendation_reasons": reasons,
+    }
 
 
 def normalize_input(features: DealerFeatures) -> pd.DataFrame:
@@ -633,86 +1171,11 @@ def get_churn_companies_dummy():
 @app.get("/api/ai/vehicle-recommendations")
 def get_vehicle_recommendations():
     """시연용 차량 전체를 Condition과 MMR 모델로 일괄 예측합니다."""
-    if model_vehicle_condition is None or model_vehicle_mmr is None:
-        raise HTTPException(
-            status_code=503,
-            detail="차량 Condition 또는 MMR 예측 모델을 불러오지 못했습니다.",
-        )
-
-    if not VEHICLE_DUMMY_PATH.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="vehicle_recommendation_dummy.json 파일을 찾을 수 없습니다.",
-        )
-
     try:
-        with open(VEHICLE_DUMMY_PATH, "r", encoding="utf-8") as f:
-            vehicles = json.load(f)
-
-        if not isinstance(vehicles, list) or not vehicles:
-            raise ValueError("차량 더미 데이터가 비어 있거나 배열 형식이 아닙니다.")
-
-        required_fields = {"vehicle_id", "year", "make", "model", "odometer"}
-        for index, vehicle in enumerate(vehicles, start=1):
-            missing_fields = required_fields - set(vehicle)
-            if missing_fields:
-                missing_text = ", ".join(sorted(missing_fields))
-                raise ValueError(
-                    f"{index}번째 차량에 필수 필드가 없습니다: {missing_text}"
-                )
-
-        condition_rows = [
-            {
-                "year": int(vehicle["year"]),
-                "make": str(vehicle["make"]),
-                "model": str(vehicle["model"]),
-                "odometer": float(vehicle["odometer"]),
-            }
-            for vehicle in vehicles
+        recommendations = [
+            dict(vehicle)
+            for vehicle in get_vehicle_prediction_catalog()
         ]
-        condition_input_df = pd.DataFrame(condition_rows)[
-            VEHICLE_CONDITION_FEATURES
-        ]
-
-        predicted_conditions = np.asarray(
-            model_vehicle_condition.predict(condition_input_df),
-            dtype=float,
-        )
-        predicted_conditions = np.clip(
-            predicted_conditions,
-            VEHICLE_CONDITION_MIN,
-            VEHICLE_CONDITION_MAX,
-        )
-
-        mmr_input_df = condition_input_df.copy()
-        mmr_input_df["condition"] = predicted_conditions
-        mmr_input_df = mmr_input_df[VEHICLE_MMR_FEATURES]
-
-        predicted_mmrs = np.asarray(
-            model_vehicle_mmr.predict(mmr_input_df),
-            dtype=float,
-        )
-        predicted_mmrs = np.maximum(predicted_mmrs, VEHICLE_MMR_MIN)
-
-        recommendations = []
-        for vehicle, condition, mmr in zip(
-            vehicles,
-            predicted_conditions,
-            predicted_mmrs,
-        ):
-            options = vehicle.get("option", [])
-            recommendations.append(
-                {
-                    "vehicle_id": str(vehicle["vehicle_id"]),
-                    "year": int(vehicle["year"]),
-                    "make": str(vehicle["make"]),
-                    "model": str(vehicle["model"]),
-                    "odometer": int(float(vehicle["odometer"])),
-                    "option": options if isinstance(options, list) else [],
-                    "predicted_condition": round(float(condition), 2),
-                    "predicted_mmr": round(float(mmr), 2),
-                }
-            )
 
         recommendations.sort(
             key=lambda item: (
@@ -733,6 +1196,110 @@ def get_vehicle_recommendations():
         raise HTTPException(
             status_code=500,
             detail=f"차량 추천 예측 중 오류 발생: {str(e)}",
+        )
+
+
+@app.post("/api/ai/vehicle-recommendations/buyer")
+def recommend_vehicles_for_buyer(
+    preferences: VehicleRecommendationRequest,
+):
+    """구매자 입력 조건과 더미 차량을 비교해 적합도 상위 10대를 반환합니다."""
+    try:
+        cleaned_preferences, active_basic_keys = (
+            validate_vehicle_recommendation_request(preferences)
+        )
+        catalog = get_vehicle_prediction_catalog()
+
+        preferred_make = cleaned_preferences["preferredMake"]
+        preferred_model = cleaned_preferences["preferredModel"]
+        filtered_catalog = []
+        for vehicle in catalog:
+            if (
+                cleaned_preferences["exactMake"]
+                and get_text_match_ratio(
+                    preferred_make,
+                    vehicle["make"],
+                    VEHICLE_MAKE_ALIASES,
+                )
+                != 1.0
+            ):
+                continue
+            if (
+                cleaned_preferences["exactModel"]
+                and get_text_match_ratio(
+                    preferred_model,
+                    vehicle["model"],
+                    VEHICLE_MODEL_ALIASES,
+                )
+                != 1.0
+            ):
+                continue
+            filtered_catalog.append(vehicle)
+
+        excluded_conditions = []
+        active_optional_keys = []
+        color_supported = any(
+            clean_optional_text(vehicle.get("color")) is not None
+            for vehicle in catalog
+        )
+        if cleaned_preferences["preferredColor"] is not None:
+            if color_supported:
+                active_optional_keys.append("preferredColor")
+            else:
+                excluded_conditions.append(
+                    {
+                        "condition": "preferredColor",
+                        "reason": "현재 차량 더미 데이터에 색상 정보가 없어 점수에서 제외했습니다.",
+                    }
+                )
+        if cleaned_preferences["minimumCondition"] is not None:
+            active_optional_keys.append("minimumCondition")
+        if cleaned_preferences["priceTolerance"] is not None:
+            active_optional_keys.append("priceTolerance")
+        if cleaned_preferences["options"]:
+            active_optional_keys.append("options")
+
+        scored_vehicles = [
+            score_vehicle_for_buyer(
+                vehicle,
+                cleaned_preferences,
+                active_basic_keys,
+                active_optional_keys,
+            )
+            for vehicle in filtered_catalog
+        ]
+        scored_vehicles.sort(
+            key=lambda item: (
+                -item["match_score"],
+                -item["predicted_condition"],
+                -item["predicted_mmr"],
+                item["odometer"],
+                -item["year"],
+                item["vehicle_id"],
+            )
+        )
+        recommendations = scored_vehicles[:10]
+
+        return {
+            "status": "success",
+            "message": (
+                "추천 결과가 없습니다. 필수 일치 조건을 완화해 주세요."
+                if not recommendations
+                else "입력한 조건을 기준으로 차량 추천을 완료했습니다."
+            ),
+            "input_basic_condition_count": len(active_basic_keys),
+            "input_optional_condition_count": len(active_optional_keys),
+            "excluded_conditions": excluded_conditions,
+            "candidate_count": len(filtered_catalog),
+            "count": len(recommendations),
+            "recommendations": recommendations,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"구매자 차량 추천 중 오류 발생: {str(e)}",
         )
 
 

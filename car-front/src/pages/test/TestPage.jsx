@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import RecomendTest from "./RecomendTest";
+import BuyerRecomendTest from "./BuyerRecomendTest";
 
 function RiskReasonList({ reason }) {
   const reasons = String(reason || "모델 분석 사유가 없습니다.")
@@ -21,9 +22,14 @@ function TestPage() {
   
   // 서버 상태 및 설정
   const [serverStatus, setServerStatus] = useState("checking");
+  const defaultServerUrl =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+      ? "http://127.0.0.1:8000"
+      : "http://3.35.233.190:8000";
   const activeServerUrl =
     import.meta.env.VITE_FASTAPI_BASE_URL?.replace(/\/$/, "") ||
-    "http://3.35.233.190:8000";
+    defaultServerUrl;
   const [issuedCoupons, setIssuedCoupons] = useState(new Set()); // 쿠폰 발송 기록 ("type-id")
 
   // 더보기 데이터셋 로드 여부
@@ -480,6 +486,7 @@ function TestPage() {
         </div>
 
         <RecomendTest activeServerUrl={activeServerUrl} />
+        <BuyerRecomendTest activeServerUrl={activeServerUrl} />
 
       </div>
     </div>
