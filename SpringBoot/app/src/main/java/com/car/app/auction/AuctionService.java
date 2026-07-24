@@ -6,6 +6,7 @@ import com.car.app.dealer.Dealer;
 import com.car.app.dealer.DealerRepository;
 import com.car.app.transaction.Transaction;
 import com.car.app.transaction.TransactionRepository;
+import com.car.app.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class AuctionService {
     private final DealerRepository dealerRepository;
     private final CarRepository carRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
 
     /**
      * 특정 경매 세션에 딜러가 입찰을 등록하는 메서드입니다.
@@ -212,11 +214,31 @@ public class AuctionService {
                     .commissionAmount(commissionAmount)
                     .build();
 
-            transactionRepository.save(transaction);
+            Transaction savedTx = transactionRepository.save(transaction);
+
+            // [알림 1] 차주(일반 회원)에게 경매 낙찰 성공 알림 생성 및 푸시
+            if (car.getMember() != null) {
+                String memberMsg = String.format("등록하신 %d년식 %s %s 매물 경매가 %,d원에 최종 낙찰되었습니다. (낙찰 딜러: %s)",
+                        car.getYear(), car.getMake(), car.getModel(), dealPrice, winningBid.getDealer().getName());
+                notificationService.sendNotification("MEMBER", car.getMember().getMemberId(), "AUCTION_WON", memberMsg, car.getCarId());
+            }
+
+            // [알림 2] 낙찰 딜러에게 최종 낙찰 축하 알림 생성 및 푸시
+            String dealerMsg = String.format("입찰에 참여하신 %d년식 %s %s 매물 경매가 %,d원에 최종 낙찰되었습니다.",
+                    car.getYear(), car.getMake(), car.getModel(), dealPrice);
+            notificationService.sendNotification("DEALER", winningBid.getDealer().getDealerId(), "BID_WIN", dealerMsg, car.getCarId());
+
         } else {
             // 입찰자가 없어 유찰된 경우 차량 상태를 다시 REGISTERED로 세팅하여 재경매 가능하도록 처리
             car.setStatus("REGISTERED");
             carRepository.save(car);
+
+            // [알림 3] 차주(일반 회원)에게 경매 유찰 알림 생성 및 푸시
+            if (car.getMember() != null) {
+                String failedMsg = String.format("등록하신 %d년식 %s %s 매물 경매가 입찰자 없이 유찰되었습니다.",
+                        car.getYear(), car.getMake(), car.getModel());
+                notificationService.sendNotification("MEMBER", car.getMember().getMemberId(), "AUCTION_FAILED", failedMsg, car.getCarId());
+            }
         }
 
         return savedAuction;

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.car.app.notification.NotificationService;
 import com.car.app.transaction.Transaction;
 import com.car.app.transaction.TransactionRepository;
 import java.math.BigDecimal;
@@ -39,6 +40,7 @@ public class CarService {
     private final DealerRepository dealerRepository;
     private final AuctionRepository auctionRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
 
     /**
      * 중고차 매물 및 차량 이미지들을 등록하는 트랜잭션 메서드입니다.
@@ -253,6 +255,13 @@ public class CarService {
         // 4단계: 차량 상태를 SOLD로 갱신
         car.setStatus("SOLD");
 
-        return transactionRepository.save(transaction);
+        Transaction savedTx = transactionRepository.save(transaction);
+
+        // [알림] 딜러에게 차량 판매 완료 알림 생성 및 푸시
+        String dealerMsg = String.format("등록하신 %d년식 %s %s 매물이 %s 님에게 %,d원에 판매 완료되었습니다.",
+                car.getYear(), car.getMake(), car.getModel(), buyer.getName(), dealPrice);
+        notificationService.sendNotification("DEALER", car.getDealer().getDealerId(), "CAR_SOLD", dealerMsg, car.getCarId());
+
+        return savedTx;
     }
 }
