@@ -214,7 +214,7 @@ public class AuctionService {
                     .commissionAmount(commissionAmount)
                     .build();
 
-            Transaction savedTx = transactionRepository.save(transaction);
+            transactionRepository.save(transaction);
 
             // [알림 1] 차주(일반 회원)에게 경매 낙찰 성공 알림 생성 및 푸시
             if (car.getMember() != null) {

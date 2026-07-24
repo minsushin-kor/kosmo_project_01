@@ -1,7 +1,6 @@
 package com.car.app.ai;
 
 import com.car.app.auction.AuctionRepository;
-import com.car.app.auction.Bid;
 import com.car.app.auction.BidRepository;
 import com.car.app.car.Car;
 import com.car.app.car.CarDto;
@@ -11,8 +10,6 @@ import com.car.app.company.CompanyRepository;
 import com.car.app.coupon.CouponService;
 import com.car.app.dealer.Dealer;
 import com.car.app.dealer.DealerRepository;
-import com.car.app.member.Member;
-import com.car.app.transaction.Transaction;
 import com.car.app.transaction.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -73,75 +69,95 @@ public class AiService {
 
     /**
      * 매일 자정 실행되는 이탈 위험도 예측 및 등급 업데이트 배치 처리 메소드입니다.
+     * SQL GROUP BY 단일 집계 쿼리로 DB 조회를 최소화(2회)하고 FastAPI 뱃치 API를 호출 후 saveAll()로 일괄 저장합니다.
      */
     @Transactional
     public void runChurnPredictionBatch() {
-        log.info("자정 이탈 위험도 예측 배치 시작...");
+        log.info("자정 이탈 위험도 예측 뱃치 연산 시작...");
 
         List<Dealer> dealers = dealerRepository.findAll();
         List<Company> companies = companyRepository.findAll();
 
-        // 1. 개별 딜러 이탈 예측 및 업데이트
+        if (dealers.isEmpty() && companies.isEmpty()) {
+            log.info("예측 대상 딜러 및 상사 데이터가 존재하지 않습니다.");
+            return;
+        }
+
+        // 1. 반복 DB 조회(N+1) 방지: SQL GROUP BY 집계 쿼리로 거래 및 입찰 데이터를 단 2회 쿼리로 일괄 수집
+        LocalDateTime sixtyDaysAgo = LocalDateTime.now().minusDays(60);
+
+        List<TransactionRepository.DealerTradeSummary> tradeSummaries = transactionRepository.getDealerTradeSummaries(sixtyDaysAgo);
+        Map<Long, TransactionRepository.DealerTradeSummary> tradeMap = tradeSummaries.stream()
+                .collect(Collectors.toMap(TransactionRepository.DealerTradeSummary::getDealerId, t -> t, (t1, t2) -> t1));
+
+        List<BidRepository.DealerBidSummary> bidSummaries = bidRepository.getDealerBidSummaries();
+        Map<Long, BidRepository.DealerBidSummary> bidMap = bidSummaries.stream()
+                .collect(Collectors.toMap(BidRepository.DealerBidSummary::getDealerId, b -> b, (b1, b2) -> b1));
+
+        long totalAuctionsCount = auctionRepository.count();
+
+        // 2. 메모리 상에서 딜러 및 상사 뱃지 요청 객체 조립 (DB 쿼리 발생 0회)
+        Map<Long, AiClient.DealerBatchItem> dealerItemMap = new HashMap<>();
+        List<AiClient.DealerBatchItem> dealerBatchItems = new ArrayList<>();
+
         for (Dealer dealer : dealers) {
-            try {
-                // 딜러 활동 특징 가공
-                AiClient.DealerFeatures features = calculateDealerFeatures(dealer);
-
-                // FastAPI 호출
-                AiClient.ChurnPredictionResponse response = aiClient.predictDealerChurn(features);
-                if (response != null && "success".equalsIgnoreCase(response.getStatus())) {
-                    double riskScore = response.getChurnProbability() * 100.0;
-                    dealer.setRiskScore(riskScore);
-
-                    // 위험 등급 반영 (75점 이상 CARE_REQUIRED, 미만 NORMAL)
-                    if (riskScore >= 75.0) {
-                        dealer.setTier("CARE_REQUIRED");
-                    } else {
-                        dealer.setTier("NORMAL");
-                    }
-                    dealerRepository.save(dealer);
-                    log.info("딜러 {} (ID: {})의 이탈 위험도 업데이트 완료: {}점, 등급: {}",
-                            dealer.getName(), dealer.getDealerId(), riskScore, dealer.getTier());
-                }
-            } catch (Exception e) {
-                log.error("딜러 {}의 이탈 위험도 예측 중 오류 발생: {}", dealer.getDealerId(), e.getMessage());
-            }
+            AiClient.DealerBatchItem item = createDealerBatchItemInMemory(dealer, tradeMap.get(dealer.getDealerId()), bidMap.get(dealer.getDealerId()), totalAuctionsCount);
+            dealerBatchItems.add(item);
+            dealerItemMap.put(dealer.getDealerId(), item);
         }
 
-        // 2. 상사 이탈 예측 및 업데이트
+        List<AiClient.CompanyBatchItem> companyBatchItems = new ArrayList<>();
         for (Company company : companies) {
-            try {
-                // 상사 소속 딜러 조회
-                List<Dealer> companyDealers = dealerRepository.findByCompanyCompanyId(company.getCompanyId());
-                if (companyDealers.isEmpty()) {
-                    continue;
-                }
-
-                // 상사 활동 특징 가공
-                AiClient.CompanyFeatures features = calculateCompanyFeatures(company, companyDealers);
-
-                // FastAPI 호출
-                AiClient.ChurnPredictionResponse response = aiClient.predictCompanyChurn(features);
-                if (response != null && "success".equalsIgnoreCase(response.getStatus())) {
-                    double riskScore = response.getChurnProbability() * 100.0;
-                    company.setRiskScore(riskScore);
-
-                    // 위험 등급 반영 (70점 이상 CARE_REQUIRED, 미만 NORMAL)
-                    if (riskScore >= 70.0) {
-                        company.setTier("CARE_REQUIRED");
-                    } else {
-                        company.setTier("NORMAL");
-                    }
-                    companyRepository.save(company);
-                    log.info("상사 {} (ID: {})의 이탈 위험도 업데이트 완료: {}점, 등급: {}",
-                            company.getName(), company.getCompanyId(), riskScore, company.getTier());
-                }
-            } catch (Exception e) {
-                log.error("상사 {}의 이탈 위험도 예측 중 오류 발생: {}", company.getCompanyId(), e.getMessage());
-            }
+            companyBatchItems.add(createCompanyBatchItemInMemory(company, dealerItemMap));
         }
 
-        // 3. 쿠폰 발급 및 골든 뱃지 업데이트 배치 연쇄 호출
+        AiClient.BatchChurnRequest batchRequest = AiClient.BatchChurnRequest.builder()
+                .dealers(dealerBatchItems)
+                .companies(companyBatchItems)
+                .build();
+
+        // 3. FastAPI 서버 단일 뱃치 API 호출 (1회 통신)
+        AiClient.BatchChurnResponse batchResponse = aiClient.predictBatchChurn(batchRequest);
+
+        if (batchResponse != null && "success".equalsIgnoreCase(batchResponse.getStatus())) {
+            // 4. 딜러 이탈 예측 결과 반영 및 saveAll() 일괄 저장
+            if (batchResponse.getDealerPredictions() != null) {
+                Map<Long, AiClient.DealerPredictionResult> dealerPredMap = batchResponse.getDealerPredictions().stream()
+                        .collect(Collectors.toMap(AiClient.DealerPredictionResult::getDealerId, p -> p, (p1, p2) -> p1));
+
+                for (Dealer dealer : dealers) {
+                    AiClient.DealerPredictionResult pred = dealerPredMap.get(dealer.getDealerId());
+                    if (pred != null) {
+                        double riskScore = pred.getChurnProbability() * 100.0;
+                        dealer.setRiskScore(riskScore);
+                        dealer.setTier(riskScore >= 75.0 ? "CARE_REQUIRED" : "NORMAL");
+                    }
+                }
+                dealerRepository.saveAll(dealers);
+                log.info("딜러 전체 {}명의 이탈 위험도 점수 및 등급 일괄 저장(saveAll) 완료.", dealers.size());
+            }
+
+            // 5. 상사 이탈 예측 결과 반영 및 saveAll() 일괄 저장
+            if (batchResponse.getCompanyPredictions() != null) {
+                Map<Long, AiClient.CompanyPredictionResult> companyPredMap = batchResponse.getCompanyPredictions().stream()
+                        .collect(Collectors.toMap(AiClient.CompanyPredictionResult::getCompanyId, p -> p, (p1, p2) -> p1));
+
+                for (Company company : companies) {
+                    AiClient.CompanyPredictionResult pred = companyPredMap.get(company.getCompanyId());
+                    if (pred != null) {
+                        double riskScore = pred.getChurnProbability() * 100.0;
+                        company.setRiskScore(riskScore);
+                        company.setTier(riskScore >= 70.0 ? "CARE_REQUIRED" : "NORMAL");
+                    }
+                }
+                companyRepository.saveAll(companies);
+                log.info("상사 전체 {}개의 이탈 위험도 점수 및 등급 일괄 저장(saveAll) 완료.", companies.size());
+            }
+        } else {
+            log.warn("FastAPI 이탈 예측 뱃치 응답이 비어있거나 실패하여 기본 뱃치 저장을 보류합니다.");
+        }
+
+        // 6. 이탈 방지 쿠폰 자동 발급 및 골든 뱃지 갱신 배치 연쇄 호출
         try {
             log.info("이탈 방지 쿠폰 자동 발급 배치 실행...");
             couponService.issueRiskCoupons();
@@ -156,73 +172,42 @@ public class AiService {
             log.error("상위 5% 상사 골든 뱃지 갱신 중 오류 발생: {}", e.getMessage());
         }
 
-        log.info("자정 이탈 위험도 예측 배치 완료.");
+        log.info("자정 이탈 위험도 예측 뱃치 연산 완료.");
     }
 
     /**
-     * 특정 딜러의 활동 요약 정보(특징량)를 계산합니다.
+     * DB 추가 쿼리 없이 메모리 상의 집계 요약 정보(Projection Map)로 딜러 요약 아이템을 조립합니다.
      */
-    private AiClient.DealerFeatures calculateDealerFeatures(Dealer dealer) {
-        Long dealerId = dealer.getDealerId();
+    private AiClient.DealerBatchItem createDealerBatchItemInMemory(Dealer dealer,
+                                                                   TransactionRepository.DealerTradeSummary tradeSummary,
+                                                                   BidRepository.DealerBidSummary bidSummary,
+                                                                   long totalAuctionsCount) {
+        int recent60dTradeCount = (tradeSummary != null && tradeSummary.getRecent60dTradeCount() != null) ? tradeSummary.getRecent60dTradeCount().intValue() : 0;
+        int previousTradeCount = (tradeSummary != null && tradeSummary.getPreviousTradeCount() != null) ? tradeSummary.getPreviousTradeCount().intValue() : 0;
+        double avgSellingPrice = (tradeSummary != null && tradeSummary.getAvgDealPrice() != null) ? tradeSummary.getAvgDealPrice() : 13000000.0;
 
-        // 1) 거래 내역 조회 (판매자 혹은 구매자가 본인인 경우)
-        List<Transaction> sellTx = transactionRepository.findBySellerTypeAndSellerId("DEALER", dealerId);
-        List<Transaction> buyTx = transactionRepository.findByBuyerTypeAndBuyerId("DEALER", dealerId);
-
-        List<Transaction> allTx = new ArrayList<>();
-        allTx.addAll(sellTx);
-        allTx.addAll(buyTx);
-
-        // 2) 최근 60일 거래수 & 이전 거래수 계산
-        LocalDateTime sixtyDaysAgo = LocalDateTime.now().minusDays(60);
-        int recent60dTradeCount = 0;
-        int previousTradeCount = 0;
-        double totalPrice = 0.0;
-
-        for (Transaction tx : allTx) {
-            if (tx.getCreatedAt() != null) {
-                if (tx.getCreatedAt().isAfter(sixtyDaysAgo)) {
-                    recent60dTradeCount++;
-                } else {
-                    previousTradeCount++;
-                }
-            }
-            totalPrice += tx.getDealPrice();
-        }
-
-        double avgSellingPrice = allTx.isEmpty() ? 13000000.0 : totalPrice / allTx.size();
-
-        // 3) 사이트 이용률 계산 (딜러의 입찰수 / 전체 경매수)
-        List<Bid> bids = bidRepository.findByDealerDealerId(dealerId);
-        long bidsCount = bids.size();
-        long auctionsCount = auctionRepository.count();
-        double siteUsageRate = auctionsCount > 0 ? (double) bidsCount / auctionsCount : 0.5;
+        long bidsCount = (bidSummary != null && bidSummary.getBidCount() != null) ? bidSummary.getBidCount() : 0L;
+        double siteUsageRate = totalAuctionsCount > 0 ? (double) bidsCount / totalAuctionsCount : 0.5;
         siteUsageRate = Math.min(1.0, Math.max(0.0, siteUsageRate));
 
-        // 4) 마지막 활동 경과일 계산 (입찰 또는 거래의 가장 최근 시각 기준)
         LocalDateTime latestActivity = null;
-        for (Bid bid : bids) {
-            if (bid.getCreatedAt() != null) {
-                if (latestActivity == null || bid.getCreatedAt().isAfter(latestActivity)) {
-                    latestActivity = bid.getCreatedAt();
-                }
-            }
+        if (bidSummary != null && bidSummary.getLatestBidTime() != null) {
+            latestActivity = bidSummary.getLatestBidTime();
         }
-        for (Transaction tx : allTx) {
-            if (tx.getCreatedAt() != null) {
-                if (latestActivity == null || tx.getCreatedAt().isAfter(latestActivity)) {
-                    latestActivity = tx.getCreatedAt();
-                }
+        if (tradeSummary != null && tradeSummary.getLatestTradeTime() != null) {
+            if (latestActivity == null || tradeSummary.getLatestTradeTime().isAfter(latestActivity)) {
+                latestActivity = tradeSummary.getLatestTradeTime();
             }
         }
 
-        int lastActivityDays = 180; // 활동 기록 없으면 180일로 지정
+        int lastActivityDays = 180;
         if (latestActivity != null) {
             long days = ChronoUnit.DAYS.between(latestActivity, LocalDateTime.now());
             lastActivityDays = (int) Math.max(0, days);
         }
 
-        return AiClient.DealerFeatures.builder()
+        return AiClient.DealerBatchItem.builder()
+                .dealerId(dealer.getDealerId())
                 .lastActivityDays(lastActivityDays)
                 .recent60dTradeCount(recent60dTradeCount)
                 .previousTradeCount(previousTradeCount)
@@ -232,9 +217,10 @@ public class AiService {
     }
 
     /**
-     * 특정 상사의 소속 딜러들의 활동 정보 요약(상사 특징량)을 계산합니다.
+     * DB 추가 쿼리 없이 소속 딜러들의 맵 항목으로 상사 요약 아이템을 조립합니다.
      */
-    private AiClient.CompanyFeatures calculateCompanyFeatures(Company company, List<Dealer> companyDealers) {
+    private AiClient.CompanyBatchItem createCompanyBatchItemInMemory(Company company, Map<Long, AiClient.DealerBatchItem> dealerItemMap) {
+        List<Dealer> companyDealers = dealerRepository.findByCompanyCompanyId(company.getCompanyId());
         int dealerCount = companyDealers.size();
         long activeCount = companyDealers.stream()
                 .filter(d -> "ACTIVE".equalsIgnoreCase(d.getStatus()))
@@ -247,17 +233,20 @@ public class AiService {
         double sumAvgSellingPrice = 0.0;
 
         for (Dealer d : companyDealers) {
-            AiClient.DealerFeatures df = calculateDealerFeatures(d);
-            totalRecentTrade += df.getRecent60dTradeCount();
-            totalPreviousTrade += df.getPreviousTradeCount();
-            sumSiteUsageRate += df.getSiteUsageRate();
-            sumAvgSellingPrice += df.getAvgSellingPrice();
+            AiClient.DealerBatchItem df = dealerItemMap.get(d.getDealerId());
+            if (df != null) {
+                totalRecentTrade += df.getRecent60dTradeCount();
+                totalPreviousTrade += df.getPreviousTradeCount();
+                sumSiteUsageRate += df.getSiteUsageRate();
+                sumAvgSellingPrice += df.getAvgSellingPrice();
+            }
         }
 
-        double siteUsageRateAvg = dealerCount > 0 ? sumSiteUsageRate / dealerCount : 0.5;
+        double siteUsageRateAvg = dealerCount > 0 ? sumSiteUsageRate / dealerCount : 0.0;
         double avgSellingPriceAvg = dealerCount > 0 ? sumAvgSellingPrice / dealerCount : 13000000.0;
 
-        return AiClient.CompanyFeatures.builder()
+        return AiClient.CompanyBatchItem.builder()
+                .companyId(company.getCompanyId())
                 .dealerCount(dealerCount)
                 .activeDealerRatio(activeDealerRatio)
                 .recentTradeCount(totalRecentTrade)
@@ -268,31 +257,35 @@ public class AiService {
     }
 
     /**
-     * Car 엔티티를 CarDto.Response DTO 객체로 안전하게 매핑합니다.
+     * Car 엔티티를 CarDto.Response 포맷으로 매핑하는 내부 도우미 메소드입니다.
      */
     private CarDto.Response mapToCarResponse(Car car) {
-        Object owner = car.getOwner();
-        Long ownerId = null;
-        String ownerName = null;
-        if (owner instanceof Member) {
-            ownerId = ((Member) owner).getMemberId();
-            ownerName = ((Member) owner).getName();
-        } else if (owner instanceof Dealer) {
-            ownerId = ((Dealer) owner).getDealerId();
-            ownerName = ((Dealer) owner).getName();
+        List<CarDto.ImageDto> imageDtos = new ArrayList<>();
+        if (car.getImages() != null) {
+            imageDtos = car.getImages().stream()
+                    .map(img -> CarDto.ImageDto.builder()
+                            .imageUrl(img.getImageUrl())
+                            .isMain(img.getIsMain())
+                            .build())
+                    .collect(Collectors.toList());
         }
 
-        List<CarDto.ImageDto> imageDtos = car.getImages().stream()
-                .map(img -> CarDto.ImageDto.builder()
-                        .imageUrl(img.getImageUrl())
-                        .isMain(img.getIsMain())
-                        .build())
-                .collect(Collectors.toList());
+        String ownerType = null;
+        Long ownerId = null;
+        String ownerName = null;
+        Boolean goldenBadgeStatus = false;
 
-        // 골든 뱃지 혜택 적용을 위한 상사 골든 뱃지 상태 매핑
-        boolean goldenBadgeStatus = false;
-        if (car.getDealer() != null) {
-            goldenBadgeStatus = car.getDealer().getCompany().getGoldenBadgeStatus();
+        if (car.getMember() != null) {
+            ownerType = "MEMBER";
+            ownerId = car.getMember().getMemberId();
+            ownerName = car.getMember().getName();
+        } else if (car.getDealer() != null) {
+            ownerType = "DEALER";
+            ownerId = car.getDealer().getDealerId();
+            ownerName = car.getDealer().getName();
+            if (car.getDealer().getCompany() != null) {
+                goldenBadgeStatus = Boolean.TRUE.equals(car.getDealer().getCompany().getGoldenBadgeStatus());
+            }
         }
 
         return CarDto.Response.builder()
@@ -310,7 +303,7 @@ public class AiService {
                 .interior(car.getInterior())
                 .sellingPrice(car.getSellingPrice())
                 .status(car.getStatus())
-                .ownerType(car.getOwnerType())
+                .ownerType(ownerType)
                 .ownerId(ownerId)
                 .ownerName(ownerName)
                 .images(imageDtos)

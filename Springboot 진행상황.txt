@@ -130,6 +130,7 @@ Spring Boot 개발 프로젝트 통합 진행상황 및 세부 기능 명세
 * FastAPI HTTP REST 클라이언트 연동 ([AiClient.java])
   - `RestTemplate`을 사용한 통신 인프라 설계 (연결/읽기 타임아웃 5초 설정으로 병목 방지).
   - Jackson 라이브러리의 `@JsonProperty`를 활용해 FastAPI 데이터 특징 모델(대소문자 및 언더바 조합)과의 자동 바인딩 제공.
+  - 통합 뱃치 이탈 예측 API (`POST /api/ai/predict-churn/batch`) 단 1회 전송 클라이언트 메소드 구현 (`predictBatchChurn()`).
   - 모든 예외 정보 및 진행 안내 로깅 메시지를 직관적인 한글로 설계.
 * AI 맞춤 차량 추천 API 연동 (`GET /api/dealers/recommendations`)
   - 딜러가 추천 API 호출 시 `AiClient`를 통해 FastAPI 서버의 `/api/ai/recommendations`에 추천 요청 전달.
@@ -139,16 +140,11 @@ Spring Boot 개발 프로젝트 통합 진행상황 및 세부 기능 명세
 --------------------------------------------------------------------------------
 11. 이탈 방지 예측 배치 자정 스케줄러 (Midnight Batch Scheduler)
 --------------------------------------------------------------------------------
-* 자정 스케줄러 실행 및 딜러/상사 위험 등급 업데이트
+* 고성능 자정 이탈 예측 배치 및 N+1 DB 조회 완전 제거 ([AiService.java], [TransactionRepository.java], [BidRepository.java])
   - `@EnableScheduling` 및 `@Scheduled(cron = "0 0 0 * * ?")` 기반으로 동작.
-  - 매일 자정 전체 활성 딜러들의 실제 활동 수치 집계:
-    * 마지막 활동 경과일: 최근 입찰/거래 시각과 현재 시간의 차이 연산 (기록 없을 시 180일로 지정)
-    * 최근 60일 거래 건수 및 이전 거래 건수
-    * 사이트 이용률: (딜러 입찰수 / 전체 경매수) 비율 연산 (최소 0.0 ~ 최대 1.0 범위 보정)
-    * 평균 거래 단가 계산 (기록 없을 시 1,300만 원 기본값 부여)
-  - 추출한 특징 데이터를 FastAPI 딜러 이탈 예측 API로 전송해 이탈 확률을 예측받아 백분율 환산 점수(`risk_score = probability * 100`)로 DB 업데이트.
-  - 위험 점수가 75점 이상인 딜러는 `"CARE_REQUIRED"` 등급 부여.
-  - 상사는 소속 딜러들의 집계 데이터를 기반으로 FastAPI 상사 이탈 예측 API를 호출해 `risk_score`를 저장하고 70점 이상인 상사는 `"CARE_REQUIRED"` 등급 부여.
+  - **SQL GROUP BY 단일 집계 쿼리 적용**: 딜러 1명마다 반복 쿼리를 날리던 N+1 문제를 없애고, `TransactionRepository.getDealerTradeSummaries()` 및 `BidRepository.getDealerBidSummaries()` 단 2회의 SQL 집계 쿼리로 전체 딜러/상사의 활동 특징량(최근 60일 거래수, 이전 거래수, 평균 거래가, 최근 입찰/거래 시각)을 일괄 수집.
+  - **FastAPI 1회 단일 뱃치 통신**: 수집된 딜러 및 상사 요약 목록을 `BatchChurnRequest` 객체로 조립하여 FastAPI의 `/api/ai/predict-churn/batch` API로 1회 단일 호출 송신.
+  - **saveAll() 일괄 저장**: 수신된 이탈 확률을 백분율 점수(`risk_score`)로 변환하고 딜러(75점 이상 `CARE_REQUIRED`) 및 상사(70점 이상 `CARE_REQUIRED`) 위험 등급을 지정하여 `dealerRepository.saveAll()` 및 `companyRepository.saveAll()`로 1번에 일괄 저장.
   - 등급 갱신 종료 직후, 이탈 딜러 수수료 할인 쿠폰 발급(`issueRiskCoupons()`) 및 골든 뱃지 갱신(`updateCompanyTiersAndBadges()`) 배치를 순차 구동시켜 전체 관리 스케줄 자동 연쇄 구동.
 * 관리자 전용 배치 강제 트리거 API (`POST /api/admin/ai/churn-batch`)
   - 자정까지 대기할 필요 없이, 관리자 권한을 가진 로그인 사용자가 배치를 수동으로 즉시 구동할 수 있도록 테스트용 트리거 엔드포인트 제공.

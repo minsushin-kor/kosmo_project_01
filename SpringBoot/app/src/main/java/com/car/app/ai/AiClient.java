@@ -41,7 +41,10 @@ public class AiClient {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class DealerFeatures {
+    public static class DealerBatchItem {
+        @com.fasterxml.jackson.annotation.JsonProperty("dealer_id")
+        private Long dealerId;
+
         @com.fasterxml.jackson.annotation.JsonProperty("Last_Activity_Days")
         private int lastActivityDays;
 
@@ -63,7 +66,10 @@ public class AiClient {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class CompanyFeatures {
+    public static class CompanyBatchItem {
+        @com.fasterxml.jackson.annotation.JsonProperty("company_id")
+        private Long companyId;
+
         @com.fasterxml.jackson.annotation.JsonProperty("Dealer_Count")
         private int dealerCount;
 
@@ -85,18 +91,60 @@ public class AiClient {
 
     @Getter
     @Setter
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ChurnPredictionResponse {
-        private String status;
-        @com.fasterxml.jackson.annotation.JsonProperty("predicted_status")
-        private String predictedStatus;
+    public static class BatchChurnRequest {
+        private List<DealerBatchItem> dealers;
+        private List<CompanyBatchItem> companies;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DealerPredictionResult {
+        @com.fasterxml.jackson.annotation.JsonProperty("dealer_id")
+        private Long dealerId;
+
         @com.fasterxml.jackson.annotation.JsonProperty("churn_probability")
         private double churnProbability;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("predicted_status")
+        private String predictedStatus;
+
         @com.fasterxml.jackson.annotation.JsonProperty("risk_grade")
         private String riskGrade;
-        @com.fasterxml.jackson.annotation.JsonProperty("risk_reasons")
-        private List<String> riskReasons;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CompanyPredictionResult {
+        @com.fasterxml.jackson.annotation.JsonProperty("company_id")
+        private Long companyId;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("churn_probability")
+        private double churnProbability;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("predicted_status")
+        private String predictedStatus;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("risk_grade")
+        private String riskGrade;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BatchChurnResponse {
+        private String status;
+        @com.fasterxml.jackson.annotation.JsonProperty("dealer_predictions")
+        private List<DealerPredictionResult> dealerPredictions;
+        @com.fasterxml.jackson.annotation.JsonProperty("company_predictions")
+        private List<CompanyPredictionResult> companyPredictions;
     }
 
     /**
@@ -128,43 +176,22 @@ public class AiClient {
     }
 
     /**
-     * FastAPI 서버의 /api/ai/predict-churn/individual API를 호출하여 딜러의 이탈 위험도를 예측합니다.
+     * FastAPI 서버의 /api/ai/predict-churn/batch API를 1회 단일 호출하여 딜러 및 상사 목록의 이탈 위험도를 뱃지로 통합 예측합니다.
      *
-     * @param features 딜러 활동 특징량
-     * @return 예측 결과 응답 DTO (실패 시 null 반환)
+     * @param request 딜러 및 상사 요약 뱃치 요청 DTO
+     * @return 뱃치 예측 응답 DTO (실패 시 null 반환)
      */
-    public ChurnPredictionResponse predictDealerChurn(DealerFeatures features) {
+    public BatchChurnResponse predictBatchChurn(BatchChurnRequest request) {
         try {
             String url = UriComponentsBuilder.fromUriString(baseUrl)
-                    .path("/api/ai/predict-churn/individual")
+                    .path("/api/ai/predict-churn/batch")
                     .build()
                     .toUriString();
 
-            log.info("FastAPI 서버로 딜러 이탈 예측 요청 송신: {}", url);
-            return restTemplate.postForObject(url, features, ChurnPredictionResponse.class);
+            log.info("FastAPI 서버로 통합 뱃치 이탈 예측 요청 송신: {}", url);
+            return restTemplate.postForObject(url, request, BatchChurnResponse.class);
         } catch (Exception e) {
-            log.error("FastAPI 서버로 딜러 이탈 예측을 요청하는데 실패했습니다: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * FastAPI 서버의 /api/ai/predict-churn/company API를 호출하여 상사의 이탈 위험도를 예측합니다.
-     *
-     * @param features 상사 활동 특징량
-     * @return 예측 결과 응답 DTO (실패 시 null 반환)
-     */
-    public ChurnPredictionResponse predictCompanyChurn(CompanyFeatures features) {
-        try {
-            String url = UriComponentsBuilder.fromUriString(baseUrl)
-                    .path("/api/ai/predict-churn/company")
-                    .build()
-                    .toUriString();
-
-            log.info("FastAPI 서버로 상사 이탈 예측 요청 송신: {}", url);
-            return restTemplate.postForObject(url, features, ChurnPredictionResponse.class);
-        } catch (Exception e) {
-            log.error("FastAPI 서버로 상사 이탈 예측을 요청하는데 실패했습니다: {}", e.getMessage());
+            log.error("FastAPI 서버로 통합 뱃치 이탈 예측을 요청하는데 실패했습니다: {}", e.getMessage());
             return null;
         }
     }
