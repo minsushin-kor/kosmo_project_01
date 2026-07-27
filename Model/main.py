@@ -8,6 +8,7 @@ import pandas as pd
 from pathlib import Path
 from difflib import SequenceMatcher
 from math import log1p
+from datetime import datetime, timezone
 
 
 # ============================================================
@@ -86,6 +87,7 @@ VEHICLE_CONDITION_MIN = 1.0
 VEHICLE_CONDITION_MAX = 5.0
 VEHICLE_MMR_MIN = 0.0
 vehicle_prediction_cache = None
+latest_churn_batch_snapshot = None
 
 try:
     vehicle_condition_bundle = joblib.load(VEHICLE_CONDITION_MODEL_PATH)
@@ -256,6 +258,35 @@ class VehicleRecommendationRequest(BaseModel):
         default=False,
         description="차량 모델 반드시 일치",
     )
+
+
+class BuyerRecommendationVehicle(BaseModel):
+    """Spring Boot가 DB에서 조회해 전달하는 일반 판매 차량 규격입니다."""
+
+    carId: int = Field(..., gt=0, description="DB 차량 고유 번호")
+    year: int = Field(..., ge=1990, le=2030, description="제작 연도")
+    make: str = Field(..., min_length=1, max_length=50, description="제조사")
+    model: str = Field(..., min_length=1, max_length=100, description="모델명")
+    odometer: float = Field(..., ge=0, description="주행거리(km)")
+    option: str | None = Field(default=None, description="쉼표로 구분된 옵션")
+    color: str | None = Field(default=None, max_length=30, description="외장 색상")
+    sellingPrice: int | None = Field(default=None, ge=0, description="판매가(원)")
+    state: str | None = Field(default=None, max_length=50, description="차량 등록 지역")
+    status: str | None = Field(default=None, max_length=20, description="판매 상태")
+    ownerType: str | None = Field(default=None, max_length=20, description="판매자 유형")
+
+
+class BuyerVehicleRecommendationRequest(BaseModel):
+    """Spring Boot가 전달하는 구매 조건과 DB 차량 후보 목록입니다."""
+
+    preferences: VehicleRecommendationRequest
+    vehicles: list[BuyerRecommendationVehicle] = Field(default_factory=list)
+
+
+class VehiclePredictionBatchRequest(BaseModel):
+    """DB 차량 전체의 Condition과 MMR 일괄 예측 요청입니다."""
+
+    vehicles: list[BuyerRecommendationVehicle] = Field(default_factory=list)
 
 
 # ============================================================
@@ -487,32 +518,31 @@ def get_option_match_ratio(
     return len(matched_options) / len(preferred_options), matched_options
 
 
-def get_vehicle_prediction_catalog() -> list[dict]:
-    """더미 차량을 한 번에 예측하고 이후 요청에서는 메모리 결과를 재사용합니다."""
-    global vehicle_prediction_cache
+def parse_vehicle_options(options) -> list[str]:
+    """문자열 또는 배열로 전달된 옵션을 추천 계산용 배열로 정리합니다."""
+    if isinstance(options, list):
+        return [
+            str(option).strip()
+            for option in options
+            if clean_optional_text(option) is not None
+        ]
+    if isinstance(options, str):
+        return [option.strip() for option in options.split(",") if option.strip()]
+    return []
 
-    if vehicle_prediction_cache is not None:
-        return vehicle_prediction_cache
 
+def build_vehicle_prediction_catalog(vehicles: list[dict]) -> list[dict]:
+    """전달받은 차량 전체의 Condition과 MMR을 모델별 한 번에 예측합니다."""
     if model_vehicle_condition is None or model_vehicle_mmr is None:
         raise HTTPException(
             status_code=503,
             detail="차량 Condition 또는 MMR 예측 모델을 불러오지 못했습니다.",
         )
 
-    if not VEHICLE_DUMMY_PATH.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="vehicle_recommendation_dummy.json 파일을 찾을 수 없습니다.",
-        )
-
-    with open(VEHICLE_DUMMY_PATH, "r", encoding="utf-8") as f:
-        vehicles = json.load(f)
-
     if not isinstance(vehicles, list) or not vehicles:
-        raise ValueError("차량 더미 데이터가 비어 있거나 배열 형식이 아닙니다.")
+        raise ValueError("추천에 사용할 차량 목록이 비어 있거나 배열 형식이 아닙니다.")
 
-    required_fields = {"vehicle_id", "year", "make", "model", "odometer"}
+    required_fields = {"year", "make", "model", "odometer"}
     for index, vehicle in enumerate(vehicles, start=1):
         missing_fields = required_fields - set(vehicle)
         if missing_fields:
@@ -560,21 +590,49 @@ def get_vehicle_prediction_catalog() -> list[dict]:
         predicted_conditions,
         predicted_mmrs,
     ):
-        options = vehicle.get("option", [])
+        vehicle_id = vehicle.get("carId", vehicle.get("vehicle_id"))
+        if vehicle_id is None:
+            raise ValueError("차량 목록에 carId 또는 vehicle_id가 없습니다.")
+
         catalog.append(
             {
-                "vehicle_id": str(vehicle["vehicle_id"]),
+                "carId": vehicle_id,
+                "vehicle_id": str(vehicle_id),
                 "year": int(vehicle["year"]),
                 "make": str(vehicle["make"]),
                 "model": str(vehicle["model"]),
                 "odometer": int(float(vehicle["odometer"])),
                 "color": clean_optional_text(vehicle.get("color")),
-                "option": options if isinstance(options, list) else [],
+                "option": parse_vehicle_options(vehicle.get("option")),
+                "sellingPrice": vehicle.get("sellingPrice"),
+                "state": clean_optional_text(vehicle.get("state")),
+                "status": clean_optional_text(vehicle.get("status")),
+                "ownerType": clean_optional_text(vehicle.get("ownerType")),
                 "predicted_condition": round(float(condition), 2),
                 "predicted_mmr": round(float(mmr), 2),
             }
         )
 
+    return catalog
+
+
+def get_vehicle_prediction_catalog() -> list[dict]:
+    """더미 차량을 한 번에 예측하고 이후 요청에서는 메모리 결과를 재사용합니다."""
+    global vehicle_prediction_cache
+
+    if vehicle_prediction_cache is not None:
+        return vehicle_prediction_cache
+
+    if not VEHICLE_DUMMY_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="vehicle_recommendation_dummy.json 파일을 찾을 수 없습니다.",
+        )
+
+    with open(VEHICLE_DUMMY_PATH, "r", encoding="utf-8") as f:
+        vehicles = json.load(f)
+
+    catalog = build_vehicle_prediction_catalog(vehicles)
     vehicle_prediction_cache = catalog
     return vehicle_prediction_cache
 
@@ -960,6 +1018,9 @@ def health_check():
     return {
         "status": "running",
         "model_loaded": model_individual is not None,
+        "individual_model_loaded": model_individual is not None,
+        "company_model_loaded": model_company is not None,
+        "latest_churn_batch_available": latest_churn_batch_snapshot is not None,
         "model_path": str(MODEL_PATH),
         "model_features": MODEL_FEATURES,
     }
@@ -1082,6 +1143,8 @@ def predict_company(features: CompanyFeatures):
 )
 def predict_churn_batch(request: BatchChurnRequest):
     """Spring Boot가 전달한 딜러·회사 활동 데이터를 모델별 한 번에 예측합니다."""
+    global latest_churn_batch_snapshot
+
     if not request.dealers and not request.companies:
         raise HTTPException(
             status_code=400,
@@ -1243,11 +1306,44 @@ def predict_churn_batch(request: BatchChurnRequest):
             f"companies={len(company_predictions)}"
         )
 
-        return {
+        response = {
             "status": "success",
             "dealer_predictions": dealer_predictions,
             "company_predictions": company_predictions,
         }
+
+        dealer_features_by_id = {
+            item.dealer_id: item.model_dump()
+            for item in request.dealers
+        }
+        company_features_by_id = {
+            item.company_id: item.model_dump()
+            for item in request.companies
+        }
+
+        latest_churn_batch_snapshot = {
+            "status": "success",
+            "source": "spring_batch",
+            "calculated_at": datetime.now(timezone.utc).isoformat(),
+            "dealer_count": len(dealer_predictions),
+            "company_count": len(company_predictions),
+            "dealers": [
+                {
+                    **dealer_features_by_id[prediction["dealer_id"]],
+                    **prediction,
+                }
+                for prediction in dealer_predictions
+            ],
+            "companies": [
+                {
+                    **company_features_by_id[prediction["company_id"]],
+                    **prediction,
+                }
+                for prediction in company_predictions
+            ],
+        }
+
+        return response
     except HTTPException:
         raise
     except Exception as e:
@@ -1255,6 +1351,18 @@ def predict_churn_batch(request: BatchChurnRequest):
             status_code=500,
             detail=f"일괄 예측 도중 에러 발생: {str(e)}",
         )
+
+
+@app.get("/api/ai/predict-churn/latest")
+def get_latest_churn_batch():
+    """가장 최근에 Spring Boot가 요청한 DB 기반 이탈 예측 결과를 반환합니다."""
+    if latest_churn_batch_snapshot is None:
+        raise HTTPException(
+            status_code=404,
+            detail="아직 Spring Boot에서 수신한 이탈 예측 배치가 없습니다.",
+        )
+
+    return latest_churn_batch_snapshot
 
 
 @app.get("/api/ai/churn/dealers")
@@ -1458,16 +1566,77 @@ def get_vehicle_recommendations():
         )
 
 
+@app.post("/api/ai/vehicle-recommendations")
+def predict_vehicle_recommendations(
+    request: VehiclePredictionBatchRequest,
+):
+    """Spring Boot가 DB에서 조회한 차량 전체를 모델로 일괄 예측합니다."""
+    try:
+        eligible_vehicles = []
+        for vehicle in request.vehicles:
+            status = clean_optional_text(vehicle.status)
+            if status is not None and status.upper() != "REGISTERED":
+                continue
+            eligible_vehicles.append(vehicle.model_dump())
+
+        if not eligible_vehicles:
+            raise HTTPException(
+                status_code=422,
+                detail="예측 가능한 DB 차량이 없습니다.",
+            )
+
+        recommendations = build_vehicle_prediction_catalog(eligible_vehicles)
+        recommendations.sort(
+            key=lambda item: (
+                item["predicted_condition"],
+                item["predicted_mmr"],
+            ),
+            reverse=True,
+        )
+
+        return {
+            "status": "success",
+            "source": "spring_db",
+            "count": len(recommendations),
+            "recommendations": recommendations,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"DB 차량 추천 예측 중 오류 발생: {str(e)}",
+        )
+
+
 @app.post("/api/ai/vehicle-recommendations/buyer")
 def recommend_vehicles_for_buyer(
-    preferences: VehicleRecommendationRequest,
+    request: BuyerVehicleRecommendationRequest,
 ):
-    """구매자 입력 조건과 더미 차량을 비교해 적합도 상위 10대를 반환합니다."""
+    """Spring Boot가 전달한 DB 차량과 구매 조건으로 적합도 상위 10대를 반환합니다."""
     try:
+        preferences = request.preferences
         cleaned_preferences, active_basic_keys = (
             validate_vehicle_recommendation_request(preferences)
         )
-        catalog = get_vehicle_prediction_catalog()
+
+        eligible_vehicles = []
+        for vehicle in request.vehicles:
+            owner_type = clean_optional_text(vehicle.ownerType)
+            status = clean_optional_text(vehicle.status)
+            if owner_type is not None and owner_type.upper() != "DEALER":
+                continue
+            if status is not None and status.upper() != "REGISTERED":
+                continue
+            eligible_vehicles.append(vehicle.model_dump())
+
+        if not eligible_vehicles:
+            raise HTTPException(
+                status_code=422,
+                detail="추천 가능한 DB 딜러 판매 차량이 없습니다.",
+            )
+
+        catalog = build_vehicle_prediction_catalog(eligible_vehicles)
 
         preferred_make = cleaned_preferences["preferredMake"]
         preferred_model = cleaned_preferences["preferredModel"]
@@ -1508,7 +1677,7 @@ def recommend_vehicles_for_buyer(
                 excluded_conditions.append(
                     {
                         "condition": "preferredColor",
-                        "reason": "현재 차량 더미 데이터에 색상 정보가 없어 점수에서 제외했습니다.",
+                        "reason": "전달된 차량 데이터에 색상 정보가 없어 점수에서 제외했습니다.",
                     }
                 )
         if cleaned_preferences["minimumCondition"] is not None:
@@ -1549,6 +1718,7 @@ def recommend_vehicles_for_buyer(
             "input_basic_condition_count": len(active_basic_keys),
             "input_optional_condition_count": len(active_optional_keys),
             "excluded_conditions": excluded_conditions,
+            "source_vehicle_count": len(eligible_vehicles),
             "candidate_count": len(filtered_catalog),
             "count": len(recommendations),
             "recommendations": recommendations,

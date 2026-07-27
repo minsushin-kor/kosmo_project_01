@@ -3,9 +3,11 @@ import RecomendTest from "./RecomendTest";
 import BuyerRecomendTest from "./BuyerRecomendTest";
 
 function RiskReasonList({ reason }) {
-  const reasons = String(reason || "모델 분석 사유가 없습니다.")
-    .split(/,\s*/)
-    .filter(Boolean);
+  const reasons = Array.isArray(reason)
+    ? reason.filter(Boolean)
+    : String(reason || "모델 분석 사유가 없습니다.")
+        .split(/,\s*/)
+        .filter(Boolean);
 
   return (
     <ul className="risk-reason-list">
@@ -16,25 +18,228 @@ function RiskReasonList({ reason }) {
   );
 }
 
+function mapRiskGrade(riskGrade) {
+  if (riskGrade === "Critical" || riskGrade === "High") return "높음";
+  if (riskGrade === "Medium") return "보통";
+  return "낮음";
+}
+
+function formatProbability(value) {
+  const probability = Number(value);
+  return Number.isFinite(probability) ? `${probability.toFixed(2)}%` : "-";
+}
+
+function mapChurnSnapshot(snapshot) {
+  const dealers = Array.isArray(snapshot?.dealers)
+    ? snapshot.dealers.map((item) => ({
+        id: item.dealer_id,
+        name: `딜러 #${item.dealer_id}`,
+        recentActivity: `${item.Last_Activity_Days}일 전`,
+        churnRate: formatProbability(item.churn_probability_percent),
+        churnRateRaw: Number(item.churn_probability_percent) || 0,
+        risk: mapRiskGrade(item.risk_grade),
+        action: item.action,
+        reason: item.risk_reasons,
+      }))
+    : [];
+
+  const companies = Array.isArray(snapshot?.companies)
+    ? snapshot.companies.map((item) => ({
+        id: item.company_id,
+        name: `상사 #${item.company_id}`,
+        recentActivity:
+          Number(item.Recent_Trade_Count) > 0
+            ? `최근 60일 거래 ${item.Recent_Trade_Count}건`
+            : "최근 60일 거래 없음",
+        churnRate: formatProbability(item.churn_probability_percent),
+        churnRateRaw: Number(item.churn_probability_percent) || 0,
+        risk: mapRiskGrade(item.risk_grade),
+        action: item.action,
+        reason: item.risk_reasons,
+      }))
+    : [];
+
+  return { dealers, companies };
+}
+
+async function fetchLatestChurnSnapshot(serverUrl) {
+  const response = await fetch(
+    `${serverUrl}/api/ai/predict-churn/latest`,
+    { method: "GET" },
+  );
+  const result = await response.json().catch(() => null);
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(result?.detail || "최근 이탈률 결과를 불러오지 못했습니다.");
+  }
+
+  return result;
+}
+
 function TestPage() {
   const [companyRawData, setCompanyRawData] = useState([]);
   const [dealerRawData, setDealerRawData] = useState([]);
+  const [adminEmail, setAdminEmail] = useState("admin@admin.co.kr");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [springJwt, setSpringJwt] = useState(
+    () => sessionStorage.getItem("test_spring_jwt") || "",
+  );
+  const [springAuthStatus, setSpringAuthStatus] = useState("");
+  const [isSpringAuthLoading, setIsSpringAuthLoading] = useState(false);
+  const [isChurnLoading, setIsChurnLoading] = useState(false);
+  const [churnStatus, setChurnStatus] = useState("idle");
+  const [churnMessage, setChurnMessage] = useState(
+    "Spring DB 배치를 실행하거나 최근 계산 결과를 불러오세요.",
+  );
+  const [lastCalculatedAt, setLastCalculatedAt] = useState("");
   
   // 서버 상태 및 설정
   const [serverStatus, setServerStatus] = useState("checking");
-  const defaultServerUrl =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-      ? "http://127.0.0.1:8000"
-      : "http://3.35.233.190:8000";
+  const defaultServerUrl = "http://127.0.0.1:8000";
   const activeServerUrl =
     import.meta.env.VITE_FASTAPI_BASE_URL?.replace(/\/$/, "") ||
     defaultServerUrl;
+  const springServerUrl =
+    import.meta.env.VITE_SPRING_BASE_URL?.replace(/\/$/, "") ||
+    "http://127.0.0.1:8080";
   const [issuedCoupons, setIssuedCoupons] = useState(new Set()); // 쿠폰 발송 기록 ("type-id")
 
   // 더보기 데이터셋 로드 여부
   const [isCompanyDummyLoaded, setIsCompanyDummyLoaded] = useState(false);
   const [isDealerDummyLoaded, setIsDealerDummyLoaded] = useState(false);
+
+  const loginToLocalSpring = async (event) => {
+    event.preventDefault();
+    setIsSpringAuthLoading(true);
+    setSpringAuthStatus("");
+
+    try {
+      const response = await fetch(`${springServerUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: adminEmail.trim(),
+          password: adminPassword,
+          roleType: "ADMIN",
+        }),
+      });
+      const result = await response.json();
+      const token = result?.data?.token;
+
+      if (!response.ok || !result.success || !token) {
+        throw new Error(
+          result?.error?.message || "로컬 Spring 관리자 인증에 실패했습니다.",
+        );
+      }
+
+      sessionStorage.setItem("test_spring_jwt", token);
+      setSpringJwt(token);
+      setAdminPassword("");
+      setSpringAuthStatus(`${result.data.name || "관리자"} 인증 완료`);
+    } catch (error) {
+      sessionStorage.removeItem("test_spring_jwt");
+      setSpringJwt("");
+      setSpringAuthStatus(error.message);
+    } finally {
+      setIsSpringAuthLoading(false);
+    }
+  };
+
+  const applyChurnSnapshot = (snapshot) => {
+    const { dealers, companies } = mapChurnSnapshot(snapshot);
+    setDealerRawData(dealers);
+    setCompanyRawData(companies);
+    setIsDealerDummyLoaded(false);
+    setIsCompanyDummyLoaded(false);
+
+    const calculatedAt = snapshot?.calculated_at
+      ? new Date(snapshot.calculated_at).toLocaleString("ko-KR")
+      : "계산 시각 없음";
+    setLastCalculatedAt(calculatedAt);
+    setChurnStatus("success");
+    setChurnMessage(
+      `Spring DB 기준 회사 ${companies.length}건, 딜러 ${dealers.length}건의 이탈률을 불러왔습니다.`,
+    );
+  };
+
+  const loadLatestChurnResults = async () => {
+    setIsChurnLoading(true);
+    setChurnStatus("loading");
+    setChurnMessage("최근 이탈률 계산 결과를 불러오는 중입니다.");
+
+    try {
+      const snapshot = await fetchLatestChurnSnapshot(activeServerUrl);
+      if (!snapshot) {
+        setDealerRawData([]);
+        setCompanyRawData([]);
+        setLastCalculatedAt("");
+        setChurnStatus("idle");
+        setChurnMessage(
+          "FastAPI가 아직 Spring DB 배치를 받은 적이 없습니다. 이탈률 계산을 실행해 주세요.",
+        );
+        return;
+      }
+      applyChurnSnapshot(snapshot);
+    } catch (error) {
+      setChurnStatus("error");
+      setChurnMessage(error.message);
+    } finally {
+      setIsChurnLoading(false);
+    }
+  };
+
+  const runChurnCalculation = async () => {
+    if (!springJwt) {
+      setChurnStatus("error");
+      setChurnMessage("먼저 Spring 관리자 인증을 완료해 주세요.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Spring 이탈 배치를 실행하면 DB의 risk_score와 등급이 갱신되고 쿠폰·골든 배지 처리도 함께 실행될 수 있습니다. 테스트 DB에서 계속하시겠습니까?",
+    );
+    if (!confirmed) return;
+
+    setIsChurnLoading(true);
+    setChurnStatus("loading");
+    setChurnMessage("Spring DB 데이터를 집계하고 이탈률을 계산하는 중입니다.");
+
+    try {
+      const response = await fetch(
+        `${springServerUrl}/api/admin/ai/churn-batch`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${springJwt}` },
+        },
+      );
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        if (response.status === 401 || response.status === 403) {
+          sessionStorage.removeItem("test_spring_jwt");
+          setSpringJwt("");
+        }
+        throw new Error(
+          result?.error?.message ||
+            `Spring 이탈률 배치 실행에 실패했습니다. (${response.status})`,
+        );
+      }
+
+      const snapshot = await fetchLatestChurnSnapshot(activeServerUrl);
+      if (!snapshot) {
+        throw new Error(
+          "Spring 배치는 완료됐지만 FastAPI에서 최신 계산 결과를 찾지 못했습니다.",
+        );
+      }
+      applyChurnSnapshot(snapshot);
+    } catch (error) {
+      setChurnStatus("error");
+      setChurnMessage(error.message);
+    } finally {
+      setIsChurnLoading(false);
+    }
+  };
 
   useEffect(() => {
     const checkConnectionAndFetch = async () => {
@@ -43,25 +248,42 @@ function TestPage() {
       try {
         const ping = await fetch(`${activeServerUrl}/`, { method: "GET" });
         if (!ping.ok) throw new Error("서버 연동 상태 실패");
-
-        const compRes = await fetch(`${activeServerUrl}/api/ai/churn/companies`);
-        const dealerRes = await fetch(`${activeServerUrl}/api/ai/churn/dealers`);
-        
-        if (!compRes.ok || !dealerRes.ok) {
-          throw new Error("데이터셋 연동 API 실패");
+        const health = await ping.json();
+        if (
+          health.individual_model_loaded === false ||
+          health.company_model_loaded === false
+        ) {
+          throw new Error("개인 또는 회사 이탈 예측 모델이 로드되지 않았습니다.");
         }
 
-        const compData = await compRes.json();
-        const dealerData = await dealerRes.json();
-
-        setCompanyRawData(compData);
-        setDealerRawData(dealerData);
+        const snapshot = await fetchLatestChurnSnapshot(activeServerUrl);
+        if (snapshot) {
+          const { dealers, companies } = mapChurnSnapshot(snapshot);
+          setDealerRawData(dealers);
+          setCompanyRawData(companies);
+          setLastCalculatedAt(
+            snapshot.calculated_at
+              ? new Date(snapshot.calculated_at).toLocaleString("ko-KR")
+              : "계산 시각 없음",
+          );
+          setChurnStatus("success");
+          setChurnMessage(
+            `Spring DB 기준 회사 ${companies.length}건, 딜러 ${dealers.length}건의 최근 결과입니다.`,
+          );
+        } else {
+          setChurnStatus("idle");
+          setChurnMessage(
+            "FastAPI 연결은 정상입니다. 아직 수신한 Spring DB 배치가 없습니다.",
+          );
+        }
         setServerStatus("online");
       } catch (e) {
         console.error("FastAPI 모델 예측 결과를 불러오지 못했습니다:", e);
         setServerStatus("offline");
         setDealerRawData([]);
         setCompanyRawData([]);
+        setChurnStatus("error");
+        setChurnMessage(e.message);
       }
     };
 
@@ -143,6 +365,72 @@ function TestPage() {
         .admin-header-actions {
           display: flex;
           gap: 10px;
+        }
+        .local-spring-auth {
+          background: #ffffff;
+          border-radius: 16px;
+          padding: 1.25rem 2rem;
+          margin-bottom: 2rem;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+        .local-spring-auth h3 {
+          margin: 0 0 0.35rem;
+          color: #1e293b;
+          font-size: 1rem;
+        }
+        .local-spring-auth p {
+          margin: 0 0 0.9rem;
+          color: #64748b;
+          font-size: 0.82rem;
+        }
+        .local-spring-auth form {
+          display: flex;
+          gap: 0.65rem;
+          flex-wrap: wrap;
+        }
+        .local-spring-auth input {
+          min-width: 210px;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          padding: 0.65rem 0.8rem;
+        }
+        .local-spring-auth-status {
+          margin-top: 0.75rem;
+          color: ${springJwt ? "#047857" : "#b45309"};
+          font-weight: 700;
+          font-size: 0.82rem;
+        }
+        .churn-calculation-actions {
+          display: flex;
+          gap: 0.65rem;
+          flex-wrap: wrap;
+          margin-top: 1rem;
+        }
+        .churn-calculation-warning {
+          margin: 0.75rem 0 0;
+          color: #b45309;
+          font-size: 0.78rem;
+        }
+        .churn-calculation-status {
+          margin-top: 0.75rem;
+          padding: 0.7rem 0.85rem;
+          border-radius: 8px;
+          background: #f1f5f9;
+          color: #475569;
+          font-size: 0.82rem;
+          font-weight: 700;
+        }
+        .churn-calculation-status.success {
+          background: #dcfce7;
+          color: #166534;
+        }
+        .churn-calculation-status.error {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+        .churn-calculation-status.loading {
+          background: #dbeafe;
+          color: #1d4ed8;
         }
         .admin-outline-btn {
           border: 1px solid #cbd5e0;
@@ -340,6 +628,76 @@ function TestPage() {
         </div>
       </header>
 
+      <section className="local-spring-auth">
+        <h3>로컬 Spring DB 연동 인증</h3>
+        <p>
+          이 인증은 Spring Boot가 DB의 회사·딜러 활동값을 집계해 FastAPI에
+          전달할 때 사용합니다. 비밀번호는 저장하지 않습니다.
+        </p>
+        <form onSubmit={loginToLocalSpring}>
+          <input
+            type="email"
+            value={adminEmail}
+            onChange={(event) => setAdminEmail(event.target.value)}
+            aria-label="관리자 이메일"
+            placeholder="관리자 이메일"
+            required
+          />
+          <input
+            type="password"
+            value={adminPassword}
+            onChange={(event) => setAdminPassword(event.target.value)}
+            aria-label="관리자 비밀번호"
+            placeholder="관리자 비밀번호"
+            required
+          />
+          <button
+            type="submit"
+            className="admin-primary-btn"
+            disabled={isSpringAuthLoading}
+          >
+            {isSpringAuthLoading ? "인증 중" : "로컬 Spring 인증"}
+          </button>
+        </form>
+        <div className="local-spring-auth-status" role="status">
+          {springAuthStatus ||
+            (springJwt
+              ? "현재 브라우저 세션에 Spring JWT가 있습니다."
+              : "DB 이탈률 계산 전에 Spring 관리자 인증이 필요합니다.")}
+        </div>
+        <div className="churn-calculation-actions">
+          <button
+            type="button"
+            className="admin-primary-btn"
+            onClick={runChurnCalculation}
+            disabled={
+              !springJwt || isChurnLoading || serverStatus !== "online"
+            }
+          >
+            {isChurnLoading ? "계산 처리 중" : "Spring DB 이탈률 계산"}
+          </button>
+          <button
+            type="button"
+            className="admin-outline-btn"
+            onClick={loadLatestChurnResults}
+            disabled={isChurnLoading || serverStatus !== "online"}
+          >
+            최근 계산 결과 불러오기
+          </button>
+        </div>
+        <p className="churn-calculation-warning">
+          계산 버튼은 Spring의 기존 관리자 배치를 실행하므로 DB 위험 점수와 등급,
+          쿠폰·배지 상태가 함께 갱신될 수 있습니다.
+        </p>
+        <div
+          className={`churn-calculation-status ${churnStatus}`}
+          role="status"
+        >
+          {churnMessage}
+          {lastCalculatedAt ? ` · 계산 시각 ${lastCalculatedAt}` : ""}
+        </div>
+      </section>
+
       {/* 2. 회사(상) 및 딜러(하) 세로 세로 스택 레이아웃 */}
       <div className="tables-vertical-stack">
         
@@ -352,7 +710,9 @@ function TestPage() {
             </div>
             <div className={`server-badge ${serverStatus}`}>
               {serverStatus === "online"
-                ? "● AI 모델 예측 완료"
+                ? companyRawData.length > 0
+                  ? `● DB 예측 ${companyRawData.length}건`
+                  : "○ DB 이탈률 계산 대기"
                 : serverStatus === "checking"
                   ? "○ AI 모델 연결 확인 중"
                   : "○ AI 모델 서버 연결 실패"}
@@ -371,6 +731,15 @@ function TestPage() {
               </tr>
             </thead>
             <tbody>
+              {displayedCompanies.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="reason-column">
+                    {isChurnLoading
+                      ? "Spring DB 회사 데이터를 계산하는 중입니다."
+                      : churnMessage}
+                  </td>
+                </tr>
+              )}
               {displayedCompanies.map((row) => {
                 const couponKey = `company-${row.id}`;
                 const isCouponSent = issuedCoupons.has(couponKey);
@@ -405,7 +774,7 @@ function TestPage() {
           </table>
 
           {/* 더보기 버튼 (테이블 아래에 노출하여 누르면 리스트 추가 연동 확장) */}
-          {!isCompanyDummyLoaded && (
+          {!isCompanyDummyLoaded && companyRawData.length > 5 && (
             <div className="load-more-container">
               <button className="load-more-btn" onClick={loadMoreCompanies}>
                 ➕ 회사 이탈 분석 더보기 (전체 데이터 불러오기)
@@ -423,7 +792,9 @@ function TestPage() {
             </div>
             <div className={`server-badge ${serverStatus}`}>
               {serverStatus === "online"
-                ? "● AI 모델 예측 완료"
+                ? dealerRawData.length > 0
+                  ? `● DB 예측 ${dealerRawData.length}건`
+                  : "○ DB 이탈률 계산 대기"
                 : serverStatus === "checking"
                   ? "○ AI 모델 연결 확인 중"
                   : "○ AI 모델 서버 연결 실패"}
@@ -442,6 +813,15 @@ function TestPage() {
               </tr>
             </thead>
             <tbody>
+              {displayedDealers.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="reason-column">
+                    {isChurnLoading
+                      ? "Spring DB 딜러 데이터를 계산하는 중입니다."
+                      : churnMessage}
+                  </td>
+                </tr>
+              )}
               {displayedDealers.map((row) => {
                 const couponKey = `dealer-${row.id}`;
                 const isCouponSent = issuedCoupons.has(couponKey);
@@ -476,7 +856,7 @@ function TestPage() {
           </table>
 
           {/* 더보기 버튼 (테이블 아래에 노출하여 누르면 리스트 추가 연동 확장) */}
-          {!isDealerDummyLoaded && (
+          {!isDealerDummyLoaded && dealerRawData.length > 5 && (
             <div className="load-more-container">
               <button className="load-more-btn" onClick={loadMoreDealers}>
                 ➕ 딜러 이탈 분석 더보기 (전체 데이터 불러오기)
@@ -485,8 +865,14 @@ function TestPage() {
           )}
         </div>
 
-        <RecomendTest activeServerUrl={activeServerUrl} />
-        <BuyerRecomendTest activeServerUrl={activeServerUrl} />
+        <RecomendTest
+          fastApiServerUrl={activeServerUrl}
+          springServerUrl={springServerUrl}
+        />
+        <BuyerRecomendTest
+          springServerUrl={springServerUrl}
+          springJwt={springJwt}
+        />
 
       </div>
     </div>

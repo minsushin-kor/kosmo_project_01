@@ -29,7 +29,7 @@ const basicFieldKeys = [
   "expectedPrice",
 ];
 
-function BuyerRecomendTest({ activeServerUrl }) {
+function BuyerRecomendTest({ springServerUrl, springJwt }) {
   const [form, setForm] = useState(initialForm);
   const [recommendations, setRecommendations] = useState([]);
   const [excludedConditions, setExcludedConditions] = useState([]);
@@ -82,6 +82,11 @@ function BuyerRecomendTest({ activeServerUrl }) {
       return;
     }
 
+    if (!springJwt) {
+      setErrorMessage("위의 로컬 Spring 관리자 인증을 먼저 완료해 주세요.");
+      return;
+    }
+
     const payload = {};
     const textFields = ["preferredMake", "preferredModel", "preferredColor"];
     const numberFields = [
@@ -118,33 +123,37 @@ function BuyerRecomendTest({ activeServerUrl }) {
 
     try {
       const response = await fetch(
-        `${activeServerUrl}/api/ai/vehicle-recommendations/buyer`,
+        `${springServerUrl}/api/ai/recommend-buyer`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${springJwt}`,
           },
           body: JSON.stringify(payload),
         },
       );
       const result = await response.json();
 
-      if (!response.ok) {
-        const detail = Array.isArray(result.detail)
-          ? result.detail.map((item) => item.msg).join(", ")
-          : result.detail;
+      if (!response.ok || result.success === false) {
+        const detail =
+          result?.error?.message || result?.message || result?.detail;
         throw new Error(detail || "차량 추천 결과를 불러오지 못했습니다.");
       }
 
+      const recommendationResult = result.data || {};
+
       setRecommendations(
-        Array.isArray(result.recommendations) ? result.recommendations : [],
-      );
-      setExcludedConditions(
-        Array.isArray(result.excluded_conditions)
-          ? result.excluded_conditions
+        Array.isArray(recommendationResult.recommendations)
+          ? recommendationResult.recommendations
           : [],
       );
-      setResultMessage(result.message || "");
+      setExcludedConditions(
+        Array.isArray(recommendationResult.excluded_conditions)
+          ? recommendationResult.excluded_conditions
+          : [],
+      );
+      setResultMessage(recommendationResult.message || result.message || "");
     } catch (error) {
       console.error("구매자 차량 추천 요청에 실패했습니다:", error);
       setErrorMessage(error.message);

@@ -7,7 +7,7 @@ const formatMmr = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value) || 0);
 
-function RecomendTest({ activeServerUrl }) {
+function RecomendTest({ fastApiServerUrl, springServerUrl }) {
   const [recommendations, setRecommendations] = useState([]);
   const [sortMode, setSortMode] = useState("condition");
   const [isExpanded, setIsExpanded] = useState(false);
@@ -22,9 +22,35 @@ function RecomendTest({ activeServerUrl }) {
       setErrorMessage("");
 
       try {
-        const response = await fetch(
-          `${activeServerUrl}/api/ai/vehicle-recommendations`,
+        const candidateResponse = await fetch(
+          `${springServerUrl}/api/cars/buyer-recommendation-candidates`,
           { signal: controller.signal },
+        );
+        const candidateResult = await candidateResponse.json();
+
+        if (!candidateResponse.ok) {
+          throw new Error(
+            candidateResult?.error?.message ||
+              candidateResult?.message ||
+              "DB 차량 목록을 불러오지 못했습니다.",
+          );
+        }
+
+        const vehicles = Array.isArray(candidateResult.data)
+          ? candidateResult.data
+          : [];
+        if (vehicles.length === 0) {
+          throw new Error("DB에 추천 가능한 딜러 차량이 없습니다.");
+        }
+
+        const response = await fetch(
+          `${fastApiServerUrl}/api/ai/vehicle-recommendations`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ vehicles }),
+            signal: controller.signal,
+          },
         );
         const result = await response.json();
 
@@ -50,7 +76,7 @@ function RecomendTest({ activeServerUrl }) {
 
     fetchRecommendations();
     return () => controller.abort();
-  }, [activeServerUrl]);
+  }, [fastApiServerUrl, springServerUrl]);
 
   const sortedRecommendations = useMemo(() => {
     return [...recommendations].sort((a, b) => {
@@ -228,7 +254,7 @@ function RecomendTest({ activeServerUrl }) {
         <div className="recommend-test-title">
           <h2>🚗 딜러 추천 차량</h2>
           <p>
-            차량 Condition과 예상 MMR을 모델로 계산한 추천 결과입니다. 현재 총
+            DB 차량의 Condition과 예상 MMR을 모델로 계산한 추천 결과입니다. 현재 총
             {` ${recommendations.length}대`}입니다.
           </p>
         </div>
