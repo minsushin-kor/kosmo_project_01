@@ -21,6 +21,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.car.app.company.CompanyChurn;
+import com.car.app.company.CompanyChurnRepository;
+import com.car.app.dealer.DealerChurn;
+import com.car.app.dealer.DealerChurnRepository;
+
 /**
  * AI 연동 및 데이터 매핑 비즈니스 로직을 수행하는 서비스 클래스입니다.
  */
@@ -37,6 +42,8 @@ public class AiService {
     private final CompanyRepository companyRepository;
     private final AuctionRepository auctionRepository;
     private final CouponService couponService;
+    private final DealerChurnRepository dealerChurnRepository;
+    private final CompanyChurnRepository companyChurnRepository;
 
     /**
      * 현재 로그인한 딜러를 위한 AI 추천 차량 목록을 상세 DTO 포맷으로 가공하여 조회합니다.
@@ -135,16 +142,51 @@ public class AiService {
         // 2. 메모리 상에서 딜러 및 상사 뱃지 요청 객체 조립 (DB 쿼리 발생 0회)
         Map<Long, AiClient.DealerBatchItem> dealerItemMap = new HashMap<>();
         List<AiClient.DealerBatchItem> dealerBatchItems = new ArrayList<>();
+        List<DealerChurn> newDealerChurns = new ArrayList<>();
 
         for (Dealer dealer : dealers) {
             AiClient.DealerBatchItem item = createDealerBatchItemInMemory(dealer, tradeMap.get(dealer.getDealerId()), bidMap.get(dealer.getDealerId()), totalAuctionsCount);
             dealerBatchItems.add(item);
             dealerItemMap.put(dealer.getDealerId(), item);
+
+            // dealer_churn 레코드가 없는 신규 딜러의 경우 활동 지표 스냅샷을 dealer_churn 테이블에 자동 생성
+            if (!dealerChurnRepository.findFirstByDealerDealerIdOrderByCalculatedAtDesc(dealer.getDealerId()).isPresent()) {
+                newDealerChurns.add(DealerChurn.builder()
+                        .dealer(dealer)
+                        .lastActivityDays((long) item.getLastActivityDays())
+                        .recent60dTradeCount((long) item.getRecent60dTradeCount())
+                        .previousTradeCount((long) item.getPreviousTradeCount())
+                        .siteUsageRate(item.getSiteUsageRate())
+                        .calculatedAt(LocalDateTime.now())
+                        .build());
+            }
+        }
+        if (!newDealerChurns.isEmpty()) {
+            dealerChurnRepository.saveAll(newDealerChurns);
         }
 
         List<AiClient.CompanyBatchItem> companyBatchItems = new ArrayList<>();
+        List<CompanyChurn> newCompanyChurns = new ArrayList<>();
+
         for (Company company : companies) {
-            companyBatchItems.add(createCompanyBatchItemInMemory(company, dealerItemMap));
+            AiClient.CompanyBatchItem item = createCompanyBatchItemInMemory(company, dealerItemMap);
+            companyBatchItems.add(item);
+
+            // company_churn 레코드가 없는 신규 상사의 경우 요약 지표 스냅샷을 company_churn 테이블에 자동 생성
+            if (!companyChurnRepository.findFirstByCompanyCompanyIdOrderByCalculatedAtDesc(company.getCompanyId()).isPresent()) {
+                newCompanyChurns.add(CompanyChurn.builder()
+                        .company(company)
+                        .dealerCount((long) item.getDealerCount())
+                        .activeDealerRatio(item.getActiveDealerRatio())
+                        .recentTradeCount((long) item.getRecentTradeCount())
+                        .previousTradeCount((long) item.getPreviousTradeCount())
+                        .siteUsageRateAvg(item.getSiteUsageRateAvg())
+                        .calculatedAt(LocalDateTime.now())
+                        .build());
+            }
+        }
+        if (!newCompanyChurns.isEmpty()) {
+            companyChurnRepository.saveAll(newCompanyChurns);
         }
 
         AiClient.BatchChurnRequest batchRequest = AiClient.BatchChurnRequest.builder()
@@ -218,6 +260,21 @@ public class AiService {
                                                                    TransactionRepository.DealerTradeSummary tradeSummary,
                                                                    BidRepository.DealerBidSummary bidSummary,
                                                                    long totalAuctionsCount) {
+        // 1. dealer_churn 테이블에 수집된 분석 지표 데이터가 존재하는지 먼저 확인
+        Optional<DealerChurn> churnOpt = dealerChurnRepository.findFirstByDealerDealerIdOrderByCalculatedAtDesc(dealer.getDealerId());
+        if (churnOpt.isPresent()) {
+            DealerChurn churn = churnOpt.get();
+            return AiClient.DealerBatchItem.builder()
+                    .dealerId(dealer.getDealerId())
+                    .lastActivityDays(churn.getLastActivityDays().intValue())
+                    .recent60dTradeCount(churn.getRecent60dTradeCount().intValue())
+                    .previousTradeCount(churn.getPreviousTradeCount().intValue())
+                    .siteUsageRate(churn.getSiteUsageRate())
+                    .avgSellingPrice(13000000.0)
+                    .build();
+        }
+
+        // 2. dealer_churn 레코드가 없는 경우 거래/입찰 테이블 실시간 집계값 사용 (Fallback)
         int recent60dTradeCount = (tradeSummary != null && tradeSummary.getRecent60dTradeCount() != null) ? tradeSummary.getRecent60dTradeCount().intValue() : 0;
         int previousTradeCount = (tradeSummary != null && tradeSummary.getPreviousTradeCount() != null) ? tradeSummary.getPreviousTradeCount().intValue() : 0;
         double avgSellingPrice = (tradeSummary != null && tradeSummary.getAvgDealPrice() != null) ? tradeSummary.getAvgDealPrice() : 13000000.0;
@@ -256,6 +313,22 @@ public class AiService {
      * DB 추가 쿼리 없이 소속 딜러들의 맵 항목으로 상사 요약 아이템을 조립합니다.
      */
     private AiClient.CompanyBatchItem createCompanyBatchItemInMemory(Company company, Map<Long, AiClient.DealerBatchItem> dealerItemMap) {
+        // 1. company_churn 테이블에 수집된 분석 지표 데이터가 존재하는지 먼저 확인
+        Optional<CompanyChurn> churnOpt = companyChurnRepository.findFirstByCompanyCompanyIdOrderByCalculatedAtDesc(company.getCompanyId());
+        if (churnOpt.isPresent()) {
+            CompanyChurn churn = churnOpt.get();
+            return AiClient.CompanyBatchItem.builder()
+                    .companyId(company.getCompanyId())
+                    .dealerCount(churn.getDealerCount().intValue())
+                    .activeDealerRatio(churn.getActiveDealerRatio())
+                    .recentTradeCount(churn.getRecentTradeCount().intValue())
+                    .previousTradeCount(churn.getPreviousTradeCount().intValue())
+                    .siteUsageRateAvg(churn.getSiteUsageRateAvg())
+                    .avgSellingPriceAvg(13000000.0)
+                    .build();
+        }
+
+        // 2. company_churn 레코드가 없는 경우 소속 딜러 맵 집계값 사용 (Fallback)
         List<Dealer> companyDealers = dealerRepository.findByCompanyCompanyId(company.getCompanyId());
         int dealerCount = companyDealers.size();
         long activeCount = companyDealers.stream()

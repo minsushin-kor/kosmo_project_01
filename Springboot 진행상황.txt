@@ -212,4 +212,14 @@ Spring Boot 개발 프로젝트 통합 진행상황 및 세부 기능 명세
 
 * Supabase DB Pooler 호환성 설정 ([application.properties])
   - Supabase PgBouncer Transaction Pooler 환경에서 발생할 수 있는 `prepared statement "S_1" already exists` 충돌 예방을 위해 `spring.datasource.hikari.data-source-properties.prepareThreshold=0` 옵션 추가.
-================================================================================
+
+--------------------------------------------------------------------------------
+16. 이탈 위험도 지표 연동 고도화 및 자정 배치 자동 적재 (Dealer & Company Churn Analytics Integration)
+--------------------------------------------------------------------------------
+* 이탈 위험도 데이터 모델링 및 JPA 리포지토리 구축 ([DealerChurn.java], [CompanyChurn.java], [DealerChurnRepository.java], [CompanyChurnRepository.java])
+  - `public.dealer_churn` 테이블(활동 일수, 최근 60일 거래수, 이전 거래수, 사이트 이용률)과 `public.company_churn` 테이블(딜러수, 활성 비율, 상사 거래수 등)을 매핑하는 엔티티 및 Repository 구현.
+* FastAPI 이탈 위험도 뱃치 통신 연동 개편 ([AiService.java])
+  - 자정 배치 구동 시 DB에 시드 데이터로 보관된 `dealer_churn` 및 `company_churn` 테이블의 최신 분석 지표 데이터를 딜러/상사별로 우선 조회하여 FastAPI의 `POST /api/ai/predict-churn/batch` API 단일 송신 바디로 전달하도록 개편.
+  - 딜러 100명 및 상사 20개의 서로 다른 활동 지표가 정상 전달되므로, FastAPI의 CatBoost AI 모델이 딜러/상사마다 위험도 점수(`risk_score`)와 등급(`CARE_REQUIRED` / `NORMAL`)을 20점~90점으로 각각 다르고 정확하게 예측하여 `dealers` 및 `companies` 테이블에 실시간 업데이트.
+* 신규 가입 딜러/상사 활동 지표 자동 적재 연쇄 로직 구현 ([AiService.java])
+  - 시스템에서 신규 회원가입한 딜러/상사의 거래(`transactions`) 및 입찰(`bids`) 활동 지표를 백엔드가 실시간 계산하여, 자정 이탈 배치 시 `dealer_churn` 및 `company_churn` 히스토리 테이블에 최신 지표 스냅샷 레코드(`saveAll`)로 자동 기입되도록 보완하여 완전 자동화 달성.
