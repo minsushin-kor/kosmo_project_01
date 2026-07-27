@@ -1,4 +1,4 @@
-﻿source_dealer_id,source_company_id,login_id,password,name,phone,profile_image_url,status,tier,risk_score,created_at,updated_at
+source_dealer_id,source_company_id,login_id,password,name,phone,profile_image_url,status,tier,risk_score,created_at,updated_at
 1000,14,demo_dealer_1000,$2a$10$26YWGxXYqYIW8EF0RJ/De.K1aOUO2cH0AiKJWiWufog0V5vRSrBvC,김민준,010-7000-1000,,ACTIVE,NORMAL,,2026-07-24T12:00:00+09:00,2026-07-24T12:00:00+09:00
 1001,10,demo_dealer_1001,$2a$10$26YWGxXYqYIW8EF0RJ/De.K1aOUO2cH0AiKJWiWufog0V5vRSrBvC,이서준,010-7000-1001,,ACTIVE,NORMAL,,2026-07-24T12:00:00+09:00,2026-07-24T12:00:00+09:00
 1002,7,demo_dealer_1002,$2a$10$26YWGxXYqYIW8EF0RJ/De.K1aOUO2cH0AiKJWiWufog0V5vRSrBvC,박도윤,010-7000-1002,,ACTIVE,NORMAL,,2026-07-24T12:00:00+09:00,2026-07-24T12:00:00+09:00

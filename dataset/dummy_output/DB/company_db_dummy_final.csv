@@ -1,4 +1,4 @@
-﻿source_company_id,business_number,name,master_email,password,address,phone,profile_image_url,membership_status,tier,risk_score,golden_badge_status,created_at,updated_at
+source_company_id,business_number,name,master_email,password,address,phone,profile_image_url,membership_status,tier,risk_score,golden_badge_status,created_at,updated_at
 1,999-81-00001,한빛오토모빌,demo_company_01@kosmo.local,$2a$10$26YWGxXYqYIW8EF0RJ/De.K1aOUO2cH0AiKJWiWufog0V5vRSrBvC,서울특별시 강남구 테헤란로 101,02-7000-0001,,true,NORMAL,,false,2026-07-24T12:00:00+09:00,2026-07-24T12:00:00+09:00
 2,999-81-00002,서울프라임모터스,demo_company_02@kosmo.local,$2a$10$26YWGxXYqYIW8EF0RJ/De.K1aOUO2cH0AiKJWiWufog0V5vRSrBvC,서울특별시 강남구 테헤란로 102,02-7000-0002,,true,NORMAL,,false,2026-07-24T12:00:00+09:00,2026-07-24T12:00:00+09:00
 3,999-81-00003,드림카갤러리,demo_company_03@kosmo.local,$2a$10$26YWGxXYqYIW8EF0RJ/De.K1aOUO2cH0AiKJWiWufog0V5vRSrBvC,서울특별시 강남구 테헤란로 103,02-7000-0003,,false,NORMAL,,false,2026-07-24T12:00:00+09:00,2026-07-24T12:00:00+09:00

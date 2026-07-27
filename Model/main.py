@@ -142,6 +142,64 @@ class CompanyFeatures(BaseModel):
     Avg_Selling_Price_Avg: float = Field(default=13000000.0, description="소속 딜러들의 평균 판매 단가")
 
 
+class DealerBatchItem(DealerFeatures):
+    dealer_id: int = Field(..., gt=0, description="딜러 고유 번호")
+    Last_Activity_Days: int = Field(..., ge=0, description="마지막 활동 경과일")
+    Recent_60d_Trade_Count: int = Field(..., ge=0, description="최근 60일 거래 건수")
+    Previous_Trade_Count: int = Field(..., ge=0, description="이전 거래 건수")
+    Site_Usage_Rate: float = Field(..., ge=0.0, le=1.0, description="사이트 이용률")
+    Avg_Selling_Price: float = Field(default=13000000.0, ge=0.0, description="평균 판매 단가")
+
+
+class CompanyBatchItem(CompanyFeatures):
+    company_id: int = Field(..., gt=0, description="회사 고유 번호")
+    Dealer_Count: int = Field(..., ge=0, description="소속 딜러 수")
+    Active_Dealer_Ratio: float = Field(..., ge=0.0, le=1.0, description="활동 딜러 비율")
+    Recent_Trade_Count: int = Field(..., ge=0, description="최근 거래 건수")
+    Previous_Trade_Count: int = Field(..., ge=0, description="이전 거래 건수")
+    Site_Usage_Rate_Avg: float = Field(..., ge=0.0, le=1.0, description="평균 사이트 이용률")
+    Avg_Selling_Price_Avg: float = Field(
+        default=13000000.0,
+        ge=0.0,
+        description="소속 딜러들의 평균 판매 단가",
+    )
+
+
+class BatchChurnRequest(BaseModel):
+    dealers: list[DealerBatchItem] = Field(default_factory=list)
+    companies: list[CompanyBatchItem] = Field(default_factory=list)
+
+
+class DealerBatchPrediction(BaseModel):
+    dealer_id: int
+    churn_probability: float
+    churn_probability_percent: float
+    active_probability: float
+    active_probability_percent: float
+    predicted_status: str
+    risk_grade: str
+    risk_reasons: list[str]
+    action: str
+
+
+class CompanyBatchPrediction(BaseModel):
+    company_id: int
+    churn_probability: float
+    churn_probability_percent: float
+    active_probability: float
+    active_probability_percent: float
+    predicted_status: str
+    risk_grade: str
+    risk_reasons: list[str]
+    action: str
+
+
+class BatchChurnResponse(BaseModel):
+    status: str
+    dealer_predictions: list[DealerBatchPrediction]
+    company_predictions: list[CompanyBatchPrediction]
+
+
 class VehicleRecommendationRequest(BaseModel):
     preferredMake: str | None = Field(
         default=None,
@@ -783,57 +841,78 @@ def score_vehicle_for_buyer(
     }
 
 
-def normalize_input(features: DealerFeatures) -> pd.DataFrame:
-    """React/Spring Boot 입력값을 모델 학습 컬럼명으로 변환"""
-    site_usage_rate = max(0.0, min(1.0, float(features.Site_Usage_Rate)))
+def build_dealer_model_input(features: DealerFeatures) -> dict:
+    """딜러 단건·일괄 예측에서 공통으로 사용하는 모델 입력 행을 생성합니다."""
+    site_usage_rate = clamp(features.Site_Usage_Rate, 0.0, 1.0)
+    recent_trade_count = float(features.Recent_60d_Trade_Count)
+    previous_trade_count = float(features.Previous_Trade_Count)
 
-    # 파생 피처 trade_drop_rate 계산 (180일 대비 60일 비례)
-    expected_60d = max(1.0, float(features.Previous_Trade_Count) / 3.0)
-    trade_drop_rate = 0.0 if features.Previous_Trade_Count == 0 else max(0.0, 1.0 - float(features.Recent_60d_Trade_Count) / expected_60d)
+    expected_60d = max(1.0, previous_trade_count / 3.0)
+    trade_drop_rate = (
+        0.0
+        if previous_trade_count == 0
+        else max(0.0, 1.0 - recent_trade_count / expected_60d)
+    )
 
-    input_dict = {
+    return {
         "last_activity_days": float(features.Last_Activity_Days),
-        "recent_60d_trade_count": float(features.Recent_60d_Trade_Count),
-        "recent_60d_trade_count_log": log1p(float(features.Recent_60d_Trade_Count)),
-        "previous_trade_count": float(features.Previous_Trade_Count),
-        "previous_trade_count_log": log1p(float(features.Previous_Trade_Count)),
+        "recent_60d_trade_count": recent_trade_count,
+        "recent_60d_trade_count_log": log1p(recent_trade_count),
+        "previous_trade_count": previous_trade_count,
+        "previous_trade_count_log": log1p(previous_trade_count),
         "trade_drop_rate": trade_drop_rate,
         "avg_selling_price": float(features.Avg_Selling_Price),
         "site_usage_rate": site_usage_rate,
     }
 
-    input_df = pd.DataFrame([input_dict])
-    input_df = input_df[MODEL_FEATURES]
 
-    return input_df
+def normalize_dealer_inputs(features_list: list[DealerFeatures]) -> pd.DataFrame:
+    """딜러 여러 명의 모델 입력을 하나의 DataFrame으로 변환합니다."""
+    input_rows = [build_dealer_model_input(features) for features in features_list]
+    return pd.DataFrame(input_rows)[MODEL_FEATURES]
 
-def normalize_company_input(features: CompanyFeatures) -> pd.DataFrame:
-    dc = max(1, features.Dealer_Count)
-    adr = clamp(features.Active_Dealer_Ratio, 0.0, 1.0)
-    rtc = max(0, features.Recent_Trade_Count)
-    ptc = max(0, features.Previous_Trade_Count)
 
-    recent_tpd = rtc / dc
-    prev_tpd = ptc / dc
-    growth = recent_tpd / (prev_tpd + 1e-5)
-    recent_tpd_log = log1p(recent_tpd)
-    prev_tpd_log = log1p(prev_tpd)
+def normalize_input(features: DealerFeatures) -> pd.DataFrame:
+    """딜러 단건 입력을 기존 모델 학습 컬럼 순서로 변환합니다."""
+    return normalize_dealer_inputs([features])
 
-    input_dict = {
-        "dealer_count": float(dc),
-        "active_dealer_ratio": float(adr),
-        "recent_trade_per_dealer": float(recent_tpd),
-        "previous_trade_per_dealer": float(prev_tpd),
-        "recent_trade_per_dealer_log": recent_tpd_log,
-        "previous_trade_per_dealer_log": prev_tpd_log,
-        "activity_growth": float(growth),
-        "activity_growth_log": recent_tpd_log - prev_tpd_log,
+
+def build_company_model_input(features: CompanyFeatures) -> dict:
+    """회사 단건·일괄 예측에서 공통으로 사용하는 모델 입력 행을 생성합니다."""
+    dealer_count = max(1, features.Dealer_Count)
+    active_dealer_ratio = clamp(features.Active_Dealer_Ratio, 0.0, 1.0)
+    recent_trade_count = max(0, features.Recent_Trade_Count)
+    previous_trade_count = max(0, features.Previous_Trade_Count)
+
+    recent_trade_per_dealer = recent_trade_count / dealer_count
+    previous_trade_per_dealer = previous_trade_count / dealer_count
+    recent_trade_per_dealer_log = log1p(recent_trade_per_dealer)
+    previous_trade_per_dealer_log = log1p(previous_trade_per_dealer)
+
+    return {
+        "dealer_count": float(dealer_count),
+        "active_dealer_ratio": float(active_dealer_ratio),
+        "recent_trade_per_dealer": float(recent_trade_per_dealer),
+        "previous_trade_per_dealer": float(previous_trade_per_dealer),
+        "recent_trade_per_dealer_log": recent_trade_per_dealer_log,
+        "previous_trade_per_dealer_log": previous_trade_per_dealer_log,
+        "activity_growth_log": (
+            recent_trade_per_dealer_log - previous_trade_per_dealer_log
+        ),
         "site_usage_rate_avg": clamp(features.Site_Usage_Rate_Avg, 0.0, 1.0),
         "avg_selling_price_avg": float(features.Avg_Selling_Price_Avg),
     }
 
-    input_df = pd.DataFrame([input_dict])
-    return input_df[COMPANY_MODEL_FEATURES]
+
+def normalize_company_inputs(features_list: list[CompanyFeatures]) -> pd.DataFrame:
+    """회사 여러 곳의 모델 입력을 하나의 DataFrame으로 변환합니다."""
+    input_rows = [build_company_model_input(features) for features in features_list]
+    return pd.DataFrame(input_rows)[COMPANY_MODEL_FEATURES]
+
+
+def normalize_company_input(features: CompanyFeatures) -> pd.DataFrame:
+    """회사 단건 입력을 기존 모델 학습 컬럼 순서로 변환합니다."""
+    return normalize_company_inputs([features])
 
 def get_probability_columns(model, input_df: pd.DataFrame) -> tuple:
     """여러 입력 행의 Active/Inactive 확률을 한 번에 반환"""
@@ -997,6 +1076,187 @@ def predict_company(features: CompanyFeatures):
             detail=f"예측 도중 에러 발생: {str(e)}",
         )
 
+@app.post(
+    "/api/ai/predict-churn/batch",
+    response_model=BatchChurnResponse,
+)
+def predict_churn_batch(request: BatchChurnRequest):
+    """Spring Boot가 전달한 딜러·회사 활동 데이터를 모델별 한 번에 예측합니다."""
+    if not request.dealers and not request.companies:
+        raise HTTPException(
+            status_code=400,
+            detail="예측할 딜러 또는 회사 데이터가 한 건 이상 필요합니다.",
+        )
+
+    dealer_ids = [item.dealer_id for item in request.dealers]
+    company_ids = [item.company_id for item in request.companies]
+
+    if len(dealer_ids) != len(set(dealer_ids)):
+        raise HTTPException(
+            status_code=400,
+            detail="중복된 dealer_id가 포함되어 있습니다.",
+        )
+    if len(company_ids) != len(set(company_ids)):
+        raise HTTPException(
+            status_code=400,
+            detail="중복된 company_id가 포함되어 있습니다.",
+        )
+
+    if request.dealers and model_individual is None:
+        raise HTTPException(
+            status_code=503,
+            detail="개인 딜러 예측 모델을 불러오지 못했습니다.",
+        )
+    if request.companies and model_company is None:
+        raise HTTPException(
+            status_code=503,
+            detail="회사 예측 모델을 불러오지 못했습니다.",
+        )
+
+    try:
+        dealer_predictions = []
+        if request.dealers:
+            dealer_input_df = normalize_dealer_inputs(request.dealers)
+            dealer_active_probs, dealer_churn_probs = get_probability_columns(
+                model_individual,
+                dealer_input_df,
+            )
+
+            for item, active_prob, churn_prob in zip(
+                request.dealers,
+                dealer_active_probs,
+                dealer_churn_probs,
+            ):
+                active_probability = float(active_prob)
+                churn_probability = float(churn_prob)
+                risk_grade = get_risk_grade(churn_probability)
+                average_price = (
+                    float(item.Avg_Selling_Price)
+                    if item.Avg_Selling_Price > 0
+                    else None
+                )
+                risk_reasons = build_dealer_risk_reasons(
+                    last_activity_days=item.Last_Activity_Days,
+                    recent_trade_count=item.Recent_60d_Trade_Count,
+                    previous_trade_count=item.Previous_Trade_Count,
+                    site_usage_rate=item.Site_Usage_Rate,
+                    avg_selling_price=average_price,
+                )
+                action = (
+                    "수수료 50% 쿠폰발송"
+                    if risk_grade in {"Critical", "High"}
+                    else "모니터링"
+                )
+
+                dealer_predictions.append({
+                    "dealer_id": item.dealer_id,
+                    "churn_probability": round(churn_probability, 4),
+                    "churn_probability_percent": round(
+                        churn_probability * 100,
+                        2,
+                    ),
+                    "active_probability": round(active_probability, 4),
+                    "active_probability_percent": round(
+                        active_probability * 100,
+                        2,
+                    ),
+                    "predicted_status": (
+                        "Inactive"
+                        if churn_probability > active_probability
+                        else "Active"
+                    ),
+                    "risk_grade": risk_grade,
+                    "risk_reasons": risk_reasons,
+                    "action": action,
+                })
+
+            dealer_predictions.sort(
+                key=lambda prediction: prediction["churn_probability"],
+                reverse=True,
+            )
+
+        company_predictions = []
+        if request.companies:
+            company_input_df = normalize_company_inputs(request.companies)
+            company_active_probs, company_churn_probs = get_probability_columns(
+                model_company,
+                company_input_df,
+            )
+
+            for item, active_prob, churn_prob in zip(
+                request.companies,
+                company_active_probs,
+                company_churn_probs,
+            ):
+                active_probability = float(active_prob)
+                churn_probability = float(churn_prob)
+                dealer_count = max(1, item.Dealer_Count)
+                recent_trade_per_dealer = (
+                    item.Recent_Trade_Count / dealer_count
+                )
+                previous_trade_per_dealer = (
+                    item.Previous_Trade_Count / dealer_count
+                )
+                risk_reasons = build_company_risk_reasons(
+                    active_dealer_ratio=item.Active_Dealer_Ratio,
+                    site_usage_rate_avg=item.Site_Usage_Rate_Avg,
+                    recent_trade_count=item.Recent_Trade_Count,
+                    recent_trade_per_dealer=recent_trade_per_dealer,
+                    previous_trade_per_dealer=previous_trade_per_dealer,
+                )
+                action = (
+                    "멤버십 30% 쿠폰발송"
+                    if churn_probability >= 0.80
+                    else "모니터링"
+                )
+
+                company_predictions.append({
+                    "company_id": item.company_id,
+                    "churn_probability": round(churn_probability, 4),
+                    "churn_probability_percent": round(
+                        churn_probability * 100,
+                        2,
+                    ),
+                    "active_probability": round(active_probability, 4),
+                    "active_probability_percent": round(
+                        active_probability * 100,
+                        2,
+                    ),
+                    "predicted_status": (
+                        "Inactive"
+                        if churn_probability > active_probability
+                        else "Active"
+                    ),
+                    "risk_grade": get_risk_grade(churn_probability),
+                    "risk_reasons": risk_reasons,
+                    "action": action,
+                })
+
+            company_predictions.sort(
+                key=lambda prediction: prediction["churn_probability"],
+                reverse=True,
+            )
+
+        print(
+            "[Batch Prediction] "
+            f"dealers={len(dealer_predictions)}, "
+            f"companies={len(company_predictions)}"
+        )
+
+        return {
+            "status": "success",
+            "dealer_predictions": dealer_predictions,
+            "company_predictions": company_predictions,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"일괄 예측 도중 에러 발생: {str(e)}",
+        )
+
+
 @app.get("/api/ai/churn/dealers")
 def get_churn_dealers():
     return get_churn_dealers_dummy()
@@ -1109,7 +1369,6 @@ def get_churn_companies_dummy():
             "previous_trade_per_dealer": prev_tpd,
             "recent_trade_per_dealer_log": float(row["recent_trade_per_dealer_log"]),
             "previous_trade_per_dealer_log": float(row["previous_trade_per_dealer_log"]),
-            "activity_growth": recent_tpd / (prev_tpd + 1e-5),
             "activity_growth_log": float(row["activity_growth_log"]),
             "site_usage_rate_avg": float(row["site_usage_rate_avg"]),
         })
