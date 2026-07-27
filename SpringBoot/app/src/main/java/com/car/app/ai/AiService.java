@@ -61,10 +61,46 @@ public class AiService {
             recommendedCars = carRepository.findTop5ByOrderByCreatedAtDesc();
         }
 
-        // 4. 조회된 차량 리스트를 CarDto.Response 포맷으로 매핑하여 반환합니다.
+        // 4. DTO로 변환하여 응답합니다.
         return recommendedCars.stream()
                 .map(this::mapToCarResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 일반 구매자 추천 조건을 받아 DB에서 판매 가능한 딜러 차량 전체를 조회한 후,
+     * preferences와 vehicles 후보 목록을 조립하여 FastAPI에 전달하고 추천 연산 결과를 반환합니다.
+     */
+    @Transactional(readOnly = true)
+    public Object recommendVehiclesForBuyer(Object preferences) {
+        // 1. DB에서 조건에 부합하는 딜러 판매 매물 전체 목록 조회 (dealer_id 존재, member_id 없음, status == 'REGISTERED')
+        List<Car> candidateCars = carRepository.findByDealerIsNotNullAndMemberIsNullAndStatusOrderByCreatedAtDesc("REGISTERED");
+
+        // 2. FastAPI 전달용 VehicleItem 목록으로 변환
+        List<AiClient.VehicleItem> vehicleItems = candidateCars.stream()
+                .map(car -> AiClient.VehicleItem.builder()
+                        .carId(car.getCarId())
+                        .year(car.getYear())
+                        .make(car.getMake())
+                        .model(car.getModel())
+                        .odometer(car.getOdometer())
+                        .option(car.getOption())
+                        .color(car.getColor())
+                        .sellingPrice(car.getSellingPrice())
+                        .state(car.getState())
+                        .status(car.getStatus())
+                        .ownerType(car.getOwnerType())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 3. FastAPI 요청 객체 조립
+        AiClient.BuyerRecommendApiRequest apiRequest = AiClient.BuyerRecommendApiRequest.builder()
+                .preferences(preferences)
+                .vehicles(vehicleItems)
+                .build();
+
+        // 4. FastAPI 호출 및 결과 전달
+        return aiClient.recommendVehiclesForBuyer(apiRequest);
     }
 
     /**
@@ -273,16 +309,22 @@ public class AiService {
         String ownerType = null;
         Long ownerId = null;
         String ownerName = null;
+        String saleType = null;
+        String sellerType = null;
         Boolean goldenBadgeStatus = false;
 
         if (car.getMember() != null) {
             ownerType = "MEMBER";
             ownerId = car.getMember().getMemberId();
             ownerName = car.getMember().getName();
+            saleType = "AUCTION";
+            sellerType = "일반회원";
         } else if (car.getDealer() != null) {
             ownerType = "DEALER";
             ownerId = car.getDealer().getDealerId();
             ownerName = car.getDealer().getName();
+            saleType = "NORMAL";
+            sellerType = "회사딜러";
             if (car.getDealer().getCompany() != null) {
                 goldenBadgeStatus = Boolean.TRUE.equals(car.getDealer().getCompany().getGoldenBadgeStatus());
             }
@@ -302,10 +344,14 @@ public class AiService {
                 .color(car.getColor())
                 .interior(car.getInterior())
                 .sellingPrice(car.getSellingPrice())
+                .mmr(car.getMmr())
                 .status(car.getStatus())
+                .createdAt(car.getCreatedAt())
                 .ownerType(ownerType)
                 .ownerId(ownerId)
                 .ownerName(ownerName)
+                .saleType(saleType)
+                .sellerType(sellerType)
                 .images(imageDtos)
                 .goldenBadgeStatus(goldenBadgeStatus)
                 .build();

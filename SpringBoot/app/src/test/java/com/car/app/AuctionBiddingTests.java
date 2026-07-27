@@ -34,7 +34,6 @@ class AuctionBiddingTests {
     @Autowired private CompanyRepository companyRepository;
     @Autowired private DealerRepository dealerRepository;
     @Autowired private AuctionRepository auctionRepository;
-    @Autowired private BidRepository bidRepository;
     @Autowired private com.car.app.transaction.TransactionRepository transactionRepository;
     @Autowired private com.car.app.car.CarRepository carRepository;
 

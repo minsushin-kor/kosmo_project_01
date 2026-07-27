@@ -195,4 +195,52 @@ public class AiClient {
             return null;
         }
     }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VehicleItem {
+        private Long carId;
+        private Integer year;
+        private String make;
+        private String model;
+        private Double odometer;
+        private String option;
+        private String color;
+        private Long sellingPrice;
+        private String state;
+        private String status;
+        private String ownerType;
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BuyerRecommendApiRequest {
+        private Object preferences;
+        private List<VehicleItem> vehicles;
+    }
+
+    /**
+     * FastAPI 서버로 구매자 선호 조건(preferences)과 DB 차량 목록(vehicles)을 전송하여 AI 추천 결과를 수신합니다.
+     */
+    public Object recommendVehiclesForBuyer(BuyerRecommendApiRequest request) {
+        try {
+            String url = UriComponentsBuilder.fromUriString(baseUrl)
+                    .path("/api/ai/vehicle-recommendations/buyer")
+                    .build()
+                    .toUriString();
+
+            log.info("FastAPI 서버로 일반 구매자 AI 차량 추천 요청 송신: {} (차량 후보 수: {}대)", url,
+                    request.getVehicles() != null ? request.getVehicles().size() : 0);
+            return restTemplate.postForObject(url, request, Object.class);
+        } catch (Exception e) {
+            log.error("FastAPI 서버로 일반 구매자 AI 차량 추천 요청 실패: {}", e.getMessage());
+            return null;
+        }
+    }
 }

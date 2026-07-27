@@ -58,11 +58,20 @@ public class CarDto {
         private Double odometer;
         private String color;
         private String interior;
+        private Double mmr;
         private Long sellingPrice;
         private String status;
+        private LocalDateTime createdAt;
         private String ownerType;
         private Long ownerId;
         private String ownerName;
+        private String saleType;
+        private String sellerType;
+        private Long auctionId;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
+        private String auctionStatus;
+        private Long bidCount;
         private List<ImageDto> images;
         private Boolean goldenBadgeStatus;
     }

@@ -9,4 +9,5 @@ public interface CarRepository extends JpaRepository<Car, Long>, JpaSpecificatio
     List<Car> findByMemberMemberId(Long memberId);
     List<Car> findByDealerDealerId(Long dealerId);
     List<Car> findTop5ByOrderByCreatedAtDesc();
+    List<Car> findByDealerIsNotNullAndMemberIsNullAndStatusOrderByCreatedAtDesc(String status);
 }

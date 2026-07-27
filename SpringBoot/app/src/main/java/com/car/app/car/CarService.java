@@ -27,6 +27,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import com.car.app.auction.BidRepository;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 /**
  * 중고차 매물 등록 및 다중 이미지 업로드를 관장하는 서비스 클래스입니다.
  */
@@ -39,6 +43,7 @@ public class CarService {
     private final MemberRepository memberRepository;
     private final DealerRepository dealerRepository;
     private final AuctionRepository auctionRepository;
+    private final BidRepository bidRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
 
@@ -261,5 +266,105 @@ public class CarService {
         notificationService.sendNotification("DEALER", car.getDealer().getDealerId(), "CAR_SOLD", dealerMsg, car.getCarId());
 
         return transactionRepository.save(transaction);
+    }
+
+    /**
+     * 일반 구매자 AI 추천 대상 전체 딜러 차량 목록을 한 번에 조회합니다.
+     * (dealer != null, member == null, status == 'REGISTERED')
+     */
+    @Transactional(readOnly = true)
+    public List<CarDto.Response> getBuyerRecommendationCandidates() {
+        List<Car> cars = carRepository.findByDealerIsNotNullAndMemberIsNullAndStatusOrderByCreatedAtDesc("REGISTERED");
+        return cars.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Car 엔티티를 CarDto.Response 포맷으로 매핑하며, 일반회원 차량의 경우 auctions 테이블을 조인하여 경매 정보(auctionId, startTime, endTime, auctionStatus, bidCount)를 함께 반환합니다.
+     */
+    public CarDto.Response mapToResponse(Car car) {
+        Object owner = car.getOwner();
+        Long ownerId = null;
+        String ownerName = null;
+        String saleType = null;
+        String sellerType = null;
+
+        if (owner instanceof Member) {
+            ownerId = ((Member) owner).getMemberId();
+            ownerName = ((Member) owner).getName();
+            saleType = "AUCTION";
+            sellerType = "일반회원";
+        } else if (owner instanceof Dealer) {
+            ownerId = ((Dealer) owner).getDealerId();
+            ownerName = ((Dealer) owner).getName();
+            saleType = "NORMAL";
+            sellerType = "회사딜러";
+        }
+
+        List<CarDto.ImageDto> imageDtos = new ArrayList<>();
+        if (car.getImages() != null) {
+            imageDtos = car.getImages().stream()
+                    .map(img -> CarDto.ImageDto.builder()
+                            .imageUrl(img.getImageUrl())
+                            .isMain(img.getIsMain())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        boolean goldenBadgeStatus = false;
+        if (car.getDealer() != null && car.getDealer().getCompany() != null) {
+            goldenBadgeStatus = Boolean.TRUE.equals(car.getDealer().getCompany().getGoldenBadgeStatus());
+        }
+
+        // 일반회원 차량일 경우 auctions 테이블을 함께 조회하여 경매 정보 포함
+        Long auctionId = null;
+        LocalDateTime startTime = null;
+        LocalDateTime endTime = null;
+        String auctionStatus = null;
+        Long bidCount = null;
+
+        if (car.getMember() != null) {
+            Optional<Auction> auctionOpt = auctionRepository.findByCarCarId(car.getCarId());
+            if (auctionOpt.isPresent()) {
+                Auction auction = auctionOpt.get();
+                auctionId = auction.getAuctionId();
+                startTime = auction.getStartTime();
+                endTime = auction.getEndTime();
+                auctionStatus = auction.getStatus();
+                bidCount = (long) bidRepository.findByAuctionAuctionId(auction.getAuctionId()).size();
+            }
+        }
+
+        return CarDto.Response.builder()
+                .carId(car.getCarId())
+                .year(car.getYear())
+                .make(car.getMake())
+                .model(car.getModel())
+                .option(car.getOption())
+                .body(car.getBody())
+                .transmission(car.getTransmission())
+                .state(car.getState())
+                .condition(car.getCondition())
+                .odometer(car.getOdometer())
+                .color(car.getColor())
+                .interior(car.getInterior())
+                .sellingPrice(car.getSellingPrice())
+                .mmr(car.getMmr())
+                .status(car.getStatus())
+                .createdAt(car.getCreatedAt())
+                .ownerType(car.getOwnerType())
+                .ownerId(ownerId)
+                .ownerName(ownerName)
+                .saleType(saleType)
+                .sellerType(sellerType)
+                .auctionId(auctionId)
+                .startTime(startTime)
+                .endTime(endTime)
+                .auctionStatus(auctionStatus)
+                .bidCount(bidCount)
+                .images(imageDtos)
+                .goldenBadgeStatus(goldenBadgeStatus)
+                .build();
     }
 }
