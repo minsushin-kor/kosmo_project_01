@@ -1,4 +1,8 @@
-export const AUTH_STORAGE_KEY = "car_front_auth_user";
+export const AUTH_STORAGE_KEY =
+  "car_front_auth_user";
+
+export const AUTH_TOKEN_STORAGE_KEY =
+  "car_front_access_token";
 
 export const AUTH_ROLES = {
   ADMIN: "ADMIN",
@@ -17,7 +21,7 @@ export const ROLE_NAME_MAP = {
 export const ROLE_HOME_PATH_MAP = {
   ADMIN: "/admin",
   COMPANY: "/company/mypage",
-  DEALER: "/",
+  DEALER: "/dealer",
   MEMBER: "/",
 };
 
@@ -97,21 +101,21 @@ export function createTempUser(role) {
 
     ownedCars: isMember
       ? [
-          {
-            id: 1,
-            brand: "현대",
-            modelName: "아반떼 CN7",
-            carName: "현대 아반떼 CN7",
-            year: 2021,
-            mileage: 42000,
-            carNumber: "123가 4567",
-            fuel: "가솔린",
-            transmission: "자동",
-            color: "화이트",
-            imageUrl:
-              "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=80",
-          },
-        ]
+        {
+          id: 1,
+          brand: "현대",
+          modelName: "아반떼 CN7",
+          carName: "현대 아반떼 CN7",
+          year: 2021,
+          mileage: 42000,
+          carNumber: "123가 4567",
+          fuel: "가솔린",
+          transmission: "자동",
+          color: "화이트",
+          imageUrl:
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=80",
+        },
+      ]
       : [],
   };
 }
@@ -153,11 +157,89 @@ export function setAuthUser(user) {
 }
 
 export function removeAuthUser() {
+  clearAuth();
+}
+
+export function getAuthToken() {
+  return localStorage.getItem(
+    AUTH_TOKEN_STORAGE_KEY
+  );
+}
+
+export function setAuthToken(token) {
+  if (!token) {
+    localStorage.removeItem(
+      AUTH_TOKEN_STORAGE_KEY
+    );
+
+    return;
+  }
+
+  localStorage.setItem(
+    AUTH_TOKEN_STORAGE_KEY,
+    token
+  );
+}
+
+export function removeAuthToken() {
+  localStorage.removeItem(
+    AUTH_TOKEN_STORAGE_KEY
+  );
+}
+
+export function clearAuth() {
   localStorage.removeItem(
     AUTH_STORAGE_KEY
+  );
+
+  localStorage.removeItem(
+    AUTH_TOKEN_STORAGE_KEY
   );
 
   window.dispatchEvent(
     new Event("auth-change")
   );
+}
+export function createAuthUserFromProfile({
+  loginResult,
+  profileResponse,
+  loginId,
+}) {
+  const profile =
+    profileResponse?.profile || {};
+
+  return {
+    isLogin: true,
+
+    loginId,
+
+    name:
+      profile.name ||
+      loginResult.name ||
+      loginId,
+
+    role:
+      loginResult.role,
+
+    serverRole:
+      loginResult.serverRole,
+
+    email:
+      profile.email || "",
+
+    phone:
+      profile.phone || "",
+
+    profileImageUrl:
+      profile.profileImageUrl || "",
+
+    companyName:
+      profile.companyName || "",
+
+    dealerName:
+      profile.dealerName || "",
+
+    businessNumber:
+      profile.businessNumber || "",
+  };
 }

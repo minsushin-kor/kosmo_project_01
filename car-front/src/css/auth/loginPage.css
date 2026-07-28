@@ -158,3 +158,25 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.login-error-message {
+  margin: 0;
+  padding: 12px 14px;
+
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+
+  background-color: #fef2f2;
+  color: #b91c1c;
+
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.login-submit-btn:disabled,
+.login-type-group button:disabled,
+.login-form input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
