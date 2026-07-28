@@ -17,6 +17,9 @@ from datetime import datetime, timezone
 
 app = FastAPI(title="중고차 플랫폼 개인 딜러 이탈 예측 시스템")
 
+API_CONTRACT_VERSION = "1.0"
+UNAVAILABLE_MODEL_VERSION = "unavailable"
+
 # React / Spring Boot 연동용 CORS 설정
 app.add_middleware(
     CORSMiddleware,
@@ -40,12 +43,29 @@ MODEL_PATH = BASE_DIR / "dealer_churn_service_model.pkl"
 
 COMPANY_MODEL_PATH = BASE_DIR / "company_churn_service_model.pkl"
 
+
+def build_model_version(model_path: Path, model_bundle: dict) -> str:
+    """응답에서 모델 산출물을 식별할 수 있는 안정적인 버전 문자열을 만듭니다."""
+    model_name = (
+        model_bundle.get("selected_model")
+        or model_bundle.get("model_type")
+        or "model"
+    )
+    trained_at = model_bundle.get("trained_at_utc")
+    version = f"{model_path.stem}:{model_name}"
+    return f"{version}:{trained_at}" if trained_at else version
+
 model_company = None
 COMPANY_MODEL_FEATURES = []
+COMPANY_CHURN_MODEL_VERSION = UNAVAILABLE_MODEL_VERSION
 try:
     model_company_dict = joblib.load(COMPANY_MODEL_PATH)
     model_company = model_company_dict["model"]
     COMPANY_MODEL_FEATURES = model_company_dict["feature_columns"]
+    COMPANY_CHURN_MODEL_VERSION = build_model_version(
+        COMPANY_MODEL_PATH,
+        model_company_dict,
+    )
     print(f"[Company Model] Loaded successfully from dict: {COMPANY_MODEL_PATH}")
     print(f"[Company Features] {COMPANY_MODEL_FEATURES}")
 except Exception as e:
@@ -54,11 +74,16 @@ except Exception as e:
 
 model_individual = None
 MODEL_FEATURES = []
+DEALER_CHURN_MODEL_VERSION = UNAVAILABLE_MODEL_VERSION
 
 try:
     model_individual_dict = joblib.load(MODEL_PATH)
     model_individual = model_individual_dict["model"]
     MODEL_FEATURES = model_individual_dict["feature_columns"]
+    DEALER_CHURN_MODEL_VERSION = build_model_version(
+        MODEL_PATH,
+        model_individual_dict,
+    )
     print(f"[Model Load] Individual model loaded successfully from dict: {MODEL_PATH}")
     print(f"[Individual Features] {MODEL_FEATURES}")
 except Exception as e:
@@ -83,6 +108,8 @@ model_vehicle_condition = None
 model_vehicle_mmr = None
 VEHICLE_CONDITION_FEATURES = []
 VEHICLE_MMR_FEATURES = []
+VEHICLE_CONDITION_MODEL_VERSION = UNAVAILABLE_MODEL_VERSION
+VEHICLE_MMR_MODEL_VERSION = UNAVAILABLE_MODEL_VERSION
 VEHICLE_CONDITION_MIN = 1.0
 VEHICLE_CONDITION_MAX = 5.0
 VEHICLE_MMR_MIN = 0.0
@@ -93,6 +120,10 @@ try:
     vehicle_condition_bundle = joblib.load(VEHICLE_CONDITION_MODEL_PATH)
     model_vehicle_condition = vehicle_condition_bundle["model"]
     VEHICLE_CONDITION_FEATURES = vehicle_condition_bundle["features"]
+    VEHICLE_CONDITION_MODEL_VERSION = build_model_version(
+        VEHICLE_CONDITION_MODEL_PATH,
+        vehicle_condition_bundle,
+    )
     VEHICLE_CONDITION_MIN = float(
         vehicle_condition_bundle.get("prediction_min", 1.0)
     )
@@ -112,6 +143,10 @@ try:
     vehicle_mmr_bundle = joblib.load(VEHICLE_MMR_MODEL_PATH)
     model_vehicle_mmr = vehicle_mmr_bundle["model"]
     VEHICLE_MMR_FEATURES = vehicle_mmr_bundle["features"]
+    VEHICLE_MMR_MODEL_VERSION = build_model_version(
+        VEHICLE_MMR_MODEL_PATH,
+        vehicle_mmr_bundle,
+    )
     VEHICLE_MMR_MIN = float(vehicle_mmr_bundle.get("prediction_min", 0.0))
     print(
         "[Vehicle MMR Model] Loaded successfully from dict: "
@@ -196,8 +231,19 @@ class CompanyBatchPrediction(BaseModel):
     action: str
 
 
+class ChurnModelVersions(BaseModel):
+    dealer: str
+    company: str
+
+
 class BatchChurnResponse(BaseModel):
     status: str
+    source: str
+    api_contract_version: str
+    calculated_at: datetime
+    dealer_count: int
+    company_count: int
+    model_versions: ChurnModelVersions
     dealer_predictions: list[DealerBatchPrediction]
     company_predictions: list[CompanyBatchPrediction]
 
@@ -287,6 +333,85 @@ class VehiclePredictionBatchRequest(BaseModel):
     """DB 차량 전체의 Condition과 MMR 일괄 예측 요청입니다."""
 
     vehicles: list[BuyerRecommendationVehicle] = Field(default_factory=list)
+
+
+class VehicleModelVersions(BaseModel):
+    condition: str
+    mmr: str
+
+
+class VehiclePredictionResult(BaseModel):
+    carId: int
+    vehicle_id: str
+    year: int
+    make: str
+    model: str
+    odometer: int
+    color: str | None
+    option: list[str]
+    sellingPrice: int | None
+    state: str | None
+    status: str | None
+    ownerType: str | None
+    predicted_condition: float
+    predicted_mmr: float
+
+
+class VehiclePredictionBatchResponse(BaseModel):
+    status: str
+    source: str
+    api_contract_version: str
+    calculated_at: datetime
+    model_versions: VehicleModelVersions
+    source_vehicle_count: int
+    skipped_vehicle_count: int
+    count: int
+    recommendations: list[VehiclePredictionResult]
+
+
+class DemoVehiclePredictionResult(VehiclePredictionResult):
+    carId: str
+
+
+class DemoVehiclePredictionBatchResponse(VehiclePredictionBatchResponse):
+    recommendations: list[DemoVehiclePredictionResult]
+
+
+class RecommendationScoreBreakdown(BaseModel):
+    condition: str
+    weight: float
+    match_ratio: float
+    earned_score: float
+
+
+class ExcludedRecommendationCondition(BaseModel):
+    condition: str
+    reason: str
+
+
+class BuyerVehiclePredictionResult(VehiclePredictionResult):
+    match_score: float
+    matched_condition_count: int
+    score_breakdown: list[RecommendationScoreBreakdown]
+    recommendation_reasons: list[str]
+
+
+class BuyerVehicleRecommendationResponse(BaseModel):
+    status: str
+    source: str
+    api_contract_version: str
+    calculated_at: datetime
+    model_versions: VehicleModelVersions
+    message: str
+    input_basic_condition_count: int
+    input_optional_condition_count: int
+    excluded_conditions: list[ExcludedRecommendationCondition]
+    input_vehicle_count: int
+    source_vehicle_count: int
+    skipped_vehicle_count: int
+    candidate_count: int
+    count: int
+    recommendations: list[BuyerVehiclePredictionResult]
 
 
 # ============================================================
@@ -531,6 +656,75 @@ def parse_vehicle_options(options) -> list[str]:
     return []
 
 
+def get_vehicle_model_versions() -> dict[str, str]:
+    return {
+        "condition": VEHICLE_CONDITION_MODEL_VERSION,
+        "mmr": VEHICLE_MMR_MODEL_VERSION,
+    }
+
+
+def ensure_unique_vehicle_ids(
+    vehicles: list[BuyerRecommendationVehicle],
+) -> None:
+    """Spring DB의 차량 결과를 안전하게 되돌려 주기 위해 ID 중복을 거부합니다."""
+    seen_ids = set()
+    duplicate_ids = set()
+    for vehicle in vehicles:
+        if vehicle.carId in seen_ids:
+            duplicate_ids.add(vehicle.carId)
+        seen_ids.add(vehicle.carId)
+
+    if duplicate_ids:
+        duplicate_text = ", ".join(str(value) for value in sorted(duplicate_ids))
+        raise HTTPException(
+            status_code=400,
+            detail=f"중복된 carId가 포함되어 있습니다: {duplicate_text}",
+        )
+
+
+def validate_numeric_predictions(
+    values,
+    expected_count: int,
+    prediction_name: str,
+) -> np.ndarray:
+    """모델 출력 개수와 NaN/무한대 여부를 API 응답 전에 검증합니다."""
+    predictions = np.asarray(values, dtype=float).reshape(-1)
+    if predictions.size != expected_count:
+        raise ValueError(
+            f"{prediction_name} 모델 출력 개수가 요청 차량 수와 다릅니다: "
+            f"expected={expected_count}, actual={predictions.size}"
+        )
+    if not np.all(np.isfinite(predictions)):
+        raise ValueError(f"{prediction_name} 모델 출력에 NaN 또는 무한대가 있습니다.")
+    return predictions
+
+
+def validate_probability_predictions(
+    active_probabilities,
+    churn_probabilities,
+    expected_count: int,
+    prediction_name: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    active_values = validate_numeric_predictions(
+        active_probabilities,
+        expected_count,
+        f"{prediction_name} active_probability",
+    )
+    churn_values = validate_numeric_predictions(
+        churn_probabilities,
+        expected_count,
+        f"{prediction_name} churn_probability",
+    )
+    if (
+        np.any(active_values < 0.0)
+        or np.any(active_values > 1.0)
+        or np.any(churn_values < 0.0)
+        or np.any(churn_values > 1.0)
+    ):
+        raise ValueError(f"{prediction_name} 확률이 0~1 범위를 벗어났습니다.")
+    return active_values, churn_values
+
+
 def build_vehicle_prediction_catalog(vehicles: list[dict]) -> list[dict]:
     """전달받은 차량 전체의 Condition과 MMR을 모델별 한 번에 예측합니다."""
     if model_vehicle_condition is None or model_vehicle_mmr is None:
@@ -564,9 +758,10 @@ def build_vehicle_prediction_catalog(vehicles: list[dict]) -> list[dict]:
         VEHICLE_CONDITION_FEATURES
     ]
 
-    predicted_conditions = np.asarray(
+    predicted_conditions = validate_numeric_predictions(
         model_vehicle_condition.predict(condition_input_df),
-        dtype=float,
+        len(vehicles),
+        "Condition",
     )
     predicted_conditions = np.clip(
         predicted_conditions,
@@ -578,9 +773,10 @@ def build_vehicle_prediction_catalog(vehicles: list[dict]) -> list[dict]:
     mmr_input_df["condition"] = predicted_conditions
     mmr_input_df = mmr_input_df[VEHICLE_MMR_FEATURES]
 
-    predicted_mmrs = np.asarray(
+    predicted_mmrs = validate_numeric_predictions(
         model_vehicle_mmr.predict(mmr_input_df),
-        dtype=float,
+        len(vehicles),
+        "MMR",
     )
     predicted_mmrs = np.maximum(predicted_mmrs, VEHICLE_MMR_MIN)
 
@@ -1017,12 +1213,21 @@ def get_probability(model, input_df: pd.DataFrame) -> tuple[int, float, float]:
 def health_check():
     return {
         "status": "running",
+        "api_contract_version": API_CONTRACT_VERSION,
         "model_loaded": model_individual is not None,
         "individual_model_loaded": model_individual is not None,
         "company_model_loaded": model_company is not None,
+        "vehicle_condition_model_loaded": model_vehicle_condition is not None,
+        "vehicle_mmr_model_loaded": model_vehicle_mmr is not None,
         "latest_churn_batch_available": latest_churn_batch_snapshot is not None,
         "model_path": str(MODEL_PATH),
         "model_features": MODEL_FEATURES,
+        "model_versions": {
+            "dealer_churn": DEALER_CHURN_MODEL_VERSION,
+            "company_churn": COMPANY_CHURN_MODEL_VERSION,
+            "vehicle_condition": VEHICLE_CONDITION_MODEL_VERSION,
+            "vehicle_mmr": VEHICLE_MMR_MODEL_VERSION,
+        },
     }
 
 
@@ -1184,6 +1389,14 @@ def predict_churn_batch(request: BatchChurnRequest):
                 model_individual,
                 dealer_input_df,
             )
+            dealer_active_probs, dealer_churn_probs = (
+                validate_probability_predictions(
+                    dealer_active_probs,
+                    dealer_churn_probs,
+                    len(request.dealers),
+                    "딜러 이탈",
+                )
+            )
 
             for item, active_prob, churn_prob in zip(
                 request.dealers,
@@ -1244,6 +1457,14 @@ def predict_churn_batch(request: BatchChurnRequest):
             company_active_probs, company_churn_probs = get_probability_columns(
                 model_company,
                 company_input_df,
+            )
+            company_active_probs, company_churn_probs = (
+                validate_probability_predictions(
+                    company_active_probs,
+                    company_churn_probs,
+                    len(request.companies),
+                    "상사 이탈",
+                )
             )
 
             for item, active_prob, churn_prob in zip(
@@ -1306,8 +1527,18 @@ def predict_churn_batch(request: BatchChurnRequest):
             f"companies={len(company_predictions)}"
         )
 
+        calculated_at = datetime.now(timezone.utc)
         response = {
             "status": "success",
+            "source": "spring_batch",
+            "api_contract_version": API_CONTRACT_VERSION,
+            "calculated_at": calculated_at,
+            "dealer_count": len(dealer_predictions),
+            "company_count": len(company_predictions),
+            "model_versions": {
+                "dealer": DEALER_CHURN_MODEL_VERSION,
+                "company": COMPANY_CHURN_MODEL_VERSION,
+            },
             "dealer_predictions": dealer_predictions,
             "company_predictions": company_predictions,
         }
@@ -1324,7 +1555,9 @@ def predict_churn_batch(request: BatchChurnRequest):
         latest_churn_batch_snapshot = {
             "status": "success",
             "source": "spring_batch",
-            "calculated_at": datetime.now(timezone.utc).isoformat(),
+            "api_contract_version": API_CONTRACT_VERSION,
+            "calculated_at": calculated_at.isoformat(),
+            "model_versions": response["model_versions"],
             "dealer_count": len(dealer_predictions),
             "company_count": len(company_predictions),
             "dealers": [
@@ -1353,9 +1586,13 @@ def predict_churn_batch(request: BatchChurnRequest):
         )
 
 
-@app.get("/api/ai/predict-churn/latest")
+@app.get(
+    "/api/ai/predict-churn/latest",
+    deprecated=True,
+    summary="최근 이탈 예측 메모리 스냅샷 조회(진단용)",
+)
 def get_latest_churn_batch():
-    """가장 최근에 Spring Boot가 요청한 DB 기반 이탈 예측 결과를 반환합니다."""
+    """컨테이너 재시작 시 사라지는 진단용 결과이며 운영 저장소가 아닙니다."""
     if latest_churn_batch_snapshot is None:
         raise HTTPException(
             status_code=404,
@@ -1535,7 +1772,10 @@ def get_churn_companies_dummy():
     return result_list
 
 
-@app.get("/api/ai/vehicle-recommendations")
+@app.get(
+    "/api/ai/vehicle-recommendations",
+    response_model=DemoVehiclePredictionBatchResponse,
+)
 def get_vehicle_recommendations():
     """시연용 차량 전체를 Condition과 MMR 모델로 일괄 예측합니다."""
     try:
@@ -1554,6 +1794,12 @@ def get_vehicle_recommendations():
 
         return {
             "status": "success",
+            "source": "dummy_catalog",
+            "api_contract_version": API_CONTRACT_VERSION,
+            "calculated_at": datetime.now(timezone.utc),
+            "model_versions": get_vehicle_model_versions(),
+            "source_vehicle_count": len(recommendations),
+            "skipped_vehicle_count": 0,
             "count": len(recommendations),
             "recommendations": recommendations,
         }
@@ -1566,12 +1812,17 @@ def get_vehicle_recommendations():
         )
 
 
-@app.post("/api/ai/vehicle-recommendations")
+@app.post(
+    "/api/ai/vehicle-recommendations",
+    response_model=VehiclePredictionBatchResponse,
+)
 def predict_vehicle_recommendations(
     request: VehiclePredictionBatchRequest,
 ):
     """Spring Boot가 DB에서 조회한 차량 전체를 모델로 일괄 예측합니다."""
     try:
+        ensure_unique_vehicle_ids(request.vehicles)
+        source_vehicle_count = len(request.vehicles)
         eligible_vehicles = []
         for vehicle in request.vehicles:
             status = clean_optional_text(vehicle.status)
@@ -1597,6 +1848,11 @@ def predict_vehicle_recommendations(
         return {
             "status": "success",
             "source": "spring_db",
+            "api_contract_version": API_CONTRACT_VERSION,
+            "calculated_at": datetime.now(timezone.utc),
+            "model_versions": get_vehicle_model_versions(),
+            "source_vehicle_count": source_vehicle_count,
+            "skipped_vehicle_count": source_vehicle_count - len(eligible_vehicles),
             "count": len(recommendations),
             "recommendations": recommendations,
         }
@@ -1609,12 +1865,17 @@ def predict_vehicle_recommendations(
         )
 
 
-@app.post("/api/ai/vehicle-recommendations/buyer")
+@app.post(
+    "/api/ai/vehicle-recommendations/buyer",
+    response_model=BuyerVehicleRecommendationResponse,
+)
 def recommend_vehicles_for_buyer(
     request: BuyerVehicleRecommendationRequest,
 ):
     """Spring Boot가 전달한 DB 차량과 구매 조건으로 적합도 상위 10대를 반환합니다."""
     try:
+        ensure_unique_vehicle_ids(request.vehicles)
+        input_vehicle_count = len(request.vehicles)
         preferences = request.preferences
         cleaned_preferences, active_basic_keys = (
             validate_vehicle_recommendation_request(preferences)
@@ -1710,6 +1971,10 @@ def recommend_vehicles_for_buyer(
 
         return {
             "status": "success",
+            "source": "spring_db",
+            "api_contract_version": API_CONTRACT_VERSION,
+            "calculated_at": datetime.now(timezone.utc),
+            "model_versions": get_vehicle_model_versions(),
             "message": (
                 "추천 결과가 없습니다. 필수 일치 조건을 완화해 주세요."
                 if not recommendations
@@ -1718,7 +1983,9 @@ def recommend_vehicles_for_buyer(
             "input_basic_condition_count": len(active_basic_keys),
             "input_optional_condition_count": len(active_optional_keys),
             "excluded_conditions": excluded_conditions,
+            "input_vehicle_count": input_vehicle_count,
             "source_vehicle_count": len(eligible_vehicles),
+            "skipped_vehicle_count": input_vehicle_count - len(eligible_vehicles),
             "candidate_count": len(filtered_catalog),
             "count": len(recommendations),
             "recommendations": recommendations,
