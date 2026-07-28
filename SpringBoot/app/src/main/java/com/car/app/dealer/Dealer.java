@@ -53,6 +53,9 @@ public class Dealer {
     @Builder.Default
     private Double riskScore = 0.0;
 
+    @Column(name = "risk_grade", length = 30)
+    private String riskGrade;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

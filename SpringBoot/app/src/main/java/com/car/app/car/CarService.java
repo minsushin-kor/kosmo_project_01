@@ -173,6 +173,59 @@ public class CarService {
     }
 
     /**
+     * 본인 등록 차량 정보 수정
+     */
+    @Transactional
+    public Car updateCar(Long carId, String username, CarDto.CreateRequest request) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
+
+        boolean isOwner = (car.getMember() != null && car.getMember().getEmail().equals(username)) ||
+                          (car.getDealer() != null && car.getDealer().getLoginId().equals(username));
+        if (!isOwner) {
+            throw new SecurityException("본인이 등록한 차량만 수정할 수 있습니다.");
+        }
+
+        if (request.getMake() != null) car.setMake(request.getMake());
+        if (request.getModel() != null) car.setModel(request.getModel());
+        if (request.getYear() != null) car.setYear(request.getYear());
+        if (request.getOdometer() != null) car.setOdometer(request.getOdometer());
+        if (request.getTransmission() != null) car.setTransmission(request.getTransmission());
+        if (request.getSellingPrice() != null) car.setSellingPrice(request.getSellingPrice());
+
+        return carRepository.save(car);
+    }
+
+    /**
+     * 본인 등록 차량 삭제 (상태 DELETED로 변경)
+     */
+    @Transactional
+    public void deleteCar(Long carId, String username) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
+
+        boolean isOwner = (car.getMember() != null && car.getMember().getEmail().equals(username)) ||
+                          (car.getDealer() != null && car.getDealer().getLoginId().equals(username));
+        if (!isOwner) {
+            throw new SecurityException("본인이 등록한 차량만 삭제할 수 있습니다.");
+        }
+
+        car.setStatus("DELETED");
+        carRepository.save(car);
+    }
+
+    /**
+     * 관리자 전용 차량 상태 변경
+     */
+    @Transactional
+    public Car updateCarStatusByAdmin(Long carId, String status) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
+        car.setStatus(status);
+        return carRepository.save(car);
+    }
+
+    /**
      * 다중 필터와 페이징을 지원하는 차량 목록 검색 메서드입니다.
      */
     @Transactional(readOnly = true)
@@ -249,8 +302,8 @@ public class CarService {
             throw new IllegalArgumentException("구매 가능한 상태의 차량이 아닙니다.");
         }
 
-        // 3단계: 수수료 및 거래 정보 설정 (0.3% 기본 요율 적용)
-        BigDecimal commissionRate = new BigDecimal("0.0030");
+        // 3단계: 수수료 및 거래 정보 설정 (3.0% 기본 요율 적용)
+        BigDecimal commissionRate = new BigDecimal("0.0300");
         long dealPrice = car.getSellingPrice();
         long commissionAmount = (long) (dealPrice * commissionRate.doubleValue());
 

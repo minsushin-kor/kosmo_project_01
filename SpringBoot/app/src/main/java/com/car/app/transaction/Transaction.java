@@ -43,10 +43,23 @@ public class Transaction {
 
     @Column(name = "commission_rate", precision = 5, scale = 4)
     @Builder.Default
-    private BigDecimal commissionRate = new BigDecimal("0.0030");
+    private BigDecimal commissionRate = new BigDecimal("0.0300");
 
     @Column(name = "commission_amount", nullable = false)
     private Long commissionAmount;
+
+    @Column(name = "status", length = 30)
+    @Builder.Default
+    private String status = "PENDING_PAYMENT";
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

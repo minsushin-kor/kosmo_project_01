@@ -247,6 +247,6 @@ class AuctionBiddingTests {
         com.car.app.transaction.Transaction transaction = transactions.get(0);
         assertThat(transaction.getDealPrice()).isEqualTo(22000000L);
         assertThat(transaction.getBuyerId()).isEqualTo(dealer2.getDealerId());
-        assertThat(transaction.getCommissionAmount()).isEqualTo(66000L); // 22M * 0.3%
+        assertThat(transaction.getCommissionAmount()).isEqualTo(660000L); // 22M * 3.0%
     }
 }

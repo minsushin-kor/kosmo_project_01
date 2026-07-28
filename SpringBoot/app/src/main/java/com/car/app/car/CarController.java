@@ -124,4 +124,38 @@ public class CarController {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
         }
     }
+
+    /**
+     * 본인이 등록한 차량 정보를 수정합니다.
+     */
+    @PutMapping("/{carId}")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER')")
+    public ResponseEntity<ApiResponse<CarDto.Response>> updateCar(@PathVariable Long carId, @RequestBody CarDto.CreateRequest request) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            Car car = carService.updateCar(carId, authentication.getName(), request);
+            return ResponseEntity.ok(ApiResponse.success(carService.mapToResponse(car), "차량 정보가 성공적으로 수정되었습니다."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(ApiResponse.fail("ERR_UNAUTHORIZED", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
+     * 본인이 등록한 차량을 삭제(비활성화)합니다.
+     */
+    @DeleteMapping("/{carId}")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER')")
+    public ResponseEntity<ApiResponse<String>> deleteCar(@PathVariable Long carId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            carService.deleteCar(carId, authentication.getName());
+            return ResponseEntity.ok(ApiResponse.success("SUCCESS", "차량이 성공적으로 삭제 처리되었습니다."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(ApiResponse.fail("ERR_UNAUTHORIZED", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
 }

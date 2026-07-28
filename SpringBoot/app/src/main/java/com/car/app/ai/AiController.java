@@ -28,14 +28,4 @@ public class AiController {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_AI_RECOMMEND_FAILED", "AI 서버로부터 추천 결과를 가져오는데 실패했습니다."));
         }
     }
-
-    /**
-     * 딜러를 위한 AI 추천 경매 차량 목록을 조회합니다. (Condition DESC, MMR DESC 정렬 적용)
-     */
-    @GetMapping("/recommend-dealer")
-    public ResponseEntity<ApiResponse<java.util.List<com.car.app.car.CarDto.Response>>> getRecommendedCarsForDealer(
-            @RequestParam(required = false, defaultValue = "0") Long dealerId) {
-        java.util.List<com.car.app.car.CarDto.Response> recommendations = aiService.getRecommendedCarsForDealer(dealerId);
-        return ResponseEntity.ok(ApiResponse.success(recommendations, "딜러 맞춤 추천 경매 차량 목록이 성공적으로 조회되었습니다."));
-    }
 }

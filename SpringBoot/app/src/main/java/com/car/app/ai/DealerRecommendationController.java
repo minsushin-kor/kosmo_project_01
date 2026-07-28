@@ -31,10 +31,10 @@ public class DealerRecommendationController {
     public ResponseEntity<ApiResponse<List<CarDto.Response>>> getDealerRecommendations() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String dealerLoginId = authentication.getName();
+            String dealerLoginId = (authentication != null) ? authentication.getName() : null;
 
-            List<CarDto.Response> recommendations = aiService.getRecommendationsForDealer(dealerLoginId);
-            return ResponseEntity.ok(ApiResponse.success(recommendations, "AI 추천 차량 목록 조회가 성공적으로 완료되었습니다."));
+            List<CarDto.Response> recommendations = aiService.getRecommendedCarsForDealer(dealerLoginId);
+            return ResponseEntity.ok(ApiResponse.success(recommendations, "Condition/MMR 기준 딜러 맞춤 추천 경매 차량 목록 조회가 성공적으로 완료되었습니다."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
         }

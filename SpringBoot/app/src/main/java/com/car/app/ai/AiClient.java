@@ -28,13 +28,7 @@ public class AiClient {
     @Value("${ai.fastapi.base-url}")
     private String baseUrl;
 
-    @Getter
-    @Setter
-    public static class RecommendationResponse {
-        private String status;
-        private Long dealerId;
-        private List<Long> recommendedCarIds;
-    }
+
 
     @Getter
     @Setter
@@ -160,34 +154,6 @@ public class AiClient {
     }
 
     /**
-     * FastAPI 서버의 /api/ai/recommendations API를 호출하여 딜러 맞춤 추천 차량 ID 목록을 수신합니다.
-     *
-     * @param dealerId 딜러 ID
-     * @return 추천 차량 ID 목록 (에러 발생 시 빈 리스트 반환)
-     */
-    public List<Long> getRecommendedCarIds(Long dealerId) {
-        try {
-            String url = UriComponentsBuilder.fromUriString(baseUrl)
-                    .path("/api/ai/recommendations")
-                    .queryParam("dealerId", dealerId)
-                    .build()
-                    .toUriString();
-
-            log.info("FastAPI 서버로 차량 추천 요청 송신: {}", url);
-            RecommendationResponse response = restTemplate.getForObject(url, RecommendationResponse.class);
-
-            if (response != null && "success".equalsIgnoreCase(response.getStatus()) && response.getRecommendedCarIds() != null) {
-                log.info("FastAPI 서버로부터 딜러 {}의 추천 차량 ID {}개를 성공적으로 수신했습니다.",
-                        dealerId, response.getRecommendedCarIds().size());
-                return response.getRecommendedCarIds();
-            }
-        } catch (Exception e) {
-            log.error("FastAPI 서버로부터 딜러 {}의 차량 추천 정보를 가져오는데 실패했습니다: {}", dealerId, e.getMessage());
-        }
-        return new ArrayList<>();
-    }
-
-    /**
      * FastAPI 서버의 /api/ai/predict-churn/batch API를 1회 단일 호출하여 딜러 및 상사 목록의 이탈 위험도를 뱃지로 통합 예측합니다.
      *
      * @param request 딜러 및 상사 요약 뱃치 요청 DTO
@@ -245,7 +211,7 @@ public class AiClient {
         @com.fasterxml.jackson.annotation.JsonProperty("predicted_condition")
         private Double predictedCondition;
         @com.fasterxml.jackson.annotation.JsonProperty("predicted_mmr")
-        private Long predictedMmr;
+        private Double predictedMmr;
     }
 
     @Getter

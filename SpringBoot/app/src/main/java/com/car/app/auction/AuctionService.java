@@ -198,8 +198,8 @@ public class AuctionService {
             car.setStatus("SOLD");
             carRepository.save(car);
 
-            // 기본 수수료율 0.3% (0.0030) 적용. (4단계에서 Churn Risk 딜러 여부에 따른 요율 할인 고도화 예정)
-            BigDecimal commissionRate = new BigDecimal("0.0030");
+            // 기본 수수료율 3.0% (0.0300) 적용.
+            BigDecimal commissionRate = new BigDecimal("0.0300");
             long dealPrice = winningBid.getBidAmount();
             long commissionAmount = (long) (dealPrice * commissionRate.doubleValue());
 

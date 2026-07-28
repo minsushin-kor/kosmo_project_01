@@ -125,7 +125,7 @@ CREATE TABLE transactions (
     seller_type VARCHAR(20) NOT NULL, -- 'MEMBER' or 'DEALER'
     seller_id BIGINT NOT NULL,
     deal_price BIGINT NOT NULL,
-    commission_rate NUMERIC(5,4) DEFAULT 0.0030, -- 기본 0.3%, 50% 감면시 0.15%
+    commission_rate NUMERIC(5,4) DEFAULT 0.0300, -- 기본 3.0%, 50% 감면시 1.5%
     commission_amount BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_transactions_car FOREIGN KEY (car_id) REFERENCES cars(car_id) ON DELETE CASCADE

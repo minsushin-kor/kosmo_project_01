@@ -120,7 +120,7 @@ public class CouponService {
         }
 
         // 4. 수수료 조정 및 거래 데이터 수정 (50% 감면)
-        BigDecimal baseRate = new BigDecimal("0.0030"); // 기본 0.3%
+        BigDecimal baseRate = new BigDecimal("0.0300"); // 기본 3.0%
         BigDecimal discount = coupon.getDiscountRate(); // e.g. 0.5000 (50%)
         BigDecimal newRate = baseRate.multiply(BigDecimal.ONE.subtract(discount)); // 0.0015 (0.15%)
 
@@ -225,5 +225,12 @@ public class CouponService {
             }
             companyRepository.save(company);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<Coupon> getMyCompanyCoupons(String masterEmail) {
+        Company company = companyRepository.findByMasterEmail(masterEmail)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
+        return couponRepository.findByCompanyCompanyId(company.getCompanyId());
     }
 }

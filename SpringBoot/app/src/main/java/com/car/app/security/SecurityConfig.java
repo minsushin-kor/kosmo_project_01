@@ -17,6 +17,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -45,9 +46,12 @@ public class SecurityConfig {
                 .requestMatchers("/ws-chat/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/cars/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/notices/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/companies/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/dealers/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/company/dealers/**").hasRole("COMPANY_MASTER")
-                .requestMatchers("/api/notifications/**").hasAnyRole("MEMBER", "DEALER")
+                .requestMatchers("/api/notifications/**").hasAnyRole("MEMBER", "DEALER", "ADMIN", "COMPANY_MASTER")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -55,11 +59,17 @@ public class SecurityConfig {
         return http.build();
     }
 
+    @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173,http://localhost:8080}")
+    private String allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+        configuration.setAllowedOriginPatterns(origins);
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
