@@ -1,56 +1,156 @@
+/* eslint-disable react-refresh/only-export-components */
+
+import { lazy } from "react";
 import {
   AUTH_ROLES,
 } from "./authUser";
+import {
+  ROUTE_LOADERS,
+} from "./routeLoaders";
 
 // Common
-import HomeRedirect from "../components/common/HomeRedirect";
-import SiteNoticePage from "../pages/common/SiteNoticePage";
+const HomeRedirect = lazy(
+  ROUTE_LOADERS.home
+);
+
+const SiteNoticePage = lazy(
+  ROUTE_LOADERS.siteNotice
+);
 
 // Auth
-import LoginPage from "../pages/auth/LoginPage";
-import SignUpPage from "../pages/auth/SignUpPage";
-import ForbiddenPage from "../pages/auth/ForbiddenPage";
-import NotFoundPage from "../pages/auth/NotFoundPage";
+const LoginPage = lazy(
+  ROUTE_LOADERS.login
+);
+
+const SignUpPage = lazy(
+  ROUTE_LOADERS.signup
+);
+
+const ForbiddenPage = lazy(
+  ROUTE_LOADERS.forbidden
+);
+
+const NotFoundPage = lazy(
+  ROUTE_LOADERS.notFound
+);
 
 // Member
-import MyPage from "../pages/member/MyPage";
-import MemberCarsPage from "../pages/member/MemberCarsPage";
-import MemberAuctionBidsPage from "../pages/member/MemberAuctionBidsPage";
-import MemberAuctionTradePage from "../pages/member/MemberAuctionTradePage";
+const MyPage = lazy(
+  ROUTE_LOADERS.memberMyPage
+);
+
+const MemberCarsPage = lazy(
+  ROUTE_LOADERS.memberCars
+);
+
+const MemberAuctionBidsPage = lazy(
+  ROUTE_LOADERS.memberAuctionBids
+);
+
+const MemberAuctionTradePage = lazy(
+  ROUTE_LOADERS.memberAuctionTrade
+);
 
 // Company
-import CompanyMyPage from "../pages/company/MyPage";
-import CompanyPage from "../pages/company/CompanyPage";
-import CompanyCarsPage from "../pages/company/CompanyCarsPage";
-import CompanyNoticesPage from "../pages/company/CompanyNoticesPage";
-import CompanyCouponPage from "../pages/company/CompanyCouponPage";
-import CompanyDealerManagePage from "../pages/company/CompanyDealerManagePage";
-import CompanyDealerCreatePage from "../pages/company/CompanyDealerCreatePage";
-import CompanyDealersPublicPage from "../pages/company/CompanyDealersPublicPage";
-import CompanyDealerCarsPage from "../pages/company/CompanyDealerCarsPage";
-import DealerPage from "../pages/company/DealerPage";
+const CompanyMyPage = lazy(
+  ROUTE_LOADERS.companyMyPage
+);
+
+const CompanyPage = lazy(
+  ROUTE_LOADERS.companyPage
+);
+
+const CompanyCarsPage = lazy(
+  ROUTE_LOADERS.companyCars
+);
+
+const CompanyNoticesPage = lazy(
+  ROUTE_LOADERS.companyNotices
+);
+
+const CompanyCouponPage = lazy(
+  ROUTE_LOADERS.companyCoupon
+);
+
+const CompanyDealerManagePage = lazy(
+  ROUTE_LOADERS.companyDealerManage
+);
+
+const CompanyDealerCreatePage = lazy(
+  ROUTE_LOADERS.companyDealerCreate
+);
+
+const CompanyDealersPublicPage = lazy(
+  ROUTE_LOADERS.companyDealersPublic
+);
+
+const CompanyDealerCarsPage = lazy(
+  ROUTE_LOADERS.companyDealerCars
+);
+
+const DealerPage = lazy(
+  ROUTE_LOADERS.dealerPage
+);
 
 // Car
-import CarDetailPage from "../pages/car/CarDetailPage";
-import DealerRegisterCarPage from "../pages/car/DealerRegisterCarPage";
-import DealerCarManagePage from "../pages/car/DealerCarManagePage";
+const CarDetailPage = lazy(
+  ROUTE_LOADERS.carDetail
+);
+
+const DealerRegisterCarPage = lazy(
+  ROUTE_LOADERS.dealerRegisterCar
+);
+
+const DealerCarManagePage = lazy(
+  ROUTE_LOADERS.dealerCarManage
+);
 
 // Auction
-import DealerAuctionBidManagePage from "../pages/auction/DealerAuctionBidManagePage";
+const DealerAuctionBidManagePage = lazy(
+  ROUTE_LOADERS.dealerAuctionBidManage
+);
 
 // Admin
-import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
-import AdminMemberManagePage from "../pages/admin/AdminMemberManagePage";
-import AdminCompanyManagePage from "../pages/admin/AdminCompanyManagePage";
-import AdminDealerManagePage from "../pages/admin/AdminDealerManagePage";
-import AdminNoticeManagePage from "../pages/admin/AdminNoticeManagePage";
-import AdminCarManagePage from "../pages/admin/AdminCarManagePage";
-import AdminReportManagePage from "../pages/admin/AdminReportManagePage";
-import AdminChurnManagePage from "../pages/admin/AdminChurnManagePage";
-import AdminFinalDealManagePage from "../pages/admin/AdminFinalDealManagePage";
+const AdminDashboardPage = lazy(
+  ROUTE_LOADERS.adminDashboard
+);
+
+const AdminMemberManagePage = lazy(
+  ROUTE_LOADERS.adminMemberManage
+);
+
+const AdminCompanyManagePage = lazy(
+  ROUTE_LOADERS.adminCompanyManage
+);
+
+const AdminDealerManagePage = lazy(
+  ROUTE_LOADERS.adminDealerManage
+);
+
+const AdminNoticeManagePage = lazy(
+  ROUTE_LOADERS.adminNoticeManage
+);
+
+const AdminCarManagePage = lazy(
+  ROUTE_LOADERS.adminCarManage
+);
+
+const AdminReportManagePage = lazy(
+  ROUTE_LOADERS.adminReportManage
+);
+
+const AdminChurnManagePage = lazy(
+  ROUTE_LOADERS.adminChurnManage
+);
+
+const AdminFinalDealManagePage = lazy(
+  ROUTE_LOADERS.adminFinalDealManage
+);
 
 // Test
-import TestPage from "../pages/test/TestPage";
+const TestPage = lazy(
+  ROUTE_LOADERS.test
+);
 
 export const PUBLIC_ROUTES = [
   {
@@ -96,12 +196,17 @@ export const PUBLIC_ROUTES = [
   {
     id: "company-dealers-public",
     path: "/company/dealers/public",
-    element: <CompanyDealersPublicPage />,
+    element: (
+      <CompanyDealersPublicPage />
+    ),
   },
   {
     id: "company-dealer-cars",
-    path: "/company/dealers/:dealerId/cars",
-    element: <CompanyDealerCarsPage />,
+    path:
+      "/company/dealers/:dealerId/cars",
+    element: (
+      <CompanyDealerCarsPage />
+    ),
   },
   {
     id: "member-cars",
@@ -165,7 +270,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "dealer-car-bids",
     path: "/dealer/cars/:carId/bids",
-    element: <DealerAuctionBidManagePage />,
+    element: (
+      <DealerAuctionBidManagePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.DEALER,
     ],
@@ -173,7 +280,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "dealer-register-car",
     path: "/dealer/register-car",
-    element: <DealerRegisterCarPage />,
+    element: (
+      <DealerRegisterCarPage />
+    ),
     allowedRoles: [
       AUTH_ROLES.DEALER,
     ],
@@ -181,7 +290,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "member-register-car",
     path: "/member/register-car",
-    element: <DealerRegisterCarPage />,
+    element: (
+      <DealerRegisterCarPage />
+    ),
     allowedRoles: [
       AUTH_ROLES.MEMBER,
     ],
@@ -197,15 +308,20 @@ export const PROTECTED_ROUTES = [
   {
     id: "member-auction-bids",
     path: "/member/auction-bids",
-    element: <MemberAuctionBidsPage />,
+    element: (
+      <MemberAuctionBidsPage />
+    ),
     allowedRoles: [
       AUTH_ROLES.MEMBER,
     ],
   },
   {
     id: "member-auction-trades",
-    path: "/member/auction-trades/:winnerId",
-    element: <MemberAuctionTradePage />,
+    path:
+      "/member/auction-trades/:winnerId",
+    element: (
+      <MemberAuctionTradePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.MEMBER,
     ],
@@ -229,7 +345,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "admin-members",
     path: "/admin/members",
-    element: <AdminMemberManagePage />,
+    element: (
+      <AdminMemberManagePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.ADMIN,
     ],
@@ -237,7 +355,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "admin-companies",
     path: "/admin/companies",
-    element: <AdminCompanyManagePage />,
+    element: (
+      <AdminCompanyManagePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.ADMIN,
     ],
@@ -245,7 +365,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "admin-dealers",
     path: "/admin/dealers",
-    element: <AdminDealerManagePage />,
+    element: (
+      <AdminDealerManagePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.ADMIN,
     ],
@@ -253,7 +375,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "admin-notices",
     path: "/admin/notices",
-    element: <AdminNoticeManagePage />,
+    element: (
+      <AdminNoticeManagePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.ADMIN,
     ],
@@ -269,7 +393,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "admin-final-deals",
     path: "/admin/final-deals",
-    element: <AdminFinalDealManagePage />,
+    element: (
+      <AdminFinalDealManagePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.ADMIN,
     ],
@@ -277,7 +403,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "admin-reports",
     path: "/admin/reports",
-    element: <AdminReportManagePage />,
+    element: (
+      <AdminReportManagePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.ADMIN,
     ],
@@ -321,7 +449,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "company-dealers",
     path: "/company/dealers",
-    element: <CompanyDealerManagePage />,
+    element: (
+      <CompanyDealerManagePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.COMPANY,
     ],
@@ -329,7 +459,9 @@ export const PROTECTED_ROUTES = [
   {
     id: "company-dealer-create",
     path: "/company/dealers/create",
-    element: <CompanyDealerCreatePage />,
+    element: (
+      <CompanyDealerCreatePage />
+    ),
     allowedRoles: [
       AUTH_ROLES.COMPANY,
     ],

@@ -1,5 +1,8 @@
 import {
+  memo,
+  useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import {
@@ -20,39 +23,75 @@ import {
 } from "../../utils/carRecommendationStorage";
 import "../../css/common/rightSidebar.css";
 
-function MiniCarItem({
-  car,
-  label,
-}) {
-  return (
-    <Link
-      to={`/cars/${car.id}`}
-      className="sidebar-car-item"
-    >
-      <div className="sidebar-car-image">
-        {car.imageText || "CAR"}
-      </div>
+const RECENT_CAR_CHANGE_EVENT =
+  "recent-car-change";
 
-      <div className="sidebar-car-info">
-        {label && (
-          <span className="sidebar-car-label">
-            {label}
-          </span>
-        )}
+const POPULAR_SEARCH_CONDITIONS = {
+  lowPrice: {
+    minPrice: 500,
+    maxPrice: 2000,
+  },
 
-        <strong>{car.carName}</strong>
+  suv: {
+    modelName: "스포티지",
+  },
 
-        <p>
-          {car.year}년식 ·{" "}
-          {Number(
-            car.price
-          ).toLocaleString()}
-          만원
-        </p>
-      </div>
-    </Link>
-  );
-}
+  lowMileage: {
+    mileage: "50000",
+  },
+
+  gyeonggi: {
+    region: "경기도",
+  },
+
+  recentYear: {
+    year: "2021",
+  },
+};
+
+const NOTICE_ITEMS = [
+  "허위 매물 신고 정책 안내",
+  "딜러 인증 심사 기준 안내",
+  "차량 거래 안전 수칙",
+];
+
+const MiniCarItem = memo(
+  function MiniCarItem({
+    car,
+    label,
+  }) {
+    return (
+      <Link
+        to={`/cars/${car.id}`}
+        className="sidebar-car-item"
+      >
+        <div className="sidebar-car-image">
+          {car.imageText || "CAR"}
+        </div>
+
+        <div className="sidebar-car-info">
+          {label && (
+            <span className="sidebar-car-label">
+              {label}
+            </span>
+          )}
+
+          <strong>
+            {car.carName}
+          </strong>
+
+          <p>
+            {car.year}년식 ·{" "}
+            {Number(
+              car.price
+            ).toLocaleString()}
+            만원
+          </p>
+        </div>
+      </Link>
+    );
+  }
+);
 
 function RightSidebar({
   setSearchCondition,
@@ -61,88 +100,122 @@ function RightSidebar({
   candidateCars = [],
 }) {
   const navigate = useNavigate();
-  const { loginUser } = useAuth();
+  const {
+    loginUser,
+  } = useAuth();
 
-  const [, setRecentVersion] =
-    useState(0);
+  const [
+    recentVersion,
+    setRecentVersion,
+  ] = useState(0);
+
+  const role =
+    loginUser?.role;
 
   const isMember =
-    loginUser?.role ===
-    AUTH_ROLES.MEMBER;
+    role === AUTH_ROLES.MEMBER;
 
   const isDealer =
-    loginUser?.role ===
-    AUTH_ROLES.DEALER;
+    role === AUTH_ROLES.DEALER;
 
   useEffect(() => {
-    const handleRecentCarChange = () => {
-      setRecentVersion(
-        (prev) => prev + 1
-      );
-    };
+    const handleRecentCarChange =
+      () => {
+        setRecentVersion(
+          (prev) => prev + 1
+        );
+      };
 
     window.addEventListener(
-      "recent-car-change",
+      RECENT_CAR_CHANGE_EVENT,
       handleRecentCarChange
     );
 
     return () => {
       window.removeEventListener(
-        "recent-car-change",
+        RECENT_CAR_CHANGE_EVENT,
         handleRecentCarChange
       );
     };
   }, []);
 
-  const recentCars =
-    getRecentCars(
-      allCars
-    ).slice(0, 3);
-
-  const recommendedCars =
-    getRecommendedCars({
-      candidateCars,
+  const recentCars = useMemo(
+    () =>
+      getRecentCars(
+        allCars
+      ).slice(0, 3),
+    [
       allCars,
+      recentVersion,
+    ]
+  );
+
+  const recommendedCars = useMemo(
+    () =>
+      getRecommendedCars({
+        candidateCars,
+        allCars,
+        loginUser,
+        limit: 4,
+      }),
+    [
+      allCars,
+      candidateCars,
       loginUser,
-      limit: 4,
-    });
+      recentVersion,
+    ]
+  );
 
-  function applyPopularSearch(type) {
-    const nextCondition = {
-      ...initialSearchCondition,
-    };
+  const applyPopularSearch =
+    useCallback(
+      (type) => {
+        const condition =
+          POPULAR_SEARCH_CONDITIONS[
+            type
+          ];
 
-    if (type === "lowPrice") {
-      nextCondition.minPrice = 500;
-      nextCondition.maxPrice = 2000;
-    }
+        if (!condition) {
+          return;
+        }
 
-    if (type === "suv") {
-      nextCondition.modelName =
-        "스포티지";
-    }
+        setSearchCondition({
+          ...initialSearchCondition,
+          ...condition,
+        });
 
-    if (type === "lowMileage") {
-      nextCondition.mileage =
-        "50000";
-    }
+        setCurrentPage(1);
+      },
+      [
+        setCurrentPage,
+        setSearchCondition,
+      ]
+    );
 
-    if (type === "gyeonggi") {
-      nextCondition.region =
-        "경기도";
-    }
+  const handleClearRecentCars =
+    useCallback(() => {
+      clearRecentCarIds();
+    }, []);
 
-    if (type === "recentYear") {
-      nextCondition.year = "2021";
-    }
+  const handleMemberRegister =
+    useCallback(() => {
+      navigate(
+        "/member/register-car"
+      );
+    }, [navigate]);
 
-    setSearchCondition(nextCondition);
-    setCurrentPage(1);
-  }
+  const handleDealerRegister =
+    useCallback(() => {
+      navigate(
+        "/dealer/register-car"
+      );
+    }, [navigate]);
 
-  function handleClearRecentCars() {
-    clearRecentCarIds();
-  }
+  const handleNoticePage =
+    useCallback(() => {
+      navigate(
+        "/company/notices"
+      );
+    }, [navigate]);
 
   return (
     <div className="right-sidebar">
@@ -164,12 +237,14 @@ function RightSidebar({
 
         {recentCars.length > 0 ? (
           <div className="sidebar-car-list">
-            {recentCars.map((car) => (
-              <MiniCarItem
-                key={car.id}
-                car={car}
-              />
-            ))}
+            {recentCars.map(
+              (car) => (
+                <MiniCarItem
+                  key={car.id}
+                  car={car}
+                />
+              )
+            )}
           </div>
         ) : (
           <div className="recent-car-empty">
@@ -181,7 +256,10 @@ function RightSidebar({
       <section className="right-widget recommendation-widget">
         <div className="right-widget-title-row">
           <h3>추천 차량</h3>
-          <span>맞춤 추천</span>
+
+          <span>
+            맞춤 추천
+          </span>
         </div>
 
         <p className="recommendation-guide">
@@ -227,7 +305,9 @@ function RightSidebar({
           <button
             type="button"
             onClick={() =>
-              applyPopularSearch("suv")
+              applyPopularSearch(
+                "suv"
+              )
             }
           >
             # SUV
@@ -282,10 +362,8 @@ function RightSidebar({
 
           <button
             type="button"
-            onClick={() =>
-              navigate(
-                "/member/register-car"
-              )
+            onClick={
+              handleMemberRegister
             }
           >
             중고차 매물 등록하기
@@ -295,7 +373,9 @@ function RightSidebar({
 
       {isDealer && (
         <section className="right-widget dealer-guide">
-          <h3>딜러 매물 등록</h3>
+          <h3>
+            딜러 매물 등록
+          </h3>
 
           <p>
             보유 차량을 등록하고
@@ -305,10 +385,8 @@ function RightSidebar({
 
           <button
             type="button"
-            onClick={() =>
-              navigate(
-                "/dealer/register-car"
-              )
+            onClick={
+              handleDealerRegister
             }
           >
             딜러 매물 등록하기
@@ -322,10 +400,8 @@ function RightSidebar({
 
           <button
             type="button"
-            onClick={() =>
-              navigate(
-                "/company/notices"
-              )
+            onClick={
+              handleNoticePage
             }
           >
             더보기
@@ -333,39 +409,26 @@ function RightSidebar({
         </div>
 
         <ul>
-          <li
-            onClick={() =>
-              navigate(
-                "/company/notices"
-              )
-            }
-          >
-            허위 매물 신고 정책 안내
-          </li>
-
-          <li
-            onClick={() =>
-              navigate(
-                "/company/notices"
-              )
-            }
-          >
-            딜러 인증 심사 기준 안내
-          </li>
-
-          <li
-            onClick={() =>
-              navigate(
-                "/company/notices"
-              )
-            }
-          >
-            차량 거래 안전 수칙
-          </li>
+          {NOTICE_ITEMS.map(
+            (notice) => (
+              <li key={notice}>
+                <button
+                  type="button"
+                  onClick={
+                    handleNoticePage
+                  }
+                >
+                  {notice}
+                </button>
+              </li>
+            )
+          )}
         </ul>
       </section>
     </div>
   );
 }
 
-export default RightSidebar;
+export default memo(
+  RightSidebar
+);
