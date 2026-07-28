@@ -126,7 +126,7 @@ public class AiService {
             return;
         }
 
-        // 1. 반복 DB 조회(N+1) 방지: SQL GROUP BY 집계 쿼리로 거래 및 입찰 데이터를 단 2회 쿼리로 일괄 수집
+        // 1. 매일 자정 원본 DB(거래, 입찰)에서 실시간 최신 지표 집계
         LocalDateTime sixtyDaysAgo = LocalDateTime.now().minusDays(60);
 
         List<TransactionRepository.DealerTradeSummary> tradeSummaries = transactionRepository.getDealerTradeSummaries(sixtyDaysAgo);
@@ -139,54 +139,20 @@ public class AiService {
 
         long totalAuctionsCount = auctionRepository.count();
 
-        // 2. 메모리 상에서 딜러 및 상사 뱃지 요청 객체 조립 (DB 쿼리 발생 0회)
+        // 2. 실시간 집계 지표로 FastAPI 송신용 뱃치 아이템 조립
         Map<Long, AiClient.DealerBatchItem> dealerItemMap = new HashMap<>();
         List<AiClient.DealerBatchItem> dealerBatchItems = new ArrayList<>();
-        List<DealerChurn> newDealerChurns = new ArrayList<>();
 
         for (Dealer dealer : dealers) {
             AiClient.DealerBatchItem item = createDealerBatchItemInMemory(dealer, tradeMap.get(dealer.getDealerId()), bidMap.get(dealer.getDealerId()), totalAuctionsCount);
             dealerBatchItems.add(item);
             dealerItemMap.put(dealer.getDealerId(), item);
-
-            // dealer_churn 레코드가 없는 신규 딜러의 경우 활동 지표 스냅샷을 dealer_churn 테이블에 자동 생성
-            if (!dealerChurnRepository.findFirstByDealerDealerIdOrderByCalculatedAtDesc(dealer.getDealerId()).isPresent()) {
-                newDealerChurns.add(DealerChurn.builder()
-                        .dealer(dealer)
-                        .lastActivityDays((long) item.getLastActivityDays())
-                        .recent60dTradeCount((long) item.getRecent60dTradeCount())
-                        .previousTradeCount((long) item.getPreviousTradeCount())
-                        .siteUsageRate(item.getSiteUsageRate())
-                        .calculatedAt(LocalDateTime.now())
-                        .build());
-            }
-        }
-        if (!newDealerChurns.isEmpty()) {
-            dealerChurnRepository.saveAll(newDealerChurns);
         }
 
         List<AiClient.CompanyBatchItem> companyBatchItems = new ArrayList<>();
-        List<CompanyChurn> newCompanyChurns = new ArrayList<>();
-
         for (Company company : companies) {
             AiClient.CompanyBatchItem item = createCompanyBatchItemInMemory(company, dealerItemMap);
             companyBatchItems.add(item);
-
-            // company_churn 레코드가 없는 신규 상사의 경우 요약 지표 스냅샷을 company_churn 테이블에 자동 생성
-            if (!companyChurnRepository.findFirstByCompanyCompanyIdOrderByCalculatedAtDesc(company.getCompanyId()).isPresent()) {
-                newCompanyChurns.add(CompanyChurn.builder()
-                        .company(company)
-                        .dealerCount((long) item.getDealerCount())
-                        .activeDealerRatio(item.getActiveDealerRatio())
-                        .recentTradeCount((long) item.getRecentTradeCount())
-                        .previousTradeCount((long) item.getPreviousTradeCount())
-                        .siteUsageRateAvg(item.getSiteUsageRateAvg())
-                        .calculatedAt(LocalDateTime.now())
-                        .build());
-            }
-        }
-        if (!newCompanyChurns.isEmpty()) {
-            companyChurnRepository.saveAll(newCompanyChurns);
         }
 
         AiClient.BatchChurnRequest batchRequest = AiClient.BatchChurnRequest.builder()
@@ -197,25 +163,53 @@ public class AiService {
         // 3. FastAPI 서버 단일 뱃치 API 호출 (1회 통신)
         AiClient.BatchChurnResponse batchResponse = aiClient.predictBatchChurn(batchRequest);
 
+        LocalDateTime now = LocalDateTime.now();
+
         if (batchResponse != null && "success".equalsIgnoreCase(batchResponse.getStatus())) {
-            // 4. 딜러 이탈 예측 결과 반영 및 saveAll() 일괄 저장
+            List<DealerChurn> dealerChurnSnapshots = new ArrayList<>();
+            List<CompanyChurn> companyChurnSnapshots = new ArrayList<>();
+
+            // 4. 딜러 이탈 예측 결과 DB 반영 및 dealer_churn 스냅샷 저장
             if (batchResponse.getDealerPredictions() != null) {
                 Map<Long, AiClient.DealerPredictionResult> dealerPredMap = batchResponse.getDealerPredictions().stream()
                         .collect(Collectors.toMap(AiClient.DealerPredictionResult::getDealerId, p -> p, (p1, p2) -> p1));
 
                 for (Dealer dealer : dealers) {
                     AiClient.DealerPredictionResult pred = dealerPredMap.get(dealer.getDealerId());
+                    AiClient.DealerBatchItem item = dealerItemMap.get(dealer.getDealerId());
+
                     if (pred != null) {
                         double riskScore = pred.getChurnProbability() * 100.0;
                         dealer.setRiskScore(riskScore);
-                        dealer.setTier(riskScore >= 75.0 ? "CARE_REQUIRED" : "NORMAL");
+                        dealer.setTier(pred.getRiskGrade() != null ? pred.getRiskGrade() : (riskScore >= 75.0 ? "CARE_REQUIRED" : "NORMAL"));
+
+                        String reasonsStr = (pred.getRiskReasons() != null && !pred.getRiskReasons().isEmpty())
+                                ? String.join(", ", pred.getRiskReasons())
+                                : "활동 특이사항 없음";
+
+                        if (item != null) {
+                            dealerChurnSnapshots.add(DealerChurn.builder()
+                                    .dealer(dealer)
+                                    .lastActivityDays((long) item.getLastActivityDays())
+                                    .recent60dTradeCount((long) item.getRecent60dTradeCount())
+                                    .previousTradeCount((long) item.getPreviousTradeCount())
+                                    .siteUsageRate(item.getSiteUsageRate())
+                                    .riskGrade(pred.getRiskGrade())
+                                    .riskReasons(reasonsStr)
+                                    .action(pred.getAction())
+                                    .calculatedAt(now)
+                                    .build());
+                        }
                     }
                 }
                 dealerRepository.saveAll(dealers);
-                log.info("딜러 전체 {}명의 이탈 위험도 점수 및 등급 일괄 저장(saveAll) 완료.", dealers.size());
+                if (!dealerChurnSnapshots.isEmpty()) {
+                    dealerChurnRepository.saveAll(dealerChurnSnapshots);
+                }
+                log.info("딜러 전체 {}명의 이탈 위험도 점수, 등급 및 스냅샷 일괄 저장 완료.", dealers.size());
             }
 
-            // 5. 상사 이탈 예측 결과 반영 및 saveAll() 일괄 저장
+            // 5. 상사 이탈 예측 결과 DB 반영 및 company_churn 스냅샷 저장
             if (batchResponse.getCompanyPredictions() != null) {
                 Map<Long, AiClient.CompanyPredictionResult> companyPredMap = batchResponse.getCompanyPredictions().stream()
                         .collect(Collectors.toMap(AiClient.CompanyPredictionResult::getCompanyId, p -> p, (p1, p2) -> p1));
@@ -225,29 +219,55 @@ public class AiService {
                     if (pred != null) {
                         double riskScore = pred.getChurnProbability() * 100.0;
                         company.setRiskScore(riskScore);
-                        company.setTier(riskScore >= 70.0 ? "CARE_REQUIRED" : "NORMAL");
+                        company.setTier(pred.getRiskGrade() != null ? pred.getRiskGrade() : (riskScore >= 70.0 ? "CARE_REQUIRED" : "NORMAL"));
+
+                        String reasonsStr = (pred.getRiskReasons() != null && !pred.getRiskReasons().isEmpty())
+                                ? String.join(", ", pred.getRiskReasons())
+                                : "활동 특이사항 없음";
+
+                        List<Dealer> companyDealers = dealerRepository.findByCompanyCompanyId(company.getCompanyId());
+                        int dealerCount = companyDealers.size();
+                        long activeCount = companyDealers.stream().filter(d -> "ACTIVE".equalsIgnoreCase(d.getStatus())).count();
+                        double activeDealerRatio = dealerCount > 0 ? (double) activeCount / dealerCount : 0.0;
+
+                        companyChurnSnapshots.add(CompanyChurn.builder()
+                                .company(company)
+                                .dealerCount((long) dealerCount)
+                                .activeDealerRatio(activeDealerRatio)
+                                .recentTradeCount(0L)
+                                .previousTradeCount(0L)
+                                .siteUsageRateAvg(0.5)
+                                .riskGrade(pred.getRiskGrade())
+                                .riskReasons(reasonsStr)
+                                .action(pred.getAction())
+                                .calculatedAt(now)
+                                .build());
                     }
                 }
                 companyRepository.saveAll(companies);
-                log.info("상사 전체 {}개의 이탈 위험도 점수 및 등급 일괄 저장(saveAll) 완료.", companies.size());
+                if (!companyChurnSnapshots.isEmpty()) {
+                    companyChurnRepository.saveAll(companyChurnSnapshots);
+                }
+                log.info("상사 전체 {}개의 이탈 위험도 점수, 등급 및 스냅샷 일괄 저장 완료.", companies.size());
             }
+
+            // 6. FastAPI 요청이 성공한 경우에만 이탈 방지 쿠폰 자동 발급 및 골든 뱃지 갱신 연쇄 실행
+            try {
+                log.info("이탈 방지 쿠폰 자동 발급 배치 실행...");
+                couponService.issueRiskCoupons();
+            } catch (Exception e) {
+                log.error("이탈 방지 쿠폰 자동 발급 중 오류 발생: {}", e.getMessage());
+            }
+
+            try {
+                log.info("상위 5% 상사 골든 뱃지 갱신 배치 실행...");
+                couponService.updateCompanyTiersAndBadges();
+            } catch (Exception e) {
+                log.error("상위 5% 상사 골든 뱃지 갱신 중 오류 발생: {}", e.getMessage());
+            }
+
         } else {
-            log.warn("FastAPI 이탈 예측 뱃치 응답이 비어있거나 실패하여 기본 뱃치 저장을 보류합니다.");
-        }
-
-        // 6. 이탈 방지 쿠폰 자동 발급 및 골든 뱃지 갱신 배치 연쇄 호출
-        try {
-            log.info("이탈 방지 쿠폰 자동 발급 배치 실행...");
-            couponService.issueRiskCoupons();
-        } catch (Exception e) {
-            log.error("이탈 방지 쿠폰 자동 발급 중 오류 발생: {}", e.getMessage());
-        }
-
-        try {
-            log.info("상위 5% 상사 골든 뱃지 갱신 배치 실행...");
-            couponService.updateCompanyTiersAndBadges();
-        } catch (Exception e) {
-            log.error("상위 5% 상사 골든 뱃지 갱신 중 오류 발생: {}", e.getMessage());
+            log.warn("FastAPI 이탈 예측 뱃치 응답이 비어있거나 실패하여 이탈 등급 업데이트 및 후속 쿠폰 발급을 보류합니다.");
         }
 
         log.info("자정 이탈 위험도 예측 뱃치 연산 완료.");
@@ -428,5 +448,92 @@ public class AiService {
                 .images(imageDtos)
                 .goldenBadgeStatus(goldenBadgeStatus)
                 .build();
+    }
+
+    /**
+     * FastAPI /api/ai/vehicle-recommendations API를 호출하여 전달받은 차량들의 Condition과 MMR을 예측하고 DB에 저장합니다.
+     */
+    @Transactional
+    public void predictVehicleConditionAndMmrForCars(List<Car> cars) {
+        if (cars == null || cars.isEmpty()) return;
+
+        List<AiClient.VehicleItem> items = cars.stream()
+                .map(car -> AiClient.VehicleItem.builder()
+                        .carId(car.getCarId())
+                        .year(car.getYear())
+                        .make(car.getMake())
+                        .model(car.getModel())
+                        .odometer(car.getOdometer())
+                        .option(car.getOption())
+                        .color(car.getColor())
+                        .sellingPrice(car.getSellingPrice())
+                        .state(car.getState())
+                        .status(car.getStatus())
+                        .ownerType(car.getMember() != null ? "MEMBER" : "DEALER")
+                        .build())
+                .collect(Collectors.toList());
+
+        try {
+            AiClient.VehiclePredictionBatchResponse response = aiClient.predictVehicleConditionAndMmr(items);
+            if (response != null && response.getRecommendations() != null) {
+                Map<Long, AiClient.VehiclePredictionResult> resultMap = response.getRecommendations().stream()
+                        .collect(Collectors.toMap(AiClient.VehiclePredictionResult::getCarId, r -> r, (r1, r2) -> r1));
+
+                for (Car car : cars) {
+                    AiClient.VehiclePredictionResult res = resultMap.get(car.getCarId());
+                    if (res != null) {
+                        if (res.getPredictedCondition() != null) {
+                            car.setCondition(res.getPredictedCondition());
+                        }
+                        if (res.getPredictedMmr() != null) {
+                            car.setMmr(res.getPredictedMmr().doubleValue());
+                        }
+                    }
+                }
+                carRepository.saveAll(cars);
+                log.info("차량 {}대에 대한 FastAPI Condition/MMR 예측 및 DB 저장 완료.", cars.size());
+            }
+        } catch (Exception e) {
+            log.error("차량 Condition/MMR 예측 중 오류 발생 (차량 등록 상태 유지): {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 딜러를 위한 경매 차량 추천 목록을 조회합니다.
+     * 일반회원이 등록한 경매 가능 차량(member != null, status == "REGISTERED")을 조회하고
+     * FastAPI 또는 DB에서 Condition DESC, MMR DESC 기준으로 정렬하여 반환합니다.
+     */
+    @Transactional
+    public List<CarDto.Response> getRecommendedCarsForDealer(Long dealerId) {
+        List<Car> auctionCars = carRepository.findByMemberIsNotNullAndDealerIsNullAndStatusOrderByCreatedAtDesc("REGISTERED");
+
+        if (auctionCars.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Condition 또는 MMR이 미계산된 차량이 포함되어 있는 경우 FastAPI 일괄 예측 구동
+        List<Car> uncalculated = auctionCars.stream()
+                .filter(c -> c.getCondition() == null || c.getMmr() == null)
+                .collect(Collectors.toList());
+
+        if (!uncalculated.isEmpty()) {
+            predictVehicleConditionAndMmrForCars(uncalculated);
+        }
+
+        // Condition 내림차순, MMR 내림차순 정렬
+        auctionCars.sort((c1, c2) -> {
+            Double cond1 = c1.getCondition() != null ? c1.getCondition() : 0.0;
+            Double cond2 = c2.getCondition() != null ? c2.getCondition() : 0.0;
+            int condComp = cond2.compareTo(cond1);
+            if (condComp != 0) return condComp;
+
+            Double mmr1 = c1.getMmr() != null ? c1.getMmr() : 0.0;
+            Double mmr2 = c2.getMmr() != null ? c2.getMmr() : 0.0;
+            return mmr2.compareTo(mmr1);
+        });
+
+        return auctionCars.stream()
+                .map(this::mapToCarResponse)
+                .collect(Collectors.toList());
     }
 }

@@ -223,3 +223,23 @@ Spring Boot 개발 프로젝트 통합 진행상황 및 세부 기능 명세
   - 딜러 100명 및 상사 20개의 서로 다른 활동 지표가 정상 전달되므로, FastAPI의 CatBoost AI 모델이 딜러/상사마다 위험도 점수(`risk_score`)와 등급(`CARE_REQUIRED` / `NORMAL`)을 20점~90점으로 각각 다르고 정확하게 예측하여 `dealers` 및 `companies` 테이블에 실시간 업데이트.
 * 신규 가입 딜러/상사 활동 지표 자동 적재 연쇄 로직 구현 ([AiService.java])
   - 시스템에서 신규 회원가입한 딜러/상사의 거래(`transactions`) 및 입찰(`bids`) 활동 지표를 백엔드가 실시간 계산하여, 자정 이탈 배치 시 `dealer_churn` 및 `company_churn` 히스토리 테이블에 최신 지표 스냅샷 레코드(`saveAll`)로 자동 기입되도록 보완하여 완전 자동화 달성.
+
+--------------------------------------------------------------------------------
+17. FastAPI 연동 고도화, 차량 Condition/MMR 예측 자동화 및 React 지원 API 구축 (FastAPI Integration & Admin/Dealer APIs)
+--------------------------------------------------------------------------------
+* 이탈률 예측 뱃치 연산 개편 ([AiService.java])
+  - 자정 이탈 예측 뱃치 구동 시 과거 스냅샷 조회를 지우고, 원본 DB 거래(`transactions`)와 입찰(`bids`)에서 최신 지표를 실시간 다시 집계하여 FastAPI `POST /api/ai/predict-churn/batch`로 전송.
+  - FastAPI 응답 결과(`churn_probability`, `risk_grade`, `risk_reasons`, `action`)를 `dealers` & `companies` 테이블(`riskScore`, `tier`)과 `dealer_churn` & `company_churn` 히스토리 스냅샷 테이블에 실시간 기입.
+  - FastAPI 응답이 성공(`status == "success"`)한 경우에만 이탈 방지 쿠폰 자동 발급 및 골든 뱃지 갱신이 연쇄 실행되도록 보완.
+* 차량 Condition / MMR 자동 예측 및 저장 ([AiClient.java], [CarService.java])
+  - `AiClient.java`에 `POST /api/ai/vehicle-recommendations` 통신 DTO 및 메소드 추가.
+  - `CarService.registerCar()`로 차량 신규 등록 시 FastAPI에 차량 정보를 전달하여 예측받은 `condition`과 `mmr`을 `cars` 테이블에 자동 저장.
+  - FastAPI 호출 실패 시에도 차량 등록 자체는 롤백 없이 유효 저장되도록 예외 안전망 처리.
+* 딜러용 추천 경매 차량 API 구축 ([AiService.java], [AiController.java])
+  - 일반회원이 등록한 경매 가능 차량 (`status == "REGISTERED"`) 목록을 DB에서 `condition DESC, mmr DESC` 내림차순 정렬하여 반환 (`GET /api/ai/recommend-dealer`).
+  - Condition/MMR 미계산 차량 포함 시 FastAPI 일괄 예측 후 저장 및 정렬 반환.
+* React 지원용 관리자 REST API 세트 제공 ([AiAdminController.java])
+  - `GET /api/admin/ai/churn-dealers`: 전체 딜러 이탈 위험도, 사유, 추천 조치 목록
+  - `GET /api/admin/ai/churn-companies`: 전체 상사 이탈 위험도, 사유 목록
+  - `GET /api/admin/ai/churn-status`: 마지막 예측 계산 시각(`lastCalculatedAt`) 및 뱃치 상태 조회
+================================================================================

@@ -35,6 +35,15 @@ public class DealerChurn {
     @Column(name = "site_usage_rate", nullable = false)
     private Double siteUsageRate;
 
+    @Column(name = "risk_grade")
+    private String riskGrade;
+
+    @Column(name = "risk_reasons", length = 1000)
+    private String riskReasons;
+
+    @Column(name = "action")
+    private String action;
+
     @Column(name = "calculated_at", nullable = false)
     private LocalDateTime calculatedAt;
 }

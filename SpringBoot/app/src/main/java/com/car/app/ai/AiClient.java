@@ -115,6 +115,12 @@ public class AiClient {
 
         @com.fasterxml.jackson.annotation.JsonProperty("risk_grade")
         private String riskGrade;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("risk_reasons")
+        private List<String> riskReasons;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("action")
+        private String action;
     }
 
     @Getter
@@ -133,6 +139,12 @@ public class AiClient {
 
         @com.fasterxml.jackson.annotation.JsonProperty("risk_grade")
         private String riskGrade;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("risk_reasons")
+        private List<String> riskReasons;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("action")
+        private String action;
     }
 
     @Getter
@@ -213,6 +225,59 @@ public class AiClient {
         private String state;
         private String status;
         private String ownerType;
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VehiclePredictionBatchRequest {
+        private List<VehicleItem> vehicles;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VehiclePredictionResult {
+        private Long carId;
+        @com.fasterxml.jackson.annotation.JsonProperty("predicted_condition")
+        private Double predictedCondition;
+        @com.fasterxml.jackson.annotation.JsonProperty("predicted_mmr")
+        private Long predictedMmr;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VehiclePredictionBatchResponse {
+        private String status;
+        private Integer count;
+        private List<VehiclePredictionResult> recommendations;
+    }
+
+    /**
+     * FastAPI /api/ai/vehicle-recommendations API를 호출하여 차량의 Condition과 MMR을 일괄 예측합니다.
+     */
+    public VehiclePredictionBatchResponse predictVehicleConditionAndMmr(List<VehicleItem> vehicles) {
+        try {
+            String url = UriComponentsBuilder.fromUriString(baseUrl)
+                    .path("/api/ai/vehicle-recommendations")
+                    .build()
+                    .toUriString();
+
+            VehiclePredictionBatchRequest request = VehiclePredictionBatchRequest.builder()
+                    .vehicles(vehicles)
+                    .build();
+
+            log.info("FastAPI 서버로 차량 Condition/MMR 예측 요청 송신 (대상 {}대): {}", vehicles.size(), url);
+            return restTemplate.postForObject(url, request, VehiclePredictionBatchResponse.class);
+        } catch (Exception e) {
+            log.error("FastAPI 서버로 차량 Condition/MMR 예측 요청 실패: {}", e.getMessage());
+            return null;
+        }
     }
 
     @Getter

@@ -46,6 +46,7 @@ public class CarService {
     private final BidRepository bidRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
+    private final com.car.app.ai.AiService aiService;
 
     /**
      * 중고차 매물 및 차량 이미지들을 등록하는 트랜잭션 메서드입니다.
@@ -159,6 +160,13 @@ public class CarService {
                     .status("ACTIVE")
                     .build();
             auctionRepository.save(auction);
+        }
+
+        // 6단계: FastAPI Condition/MMR 예측 연동 (실패해도 차량 등록 자체는 롤백하지 않고 유효 유지)
+        try {
+            aiService.predictVehicleConditionAndMmrForCars(List.of(savedCar));
+        } catch (Exception e) {
+            // 예외 발생 시 로그만 기록하고 등록 흐름 유지
         }
 
         return savedCar;
