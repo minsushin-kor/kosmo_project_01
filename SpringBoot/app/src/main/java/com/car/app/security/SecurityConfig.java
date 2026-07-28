@@ -45,9 +45,13 @@ public class SecurityConfig {
                 .requestMatchers("/ws-chat/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/cars/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/notices/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/companies/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/dealers/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/reports").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/company/dealers/**").hasRole("COMPANY_MASTER")
-                .requestMatchers("/api/notifications/**").hasAnyRole("MEMBER", "DEALER")
+                .requestMatchers("/api/notifications/**").hasAnyRole("MEMBER", "DEALER", "ADMIN", "COMPANY_MASTER")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -59,7 +63,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);

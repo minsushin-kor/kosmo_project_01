@@ -47,32 +47,7 @@ public class AiService {
 
     /**
      * 현재 로그인한 딜러를 위한 AI 추천 차량 목록을 상세 DTO 포맷으로 가공하여 조회합니다.
-     *
-     * @param dealerLoginId 로그인한 딜러의 ID
-     * @return 추천 차량 상세 목록
-     */
-    @Transactional(readOnly = true)
-    public List<CarDto.Response> getRecommendationsForDealer(String dealerLoginId) {
-        Dealer dealer = dealerRepository.findByLoginId(dealerLoginId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
 
-        // 1. FastAPI 클라이언트를 통해 추천 차량 ID 목록을 가져옵니다.
-        List<Long> recommendedCarIds = aiClient.getRecommendedCarIds(dealer.getDealerId());
-
-        // 2. ID에 해당하는 차량을 DB에서 조회합니다.
-        List<Car> recommendedCars = carRepository.findAllById(recommendedCarIds);
-
-        // 3. 만약 추천받은 매물이 DB에 없거나 비어있는 경우, 최신 매물 5개를 안전용 대체(Fallback) 리스트로 조회합니다.
-        if (recommendedCars.isEmpty()) {
-            log.info("추천 차량 목록이 비어있거나 DB에서 매핑되는 차량이 없습니다. 최신 매물 5개로 대체하여 추천합니다.");
-            recommendedCars = carRepository.findTop5ByOrderByCreatedAtDesc();
-        }
-
-        // 4. DTO로 변환하여 응답합니다.
-        return recommendedCars.stream()
-                .map(this::mapToCarResponse)
-                .collect(Collectors.toList());
-    }
 
     /**
      * 일반 구매자 추천 조건을 받아 DB에서 판매 가능한 딜러 차량 전체를 조회한 후,
@@ -225,10 +200,9 @@ public class AiService {
                     if (pred != null) {
                         double riskScore = pred.getChurnProbability() * 100.0;
                         company.setRiskScore(riskScore);
-                        // tier: 기존 시스템 등급(NORMAL, CARE_REQUIRED, TOP_5), riskGrade: FastAPI 상세 등급 분리
-                        if (!"TOP_5".equalsIgnoreCase(company.getTier())) {
-                            company.setTier(riskScore >= 70.0 ? "CARE_REQUIRED" : "NORMAL");
-                        }
+                        // tier: 기존 TOP_5 여부와 무관하게 1차적으로 이탈 위험도(70점 이상 CARE_REQUIRED, 70점 미만 NORMAL)로 지정
+                        // (이후 updateCompanyTiersAndBadges에서 상위 5% 실적 상사만 TOP_5로 덮어쓰고, 탈락 상사는 CARE_REQUIRED/NORMAL을 보존)
+                        company.setTier(riskScore >= 70.0 ? "CARE_REQUIRED" : "NORMAL");
                         company.setRiskGrade(pred.getRiskGrade());
 
                         String reasonsStr = (pred.getRiskReasons() != null && !pred.getRiskReasons().isEmpty())

@@ -85,4 +85,31 @@ public class CouponController {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
         }
     }
+
+    /**
+     * 현재 로그인한 상사가 보유한 전체 쿠폰 목록을 조회합니다.
+     */
+    @GetMapping("/coupons/my-company-coupons")
+    @PreAuthorize("hasRole('COMPANY_MASTER')")
+    public ResponseEntity<ApiResponse<List<CouponResponse>>> getMyCompanyCoupons() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String masterEmail = authentication.getName();
+
+            List<CouponResponse> responseList = couponService.getMyCompanyCoupons(masterEmail).stream()
+                    .map(c -> CouponResponse.builder()
+                            .couponId(c.getCouponId())
+                            .name(c.getName())
+                            .couponType(c.getCouponType())
+                            .discountRate(c.getDiscountRate())
+                            .status(c.getStatus())
+                            .expiredAt(c.getExpiredAt())
+                            .build())
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success(responseList, "상사 보유 쿠폰 목록 조회가 완료되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
 }

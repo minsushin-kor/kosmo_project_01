@@ -63,4 +63,56 @@ public class DealerController {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_DEALER", e.getMessage()));
         }
     }
+
+    /**
+     * 상사 마스터 전용: 특정 소속 딜러 상세 정보를 조회합니다.
+     */
+    @GetMapping("/{dealerId}")
+    public ResponseEntity<ApiResponse<DealerDto.Response>> getDealerDetail(@PathVariable Long dealerId) {
+        try {
+            String masterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+            Dealer dealer = dealerService.getDealerDetail(masterEmail, dealerId);
+            DealerDto.Response response = DealerDto.Response.builder()
+                    .dealerId(dealer.getDealerId())
+                    .loginId(dealer.getLoginId())
+                    .name(dealer.getName())
+                    .phone(dealer.getPhone())
+                    .status(dealer.getStatus())
+                    .tier(dealer.getTier())
+                    .riskScore(dealer.getRiskScore())
+                    .profileImageUrl(dealer.getProfileImageUrl())
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(response, "소속 딜러 상세 정보 조회가 완료되었습니다."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(ApiResponse.fail("ERR_UNAUTHORIZED", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_DEALER", e.getMessage()));
+        }
+    }
+
+    /**
+     * 상사 마스터 전용: 특정 소속 딜러 정보를 수정합니다.
+     */
+    @PutMapping("/{dealerId}")
+    public ResponseEntity<ApiResponse<DealerDto.Response>> updateDealer(@PathVariable Long dealerId, @RequestBody DealerDto.CreateRequest request) {
+        try {
+            String masterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+            Dealer dealer = dealerService.updateDealer(masterEmail, dealerId, request);
+            DealerDto.Response response = DealerDto.Response.builder()
+                    .dealerId(dealer.getDealerId())
+                    .loginId(dealer.getLoginId())
+                    .name(dealer.getName())
+                    .phone(dealer.getPhone())
+                    .status(dealer.getStatus())
+                    .tier(dealer.getTier())
+                    .riskScore(dealer.getRiskScore())
+                    .profileImageUrl(dealer.getProfileImageUrl())
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(response, "소속 딜러 정보가 성공적으로 수정되었습니다."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(ApiResponse.fail("ERR_UNAUTHORIZED", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_DEALER", e.getMessage()));
+        }
+    }
 }

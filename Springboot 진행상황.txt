@@ -263,4 +263,54 @@ Spring Boot 개발 프로젝트 통합 진행상황 및 세부 기능 명세
   - 소수점 MMR(Double) 정상 수신/저장 검증 (`testDoubleMmrDeserializationAndSaving`)
   - Condition DESC -> MMR DESC 정렬 검증 (`testDealerRecommendationOrderingByConditionAndMmr`)
   - FastAPI 성공(`status == "success"`) 시에만 후속 쿠폰/뱃지 연쇄 실행 검증 (`testFollowupExecutedOnlyOnFastApiSuccess`)
+
+--------------------------------------------------------------------------------
+19. 상사 TOP_5 등급 이탈 보존 갱신 및 구형 미사용 추천 메소드 완전 제거 (Company Churn Tier Refactoring & Code Cleanup)
+--------------------------------------------------------------------------------
+* 상사 이탈 갱신 시 기존 TOP_5 무조건 보존 방식 개선 ([AiService.java])
+  - 기존 `TOP_5` 상사도 이탈 위험도가 높아질 경우(`riskScore >= 70.0`), 우선 `CARE_REQUIRED`로 정확히 지정되도록 개선.
+  - 이후 `updateCompanyTiersAndBadges()`에서 상위 5% 실적 상사에만 `TOP_5`로 덮어쓰고, 탈락 상사는 앞서 지정된 `CARE_REQUIRED` (또는 `NORMAL`) 상태를 보존하도록 수정하여 정상 상사로 둔갑하는 버그 예방.
+* 구형 미사용 추천 메소드 및 통신 DTO 완전 제거 ([AiService.java], [AiClient.java])
+  - FastAPI에 더이상 존재하지 않는 `/api/ai/recommendations`를 호출하던 구형 `AiService.getRecommendationsForDealer()` 및 `AiClient.getRecommendedCarIds()`, `RecommendationResponse`를 완전히 제거하여 추후 404 및 런타임 예외 발생 가능성 소진.
+* 상사 TOP_5 이탈 상태 유지 검증 테스트 추가 및 100% 통과 ([AiIntegrationTests.java])
+  - `testCompanyLosingTop5TierMaintainsCareRequiredStatus()` 테스트 추가.
+  - `TOP_5` 상사가 이탈 위험도 70점 이상인 경우, 이탈 예측 시 `CARE_REQUIRED` 등급으로 정확하게 갱신되는지 통합 테스트 검증 완료.
+
+--------------------------------------------------------------------------------
+20. React 전용 풀스택 REST API 12가지 대규모 확장 및 수수료율/경매 낙찰 명세 확정 (Full-Stack React REST APIs & Contract Finalization)
+--------------------------------------------------------------------------------
+* 1. 차량 수정·삭제 및 관리자 상태 변경 API ([CarController.java], [CarService.java])
+  - `PUT /api/cars/{carId}`: 본인 등록 차량 수정
+  - `DELETE /api/cars/{carId}`: 본인 등록 차량 비활성화/삭제
+  - `PATCH /api/admin/cars/{carId}/status`: 관리자의 차량 상태 변경
+  - React와의 JSON 포맷 (`images: []` 포함) 계약 확정.
+* 2. 관리자 회원·상사·딜러 계정 관리 API ([AdminController.java])
+  - `GET /api/admin/members`, `PATCH /api/admin/members/{memberId}/status`
+  - `GET /api/admin/companies`, `PATCH /api/admin/companies/{companyId}/status`
+  - `GET /api/admin/dealers`, `PATCH /api/admin/dealers/{dealerId}/status`
+  - 검색어(`query`), 상태(`status`), 페이징(`page`, `size`) 및 공통 응답 DTO 규격 제공.
+* 3. 관리자 대시보드 통계 요약 API ([AdminController.java])
+  - `GET /api/admin/dashboard/summary`: 전체 회원/상사/딜러/차량/거래 수, 최근 계정/차량, 월별 통계 제공.
+* 4. 공지사항 엔티티 및 관리 API ([Notice.java], [NoticeRepository.java], [NoticeController.java])
+  - `GET /api/notices`, `GET /api/notices/{noticeId}`
+  - `POST /api/admin/notices`, `PUT /api/admin/notices/{noticeId}`, `DELETE /api/admin/notices/{noticeId}`
+* 5. 신고 관리 엔티티 및 API ([Report.java], [ReportRepository.java], [ReportController.java])
+  - `POST /api/reports`: 신고 접수
+  - `GET /api/admin/reports`, `GET /api/admin/reports/{reportId}`, `PATCH /api/admin/reports/{reportId}/status` (`PENDING`, `REVIEWING`, `COMPLETED`, `REJECTED`)
+* 6. 거래 결제 상태 관리 및 수수료율 3.0% 통일 ([Transaction.java], [TransactionController.java])
+  - `Transaction` 엔티티에 `status`, `paidAt`, `completedAt`, `cancelledAt`, `commissionRate`, `commissionAmount` 추가.
+  - 거래 수수료율 **3.0% (`0.0300`)**로 명세 확정 및 자동 계산 제공.
+  - `GET /api/admin/transactions`, `GET /api/transactions/{transactionId}`, `PATCH /api/transactions/{transactionId}/status`, `GET /api/users/me/transactions`
+* 7. 회사·딜러 공개 프로필 및 매물 API ([CompanyPublicController.java])
+  - `GET /api/companies`, `GET /api/companies/{companyId}`, `GET /api/companies/{companyId}/dealers`, `GET /api/dealers/{dealerId}`, `GET /api/dealers/{dealerId}/cars`
+* 8. 상사의 소속 딜러 상세 및 수정 API ([DealerController.java], [DealerService.java])
+  - `GET /api/company/dealers/{dealerId}`, `PUT /api/company/dealers/{dealerId}`
+* 9. 딜러 거래 리뷰 조회 API ([ReviewController.java], [ReviewRepository.java])
+  - `GET /api/dealers/{dealerId}/reviews`, `GET /api/transactions/{transactionId}/review`
+* 10. 상사 쿠폰 목록 조회 API ([CouponController.java], [CouponService.java])
+  - `GET /api/coupons/my-company-coupons`
+* 11. 경매 규칙 명세 확정
+  - 최고가 입찰자 자동 낙찰 정석 방식 유지 확정.
+* 12. CORS PATCH 허용 추가 ([WebConfig.java], [SecurityConfig.java])
+  - CORS `allowedMethods`에 `PATCH` 추가.
 ================================================================================

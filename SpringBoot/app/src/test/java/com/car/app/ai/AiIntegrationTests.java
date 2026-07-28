@@ -248,4 +248,29 @@ public class AiIntegrationTests {
         verify(couponService, times(1)).issueRiskCoupons();
         verify(couponService, times(1)).updateCompanyTiersAndBadges();
     }
+
+    @Test
+    @DisplayName("계약검증 5: TOP_5 상사가 이탈 위험도 70점 이상인 상태에서 이탈 예측 시 CARE_REQUIRED 등급으로 갱신되는지 확인")
+    void testCompanyLosingTop5TierMaintainsCareRequiredStatus() {
+        // 1. 기존 상사의 tier를 TOP_5로 설정
+        testCompany.setTier("TOP_5");
+        companyRepository.save(testCompany);
+
+        // 2. FastAPI 이탈 예측 결과: 해당 상사 이탈 확률 80% (riskScore = 80.0 -> CARE_REQUIRED 대상)
+        AiClient.BatchChurnResponse mockResponse = new AiClient.BatchChurnResponse();
+        mockResponse.setStatus("success");
+        mockResponse.setDealerPredictions(List.of());
+        mockResponse.setCompanyPredictions(List.of(
+                new AiClient.CompanyPredictionResult(testCompany.getCompanyId(), 0.80, "High", "Critical", List.of("거래감소"), "관리필요")
+        ));
+        when(aiClient.predictBatchChurn(any())).thenReturn(mockResponse);
+
+        // 3. 이탈 뱃치 실행
+        aiService.runChurnPredictionBatch();
+
+        // 4. 상사의 tier가 CARE_REQUIRED로 지정되었는지 확인 (더이상 무조건 TOP_5로 묶이지 않고 위험도 반영)
+        Company updatedCompany = companyRepository.findById(testCompany.getCompanyId()).orElseThrow();
+        assertThat(updatedCompany.getTier()).isEqualTo("CARE_REQUIRED");
+        assertThat(updatedCompany.getRiskGrade()).isEqualTo("Critical");
+    }
 }

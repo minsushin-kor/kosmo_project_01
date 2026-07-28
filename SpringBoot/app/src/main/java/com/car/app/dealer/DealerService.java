@@ -74,7 +74,44 @@ public class DealerService {
         }
 
         // 4단계: 딜러 계정의 상태를 WITHDRAWN(비활성 정지)으로 세팅하여 DB 반영
-        dealer.setStatus("WITHDRAWN");
+        dealer.setStatus("SUSPENDED");
         dealerRepository.save(dealer);
+    }
+
+    @Transactional(readOnly = true)
+    public Dealer getDealerDetail(String masterEmail, Long dealerId) {
+        Company company = companyRepository.findByMasterEmail(masterEmail)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
+
+        Dealer dealer = dealerRepository.findById(dealerId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
+
+        if (!dealer.getCompany().getCompanyId().equals(company.getCompanyId())) {
+            throw new SecurityException("본인 상사 소속 딜러만 조회할 수 있습니다.");
+        }
+
+        return dealer;
+    }
+
+    @Transactional
+    public Dealer updateDealer(String masterEmail, Long dealerId, DealerDto.CreateRequest request) {
+        Company company = companyRepository.findByMasterEmail(masterEmail)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
+
+        Dealer dealer = dealerRepository.findById(dealerId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
+
+        if (!dealer.getCompany().getCompanyId().equals(company.getCompanyId())) {
+            throw new SecurityException("본인 상사 소속 딜러만 수정할 수 있습니다.");
+        }
+
+        if (request.getName() != null) dealer.setName(request.getName());
+        if (request.getPhone() != null) dealer.setPhone(request.getPhone());
+        if (request.getProfileImageUrl() != null) dealer.setProfileImageUrl(request.getProfileImageUrl());
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            dealer.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        return dealerRepository.save(dealer);
     }
 }
