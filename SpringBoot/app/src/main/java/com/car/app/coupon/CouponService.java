@@ -120,7 +120,7 @@ public class CouponService {
         }
 
         // 4. 수수료 조정 및 거래 데이터 수정 (50% 감면)
-        BigDecimal baseRate = new BigDecimal("0.0030"); // 기본 0.3%
+        BigDecimal baseRate = new BigDecimal("0.0300"); // 기본 3.0%
         BigDecimal discount = coupon.getDiscountRate(); // e.g. 0.5000 (50%)
         BigDecimal newRate = baseRate.multiply(BigDecimal.ONE.subtract(discount)); // 0.0015 (0.15%)
 

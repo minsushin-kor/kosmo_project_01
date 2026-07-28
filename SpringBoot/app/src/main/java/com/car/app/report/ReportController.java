@@ -1,5 +1,9 @@
 package com.car.app.report;
 
+import com.car.app.dealer.Dealer;
+import com.car.app.dealer.DealerRepository;
+import com.car.app.member.Member;
+import com.car.app.member.MemberRepository;
 import com.car.app.security.ApiResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,15 +13,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
 public class ReportController {
 
     private final ReportRepository reportRepository;
+    private final MemberRepository memberRepository;
+    private final DealerRepository dealerRepository;
 
     @Getter
     @Setter
@@ -25,8 +34,6 @@ public class ReportController {
     @AllArgsConstructor
     @Builder
     public static class ReportCreateRequest {
-        private String reporterType;
-        private Long reporterId;
         private String targetType; // 'CAR', 'DEALER', 'MEMBER'
         private Long targetId;
         private String reason;
@@ -41,13 +48,31 @@ public class ReportController {
     }
 
     /**
-     * 회원/딜러 신고 접수
+     * 회원/딜러 신고 접수 (JWT 세션에서 로그인된 신고자 정보 자동 추출하여 안전하게 저장)
      */
     @PostMapping("/api/reports")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER', 'ADMIN', 'COMPANY_MASTER')")
     public ResponseEntity<ApiResponse<Report>> createReport(@RequestBody ReportCreateRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        Optional<Member> memberOpt = memberRepository.findByEmail(username);
+        Optional<Dealer> dealerOpt = dealerRepository.findByLoginId(username);
+
+        String reporterType = "MEMBER";
+        Long reporterId = 0L;
+
+        if (memberOpt.isPresent()) {
+            reporterType = "MEMBER";
+            reporterId = memberOpt.get().getMemberId();
+        } else if (dealerOpt.isPresent()) {
+            reporterType = "DEALER";
+            reporterId = dealerOpt.get().getDealerId();
+        }
+
         Report report = Report.builder()
-                .reporterType(request.getReporterType() != null ? request.getReporterType() : "MEMBER")
-                .reporterId(request.getReporterId())
+                .reporterType(reporterType)
+                .reporterId(reporterId)
                 .targetType(request.getTargetType())
                 .targetId(request.getTargetId())
                 .reason(request.getReason())

@@ -11,6 +11,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByCarCarId(Long carId);
     List<Transaction> findBySellerTypeAndSellerId(String sellerType, Long sellerId);
     List<Transaction> findByBuyerTypeAndBuyerId(String buyerType, Long buyerId);
+    List<Transaction> findByBuyerTypeAndBuyerIdOrSellerTypeAndSellerId(String buyerType, Long buyerId, String sellerType, Long sellerId);
+    long countByStatus(String status);
 
     interface DealerTradeSummary {
         Long getDealerId();

@@ -58,6 +58,10 @@ public class Member {
     @Builder.Default
     private String role = "MEMBER";
 
+    @Column(name = "status", length = 30)
+    @Builder.Default
+    private String status = "ACTIVE";
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
