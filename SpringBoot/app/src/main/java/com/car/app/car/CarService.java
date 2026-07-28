@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.car.app.notification.NotificationService;
 import com.car.app.transaction.Transaction;
 import com.car.app.transaction.TransactionRepository;
 import java.math.BigDecimal;
@@ -25,6 +26,10 @@ import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import com.car.app.auction.BidRepository;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 중고차 매물 등록 및 다중 이미지 업로드를 관장하는 서비스 클래스입니다.
@@ -38,7 +43,10 @@ public class CarService {
     private final MemberRepository memberRepository;
     private final DealerRepository dealerRepository;
     private final AuctionRepository auctionRepository;
+    private final BidRepository bidRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
+    private final com.car.app.ai.AiService aiService;
 
     /**
      * 중고차 매물 및 차량 이미지들을 등록하는 트랜잭션 메서드입니다.
@@ -154,6 +162,13 @@ public class CarService {
             auctionRepository.save(auction);
         }
 
+        // 6단계: FastAPI Condition/MMR 예측 연동 (실패해도 차량 등록 자체는 롤백하지 않고 유효 유지)
+        try {
+            aiService.predictVehicleConditionAndMmrForCars(List.of(savedCar));
+        } catch (Exception e) {
+            // 예외 발생 시 로그만 기록하고 등록 흐름 유지
+        }
+
         return savedCar;
     }
 
@@ -253,6 +268,111 @@ public class CarService {
         // 4단계: 차량 상태를 SOLD로 갱신
         car.setStatus("SOLD");
 
+        // [알림] 딜러에게 차량 판매 완료 알림 생성 및 푸시
+        String dealerMsg = String.format("등록하신 %d년식 %s %s 매물이 %s 님에게 %,d원에 판매 완료되었습니다.",
+                car.getYear(), car.getMake(), car.getModel(), buyer.getName(), dealPrice);
+        notificationService.sendNotification("DEALER", car.getDealer().getDealerId(), "CAR_SOLD", dealerMsg, car.getCarId());
+
         return transactionRepository.save(transaction);
+    }
+
+    /**
+     * 일반 구매자 AI 추천 대상 전체 딜러 차량 목록을 한 번에 조회합니다.
+     * (dealer != null, member == null, status == 'REGISTERED')
+     */
+    @Transactional(readOnly = true)
+    public List<CarDto.Response> getBuyerRecommendationCandidates() {
+        List<Car> cars = carRepository.findByDealerIsNotNullAndMemberIsNullAndStatusOrderByCreatedAtDesc("REGISTERED");
+        return cars.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Car 엔티티를 CarDto.Response 포맷으로 매핑하며, 일반회원 차량의 경우 auctions 테이블을 조인하여 경매 정보(auctionId, startTime, endTime, auctionStatus, bidCount)를 함께 반환합니다.
+     */
+    public CarDto.Response mapToResponse(Car car) {
+        Object owner = car.getOwner();
+        Long ownerId = null;
+        String ownerName = null;
+        String saleType = null;
+        String sellerType = null;
+
+        if (owner instanceof Member) {
+            ownerId = ((Member) owner).getMemberId();
+            ownerName = ((Member) owner).getName();
+            saleType = "AUCTION";
+            sellerType = "일반회원";
+        } else if (owner instanceof Dealer) {
+            ownerId = ((Dealer) owner).getDealerId();
+            ownerName = ((Dealer) owner).getName();
+            saleType = "NORMAL";
+            sellerType = "회사딜러";
+        }
+
+        List<CarDto.ImageDto> imageDtos = new ArrayList<>();
+        if (car.getImages() != null) {
+            imageDtos = car.getImages().stream()
+                    .map(img -> CarDto.ImageDto.builder()
+                            .imageUrl(img.getImageUrl())
+                            .isMain(img.getIsMain())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        boolean goldenBadgeStatus = false;
+        if (car.getDealer() != null && car.getDealer().getCompany() != null) {
+            goldenBadgeStatus = Boolean.TRUE.equals(car.getDealer().getCompany().getGoldenBadgeStatus());
+        }
+
+        // 일반회원 차량일 경우 auctions 테이블을 함께 조회하여 경매 정보 포함
+        Long auctionId = null;
+        LocalDateTime startTime = null;
+        LocalDateTime endTime = null;
+        String auctionStatus = null;
+        Long bidCount = null;
+
+        if (car.getMember() != null) {
+            Optional<Auction> auctionOpt = auctionRepository.findByCarCarId(car.getCarId());
+            if (auctionOpt.isPresent()) {
+                Auction auction = auctionOpt.get();
+                auctionId = auction.getAuctionId();
+                startTime = auction.getStartTime();
+                endTime = auction.getEndTime();
+                auctionStatus = auction.getStatus();
+                bidCount = (long) bidRepository.findByAuctionAuctionId(auction.getAuctionId()).size();
+            }
+        }
+
+        return CarDto.Response.builder()
+                .carId(car.getCarId())
+                .year(car.getYear())
+                .make(car.getMake())
+                .model(car.getModel())
+                .option(car.getOption())
+                .body(car.getBody())
+                .transmission(car.getTransmission())
+                .state(car.getState())
+                .condition(car.getCondition())
+                .odometer(car.getOdometer())
+                .color(car.getColor())
+                .interior(car.getInterior())
+                .sellingPrice(car.getSellingPrice())
+                .mmr(car.getMmr())
+                .status(car.getStatus())
+                .createdAt(car.getCreatedAt())
+                .ownerType(car.getOwnerType())
+                .ownerId(ownerId)
+                .ownerName(ownerName)
+                .saleType(saleType)
+                .sellerType(sellerType)
+                .auctionId(auctionId)
+                .startTime(startTime)
+                .endTime(endTime)
+                .auctionStatus(auctionStatus)
+                .bidCount(bidCount)
+                .images(imageDtos)
+                .goldenBadgeStatus(goldenBadgeStatus)
+                .build();
     }
 }

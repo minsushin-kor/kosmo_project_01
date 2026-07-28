@@ -1,0 +1,337 @@
+[
+  {
+    "vehicle_id": "DEMO-CAR-007",
+    "year": 2019,
+    "make": "Chrysler",
+    "model": "PT Cruiser",
+    "odometer": 77358,
+    "option": [
+      "차체자세제어장치(ESC)",
+      "통풍시트",
+      "썬루프"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-010",
+    "year": 2007,
+    "make": "Infiniti",
+    "model": "QX4",
+    "odometer": 168353,
+    "option": [
+      "차체자세제어장치(ESC)"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-011",
+    "year": 2016,
+    "make": "Chevrolet",
+    "model": "Silverado 1500",
+    "odometer": 113957,
+    "option": [
+      "네비게이션",
+      "통풍시트",
+      "차체자세제어장치(ESC)",
+      "열선시트",
+      "썬루프"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-012",
+    "year": 2022,
+    "make": "Honda",
+    "model": "Accord",
+    "odometer": 82196,
+    "option": []
+  },
+  {
+    "vehicle_id": "DEMO-CAR-013",
+    "year": 2021,
+    "make": "GMC",
+    "model": "Acadia",
+    "odometer": 62595,
+    "option": [
+      "네비게이션",
+      "통풍시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-016",
+    "year": 2013,
+    "make": "Toyota",
+    "model": "Corolla",
+    "odometer": 258959,
+    "option": [
+      "차체자세제어장치(ESC)",
+      "네비게이션",
+      "통풍시트",
+      "열선시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-017",
+    "year": 2022,
+    "make": "BMW",
+    "model": "X5",
+    "odometer": 53764,
+    "option": [
+      "통풍시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-018",
+    "year": 2025,
+    "make": "Cadillac",
+    "model": "XTS",
+    "odometer": 14426,
+    "option": [
+      "네비게이션",
+      "차체자세제어장치(ESC)",
+      "열선시트",
+      "통풍시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-020",
+    "year": 2017,
+    "make": "Ford",
+    "model": "Explorer Sport Trac",
+    "odometer": 90091,
+    "option": [
+      "차체자세제어장치(ESC)",
+      "통풍시트",
+      "썬루프"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-021",
+    "year": 2021,
+    "make": "Mazda",
+    "model": "CX-9",
+    "odometer": 33348,
+    "option": [
+      "열선시트",
+      "통풍시트",
+      "네비게이션",
+      "썬루프"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-022",
+    "year": 2022,
+    "make": "Kia",
+    "model": "Sorento",
+    "odometer": 13582,
+    "option": [
+      "차체자세제어장치(ESC)"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-026",
+    "year": 2018,
+    "make": "Honda",
+    "model": "Civic",
+    "odometer": 128504,
+    "option": []
+  },
+  {
+    "vehicle_id": "DEMO-CAR-027",
+    "year": 2021,
+    "make": "Mazda",
+    "model": "Mazda3",
+    "odometer": 33960,
+    "option": []
+  },
+  {
+    "vehicle_id": "DEMO-CAR-028",
+    "year": 2024,
+    "make": "Mercedes-Benz",
+    "model": "CLA-Class",
+    "odometer": 13039,
+    "option": [
+      "썬루프",
+      "통풍시트",
+      "열선시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-029",
+    "year": 2013,
+    "make": "Honda",
+    "model": "CR-V",
+    "odometer": 185473,
+    "option": [
+      "열선시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-030",
+    "year": 2021,
+    "make": "Infiniti",
+    "model": "G Sedan",
+    "odometer": 28411,
+    "option": []
+  },
+  {
+    "vehicle_id": "DEMO-CAR-032",
+    "year": 2023,
+    "make": "Ford",
+    "model": "Taurus",
+    "odometer": 67923,
+    "option": [
+      "네비게이션",
+      "통풍시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-036",
+    "year": 2012,
+    "make": "Jaguar",
+    "model": "XJ-Series",
+    "odometer": 144720,
+    "option": [
+      "열선시트",
+      "차체자세제어장치(ESC)",
+      "네비게이션",
+      "썬루프",
+      "통풍시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-042",
+    "year": 2021,
+    "make": "Mitsubishi",
+    "model": "Lancer",
+    "odometer": 45812,
+    "option": []
+  },
+  {
+    "vehicle_id": "DEMO-CAR-054",
+    "year": 2018,
+    "make": "BMW",
+    "model": "3 Series",
+    "odometer": 64792,
+    "option": [
+      "네비게이션",
+      "차체자세제어장치(ESC)",
+      "열선시트",
+      "통풍시트",
+      "썬루프"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-055",
+    "year": 2015,
+    "make": "Nissan",
+    "model": "Altima",
+    "odometer": 154985,
+    "option": [
+      "통풍시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-056",
+    "year": 2022,
+    "make": "Jaguar",
+    "model": "XJ",
+    "odometer": 56149,
+    "option": [
+      "네비게이션",
+      "열선시트",
+      "차체자세제어장치(ESC)",
+      "썬루프",
+      "통풍시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-059",
+    "year": 2016,
+    "make": "Honda",
+    "model": "S2000",
+    "odometer": 72524,
+    "option": [
+      "열선시트",
+      "통풍시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-073",
+    "year": 2022,
+    "make": "Mazda",
+    "model": "CX-9",
+    "odometer": 36685,
+    "option": [
+      "열선시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-075",
+    "year": 2024,
+    "make": "Cadillac",
+    "model": "CTS",
+    "odometer": 9419,
+    "option": [
+      "차체자세제어장치(ESC)"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-076",
+    "year": 2022,
+    "make": "Mercedes-Benz",
+    "model": "C-Class",
+    "odometer": 23614,
+    "option": [
+      "차체자세제어장치(ESC)"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-081",
+    "year": 2023,
+    "make": "Hyundai",
+    "model": "Elantra",
+    "odometer": 27764,
+    "option": [
+      "차체자세제어장치(ESC)",
+      "썬루프",
+      "네비게이션"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-083",
+    "year": 2020,
+    "make": "Ford",
+    "model": "F-150",
+    "odometer": 125182,
+    "option": [
+      "차체자세제어장치(ESC)",
+      "네비게이션",
+      "열선시트",
+      "통풍시트",
+      "썬루프"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-093",
+    "year": 2022,
+    "make": "MINI",
+    "model": "Cooper Countryman",
+    "odometer": 38420,
+    "option": [
+      "네비게이션",
+      "썬루프",
+      "열선시트"
+    ]
+  },
+  {
+    "vehicle_id": "DEMO-CAR-097",
+    "year": 2021,
+    "make": "BMW",
+    "model": "3 Series",
+    "odometer": 37196,
+    "option": [
+      "네비게이션",
+      "썬루프",
+      "열선시트",
+      "차체자세제어장치(ESC)"
+    ]
+  }
+]

@@ -6,3 +6,7 @@
 
 # Local environment variables
 .env
+
+# Python execution cache
+__pycache__/
+*.pyc

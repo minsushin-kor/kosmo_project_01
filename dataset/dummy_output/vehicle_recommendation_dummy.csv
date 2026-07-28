@@ -1,0 +1,31 @@
+﻿vehicle_id,year,make,model,odometer,option
+DEMO-CAR-007,2019,Chrysler,PT Cruiser,77358,"차체자세제어장치(ESC), 통풍시트, 썬루프"
+DEMO-CAR-010,2007,Infiniti,QX4,168353,차체자세제어장치(ESC)
+DEMO-CAR-011,2016,Chevrolet,Silverado 1500,113957,"네비게이션, 통풍시트, 차체자세제어장치(ESC), 열선시트, 썬루프"
+DEMO-CAR-012,2022,Honda,Accord,82196,
+DEMO-CAR-013,2021,GMC,Acadia,62595,"네비게이션, 통풍시트"
+DEMO-CAR-016,2013,Toyota,Corolla,258959,"차체자세제어장치(ESC), 네비게이션, 통풍시트, 열선시트"
+DEMO-CAR-017,2022,BMW,X5,53764,통풍시트
+DEMO-CAR-018,2025,Cadillac,XTS,14426,"네비게이션, 차체자세제어장치(ESC), 열선시트, 통풍시트"
+DEMO-CAR-020,2017,Ford,Explorer Sport Trac,90091,"차체자세제어장치(ESC), 통풍시트, 썬루프"
+DEMO-CAR-021,2021,Mazda,CX-9,33348,"열선시트, 통풍시트, 네비게이션, 썬루프"
+DEMO-CAR-022,2022,Kia,Sorento,13582,차체자세제어장치(ESC)
+DEMO-CAR-026,2018,Honda,Civic,128504,
+DEMO-CAR-027,2021,Mazda,Mazda3,33960,
+DEMO-CAR-028,2024,Mercedes-Benz,CLA-Class,13039,"썬루프, 통풍시트, 열선시트"
+DEMO-CAR-029,2013,Honda,CR-V,185473,열선시트
+DEMO-CAR-030,2021,Infiniti,G Sedan,28411,
+DEMO-CAR-032,2023,Ford,Taurus,67923,"네비게이션, 통풍시트"
+DEMO-CAR-036,2012,Jaguar,XJ-Series,144720,"열선시트, 차체자세제어장치(ESC), 네비게이션, 썬루프, 통풍시트"
+DEMO-CAR-042,2021,Mitsubishi,Lancer,45812,
+DEMO-CAR-054,2018,BMW,3 Series,64792,"네비게이션, 차체자세제어장치(ESC), 열선시트, 통풍시트, 썬루프"
+DEMO-CAR-055,2015,Nissan,Altima,154985,통풍시트
+DEMO-CAR-056,2022,Jaguar,XJ,56149,"네비게이션, 열선시트, 차체자세제어장치(ESC), 썬루프, 통풍시트"
+DEMO-CAR-059,2016,Honda,S2000,72524,"열선시트, 통풍시트"
+DEMO-CAR-073,2022,Mazda,CX-9,36685,열선시트
+DEMO-CAR-075,2024,Cadillac,CTS,9419,차체자세제어장치(ESC)
+DEMO-CAR-076,2022,Mercedes-Benz,C-Class,23614,차체자세제어장치(ESC)
+DEMO-CAR-081,2023,Hyundai,Elantra,27764,"차체자세제어장치(ESC), 썬루프, 네비게이션"
+DEMO-CAR-083,2020,Ford,F-150,125182,"차체자세제어장치(ESC), 네비게이션, 열선시트, 통풍시트, 썬루프"
+DEMO-CAR-093,2022,MINI,Cooper Countryman,38420,"네비게이션, 썬루프, 열선시트"
+DEMO-CAR-097,2021,BMW,3 Series,37196,"네비게이션, 썬루프, 열선시트, 차체자세제어장치(ESC)"

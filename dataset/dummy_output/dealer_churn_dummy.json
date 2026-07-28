@@ -7,13 +7,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.26,
-    "model_churn_probability": 0.910005,
-    "model_churn_probability_percent": 91.0,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.26
   },
   {
     "dealer_id": 1001,
@@ -23,13 +19,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.19,
-    "model_churn_probability": 0.917615,
-    "model_churn_probability_percent": 91.76,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.19
   },
   {
     "dealer_id": 1002,
@@ -39,13 +31,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.24,
-    "model_churn_probability": 0.914892,
-    "model_churn_probability_percent": 91.49,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.24
   },
   {
     "dealer_id": 1003,
@@ -55,13 +43,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.24,
-    "model_churn_probability": 0.914892,
-    "model_churn_probability_percent": 91.49,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.24
   },
   {
     "dealer_id": 1004,
@@ -71,13 +55,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.17,
-    "model_churn_probability": 0.917789,
-    "model_churn_probability_percent": 91.78,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.17
   },
   {
     "dealer_id": 1005,
@@ -87,13 +67,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.23,
-    "model_churn_probability": 0.856923,
-    "model_churn_probability_percent": 85.69,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.23
   },
   {
     "dealer_id": 1006,
@@ -103,13 +79,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.28,
-    "model_churn_probability": 0.816637,
-    "model_churn_probability_percent": 81.66,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.28
   },
   {
     "dealer_id": 1007,
@@ -119,13 +91,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.18,
-    "model_churn_probability": 0.809303,
-    "model_churn_probability_percent": 80.93,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.18
   },
   {
     "dealer_id": 1008,
@@ -135,13 +103,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.18,
-    "model_churn_probability": 0.848344,
-    "model_churn_probability_percent": 84.83,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.18
   },
   {
     "dealer_id": 1009,
@@ -151,13 +115,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.27,
-    "model_churn_probability": 0.877233,
-    "model_churn_probability_percent": 87.72,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.27
   },
   {
     "dealer_id": 1010,
@@ -167,13 +127,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.27,
-    "model_churn_probability": 0.820652,
-    "model_churn_probability_percent": 82.07,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.27
   },
   {
     "dealer_id": 1011,
@@ -183,13 +139,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.28,
-    "model_churn_probability": 0.870468,
-    "model_churn_probability_percent": 87.05,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.28
   },
   {
     "dealer_id": 1012,
@@ -199,13 +151,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.15,
-    "model_churn_probability": 0.714516,
-    "model_churn_probability_percent": 71.45,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.15
   },
   {
     "dealer_id": 1013,
@@ -215,13 +163,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.28,
-    "model_churn_probability": 0.783403,
-    "model_churn_probability_percent": 78.34,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.28
   },
   {
     "dealer_id": 1014,
@@ -231,13 +175,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.41,
-    "model_churn_probability": 0.743978,
-    "model_churn_probability_percent": 74.4,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.41
   },
   {
     "dealer_id": 1015,
@@ -247,13 +187,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.29,
-    "model_churn_probability": 0.719189,
-    "model_churn_probability_percent": 71.92,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.29
   },
   {
     "dealer_id": 1016,
@@ -263,13 +199,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.39,
-    "model_churn_probability": 0.750124,
-    "model_churn_probability_percent": 75.01,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.39
   },
   {
     "dealer_id": 1017,
@@ -279,13 +211,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.33,
-    "model_churn_probability": 0.761996,
-    "model_churn_probability_percent": 76.2,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.33
   },
   {
     "dealer_id": 1018,
@@ -295,13 +223,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.38,
-    "model_churn_probability": 0.713655,
-    "model_churn_probability_percent": 71.37,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.38
   },
   {
     "dealer_id": 1019,
@@ -311,13 +235,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.31,
-    "model_churn_probability": 0.755556,
-    "model_churn_probability_percent": 75.56,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.31
   },
   {
     "dealer_id": 1020,
@@ -327,13 +247,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.47,
-    "model_churn_probability": 0.690316,
-    "model_churn_probability_percent": 69.03,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.47
   },
   {
     "dealer_id": 1021,
@@ -343,13 +259,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.5,
-    "model_churn_probability": 0.630072,
-    "model_churn_probability_percent": 63.01,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.5
   },
   {
     "dealer_id": 1022,
@@ -359,13 +271,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.5,
-    "model_churn_probability": 0.633592,
-    "model_churn_probability_percent": 63.36,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.5
   },
   {
     "dealer_id": 1023,
@@ -375,13 +283,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.33,
-    "model_churn_probability": 0.679657,
-    "model_churn_probability_percent": 67.97,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.33
   },
   {
     "dealer_id": 1024,
@@ -391,13 +295,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.36,
-    "model_churn_probability": 0.644506,
-    "model_churn_probability_percent": 64.45,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.36
   },
   {
     "dealer_id": 1025,
@@ -407,13 +307,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.34,
-    "model_churn_probability": 0.699567,
-    "model_churn_probability_percent": 69.96,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.34
   },
   {
     "dealer_id": 1026,
@@ -423,13 +319,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.25,
-    "model_churn_probability": 0.691487,
-    "model_churn_probability_percent": 69.15,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.25
   },
   {
     "dealer_id": 1027,
@@ -439,13 +331,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.37,
-    "model_churn_probability": 0.631807,
-    "model_churn_probability_percent": 63.18,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.37
   },
   {
     "dealer_id": 1028,
@@ -455,13 +343,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.36,
-    "model_churn_probability": 0.683331,
-    "model_churn_probability_percent": 68.33,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.36
   },
   {
     "dealer_id": 1029,
@@ -471,13 +355,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.27,
-    "model_churn_probability": 0.663216,
-    "model_churn_probability_percent": 66.32,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.27
   },
   {
     "dealer_id": 1030,
@@ -487,13 +367,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.47,
-    "model_churn_probability": 0.440461,
-    "model_churn_probability_percent": 44.05,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.47
   },
   {
     "dealer_id": 1031,
@@ -503,13 +379,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.44,
-    "model_churn_probability": 0.5308,
-    "model_churn_probability_percent": 53.08,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.44
   },
   {
     "dealer_id": 1032,
@@ -519,13 +391,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.54,
-    "model_churn_probability": 0.55615,
-    "model_churn_probability_percent": 55.61,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.54
   },
   {
     "dealer_id": 1033,
@@ -535,13 +403,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 5,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.79175947,
-    "site_usage_rate": 0.12,
-    "model_churn_probability": 0.497927,
-    "model_churn_probability_percent": 49.79,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.12
   },
   {
     "dealer_id": 1034,
@@ -551,13 +415,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.49,
-    "model_churn_probability": 0.461623,
-    "model_churn_probability_percent": 46.16,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.49
   },
   {
     "dealer_id": 1035,
@@ -567,13 +427,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.39,
-    "model_churn_probability": 0.512435,
-    "model_churn_probability_percent": 51.24,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.39
   },
   {
     "dealer_id": 1036,
@@ -583,13 +439,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.45,
-    "model_churn_probability": 0.448881,
-    "model_churn_probability_percent": 44.89,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.45
   },
   {
     "dealer_id": 1037,
@@ -599,13 +451,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.5,
-    "model_churn_probability": 0.599639,
-    "model_churn_probability_percent": 59.96,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.5
   },
   {
     "dealer_id": 1038,
@@ -615,13 +463,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.41,
-    "model_churn_probability": 0.471747,
-    "model_churn_probability_percent": 47.17,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.41
   },
   {
     "dealer_id": 1039,
@@ -631,13 +475,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.49,
-    "model_churn_probability": 0.534139,
-    "model_churn_probability_percent": 53.41,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.49
   },
   {
     "dealer_id": 1040,
@@ -647,13 +487,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.47,
-    "model_churn_probability": 0.435828,
-    "model_churn_probability_percent": 43.58,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.47
   },
   {
     "dealer_id": 1041,
@@ -663,13 +499,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.47,
-    "model_churn_probability": 0.444693,
-    "model_churn_probability_percent": 44.47,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.47
   },
   {
     "dealer_id": 1042,
@@ -679,13 +511,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.35,
-    "model_churn_probability": 0.580922,
-    "model_churn_probability_percent": 58.09,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.35
   },
   {
     "dealer_id": 1043,
@@ -695,13 +523,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.42,
-    "model_churn_probability": 0.472021,
-    "model_churn_probability_percent": 47.2,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.42
   },
   {
     "dealer_id": 1044,
@@ -711,13 +535,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.44,
-    "model_churn_probability": 0.489519,
-    "model_churn_probability_percent": 48.95,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.44
   },
   {
     "dealer_id": 1045,
@@ -727,13 +547,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.44,
-    "model_churn_probability": 0.41063,
-    "model_churn_probability_percent": 41.06,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.44
   },
   {
     "dealer_id": 1046,
@@ -743,13 +559,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.4,
-    "model_churn_probability": 0.437388,
-    "model_churn_probability_percent": 43.74,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.4
   },
   {
     "dealer_id": 1047,
@@ -759,13 +571,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.33,
-    "model_churn_probability": 0.555998,
-    "model_churn_probability_percent": 55.6,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.33
   },
   {
     "dealer_id": 1048,
@@ -775,13 +583,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.43,
-    "model_churn_probability": 0.500516,
-    "model_churn_probability_percent": 50.05,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.43
   },
   {
     "dealer_id": 1049,
@@ -791,13 +595,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.37,
-    "model_churn_probability": 0.58897,
-    "model_churn_probability_percent": 58.9,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive"
+    "site_usage_rate": 0.37
   },
   {
     "dealer_id": 1050,
@@ -808,12 +608,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.28,
-    "model_churn_probability": 0.329934,
-    "model_churn_probability_percent": 32.99,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.28
   },
   {
     "dealer_id": 1051,
@@ -824,12 +620,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.33,
-    "model_churn_probability": 0.214882,
-    "model_churn_probability_percent": 21.49,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.33
   },
   {
     "dealer_id": 1052,
@@ -841,11 +633,7 @@
     "previous_trade_count": 1,
     "recent_60d_trade_count_log": 0.69314718,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.19,
-    "model_churn_probability": 0.3248,
-    "model_churn_probability_percent": 32.48,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.19
   },
   {
     "dealer_id": 1053,
@@ -856,12 +644,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.32,
-    "model_churn_probability": 0.341126,
-    "model_churn_probability_percent": 34.11,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.32
   },
   {
     "dealer_id": 1054,
@@ -872,12 +656,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.27,
-    "model_churn_probability": 0.35213,
-    "model_churn_probability_percent": 35.21,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.27
   },
   {
     "dealer_id": 1055,
@@ -888,12 +668,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.21,
-    "model_churn_probability": 0.310484,
-    "model_churn_probability_percent": 31.05,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.21
   },
   {
     "dealer_id": 1056,
@@ -904,12 +680,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.3,
-    "model_churn_probability": 0.317387,
-    "model_churn_probability_percent": 31.74,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.3
   },
   {
     "dealer_id": 1057,
@@ -920,12 +692,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.25,
-    "model_churn_probability": 0.248247,
-    "model_churn_probability_percent": 24.82,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.25
   },
   {
     "dealer_id": 1058,
@@ -936,12 +704,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.23,
-    "model_churn_probability": 0.317479,
-    "model_churn_probability_percent": 31.75,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.23
   },
   {
     "dealer_id": 1059,
@@ -952,12 +716,8 @@
     "previous_60d_trade_count": 0,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 0.69314718,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.26,
-    "model_churn_probability": 0.331281,
-    "model_churn_probability_percent": 33.13,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.26
   },
   {
     "dealer_id": 1060,
@@ -967,13 +727,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.39,
-    "model_churn_probability": 0.272579,
-    "model_churn_probability_percent": 27.26,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.39
   },
   {
     "dealer_id": 1061,
@@ -983,13 +739,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.38,
-    "model_churn_probability": 0.391735,
-    "model_churn_probability_percent": 39.17,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.38
   },
   {
     "dealer_id": 1062,
@@ -999,13 +751,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 4,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.60943791,
-    "site_usage_rate": 0.26,
-    "model_churn_probability": 0.339395,
-    "model_churn_probability_percent": 33.94,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.26
   },
   {
     "dealer_id": 1063,
@@ -1015,13 +763,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 4,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.60943791,
-    "site_usage_rate": 0.35,
-    "model_churn_probability": 0.216371,
-    "model_churn_probability_percent": 21.64,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.35
   },
   {
     "dealer_id": 1064,
@@ -1031,13 +775,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.36,
-    "model_churn_probability": 0.360151,
-    "model_churn_probability_percent": 36.02,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.36
   },
   {
     "dealer_id": 1065,
@@ -1047,13 +787,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.4,
-    "model_churn_probability": 0.227855,
-    "model_churn_probability_percent": 22.79,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.4
   },
   {
     "dealer_id": 1066,
@@ -1063,13 +799,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.38,
-    "model_churn_probability": 0.292079,
-    "model_churn_probability_percent": 29.21,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.38
   },
   {
     "dealer_id": 1067,
@@ -1079,13 +811,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.38,
-    "model_churn_probability": 0.292907,
-    "model_churn_probability_percent": 29.29,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.38
   },
   {
     "dealer_id": 1068,
@@ -1095,13 +823,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.5,
-    "model_churn_probability": 0.322828,
-    "model_churn_probability_percent": 32.28,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.5
   },
   {
     "dealer_id": 1069,
@@ -1111,13 +835,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.5,
-    "model_churn_probability": 0.320932,
-    "model_churn_probability_percent": 32.09,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.5
   },
   {
     "dealer_id": 1070,
@@ -1127,13 +847,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 5,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.79175947,
-    "site_usage_rate": 0.23,
-    "model_churn_probability": 0.226799,
-    "model_churn_probability_percent": 22.68,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.23
   },
   {
     "dealer_id": 1071,
@@ -1143,13 +859,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
     "previous_trade_count": 2,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.09861229,
-    "site_usage_rate": 0.49,
-    "model_churn_probability": 0.269935,
-    "model_churn_probability_percent": 26.99,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.49
   },
   {
     "dealer_id": 1072,
@@ -1159,13 +871,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 4,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.60943791,
-    "site_usage_rate": 0.3,
-    "model_churn_probability": 0.241767,
-    "model_churn_probability_percent": 24.18,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.3
   },
   {
     "dealer_id": 1073,
@@ -1175,13 +883,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 3,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.38629436,
-    "site_usage_rate": 0.35,
-    "model_churn_probability": 0.303961,
-    "model_churn_probability_percent": 30.4,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.35
   },
   {
     "dealer_id": 1074,
@@ -1191,13 +895,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 3,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 1.38629436,
-    "site_usage_rate": 0.34,
-    "model_churn_probability": 0.235715,
-    "model_churn_probability_percent": 23.57,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.34
   },
   {
     "dealer_id": 1075,
@@ -1207,13 +907,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.49,
-    "model_churn_probability": 0.343334,
-    "model_churn_probability_percent": 34.33,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.49
   },
   {
     "dealer_id": 1076,
@@ -1223,13 +919,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.35,
-    "model_churn_probability": 0.304232,
-    "model_churn_probability_percent": 30.42,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.35
   },
   {
     "dealer_id": 1077,
@@ -1239,13 +931,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 14,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 2.7080502,
-    "site_usage_rate": 0.16,
-    "model_churn_probability": 0.260832,
-    "model_churn_probability_percent": 26.08,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.16
   },
   {
     "dealer_id": 1078,
@@ -1255,13 +943,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.55,
-    "model_churn_probability": 0.269029,
-    "model_churn_probability_percent": 26.9,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.55
   },
   {
     "dealer_id": 1079,
@@ -1271,13 +955,9 @@
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
     "previous_trade_count": 1,
-    "recent_60d_trade_count_log": 0.0,
+    "recent_60d_trade_count_log": 0,
     "previous_trade_count_log": 0.69314718,
-    "site_usage_rate": 0.57,
-    "model_churn_probability": 0.261371,
-    "model_churn_probability_percent": 26.14,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.57
   },
   {
     "dealer_id": 1080,
@@ -1289,11 +969,7 @@
     "previous_trade_count": 32,
     "recent_60d_trade_count_log": 2.94443898,
     "previous_trade_count_log": 3.49650756,
-    "site_usage_rate": 0.64,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.64
   },
   {
     "dealer_id": 1081,
@@ -1305,11 +981,7 @@
     "previous_trade_count": 106,
     "recent_60d_trade_count_log": 2.39789527,
     "previous_trade_count_log": 4.67282883,
-    "site_usage_rate": 0.5,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.5
   },
   {
     "dealer_id": 1082,
@@ -1321,11 +993,7 @@
     "previous_trade_count": 107,
     "recent_60d_trade_count_log": 3.04452244,
     "previous_trade_count_log": 4.68213123,
-    "site_usage_rate": 0.54,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.54
   },
   {
     "dealer_id": 1083,
@@ -1337,11 +1005,7 @@
     "previous_trade_count": 14,
     "recent_60d_trade_count_log": 2.77258872,
     "previous_trade_count_log": 2.7080502,
-    "site_usage_rate": 0.48,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.48
   },
   {
     "dealer_id": 1084,
@@ -1353,11 +1017,7 @@
     "previous_trade_count": 160,
     "recent_60d_trade_count_log": 3.21887582,
     "previous_trade_count_log": 5.08140436,
-    "site_usage_rate": 0.68,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.68
   },
   {
     "dealer_id": 1085,
@@ -1369,11 +1029,7 @@
     "previous_trade_count": 124,
     "recent_60d_trade_count_log": 3.21887582,
     "previous_trade_count_log": 4.82831374,
-    "site_usage_rate": 0.51,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.51
   },
   {
     "dealer_id": 1086,
@@ -1385,11 +1041,7 @@
     "previous_trade_count": 36,
     "recent_60d_trade_count_log": 2.48490665,
     "previous_trade_count_log": 3.61091791,
-    "site_usage_rate": 0.6,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.6
   },
   {
     "dealer_id": 1087,
@@ -1401,11 +1053,7 @@
     "previous_trade_count": 189,
     "recent_60d_trade_count_log": 3.52636052,
     "previous_trade_count_log": 5.24702407,
-    "site_usage_rate": 0.47,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.47
   },
   {
     "dealer_id": 1088,
@@ -1416,12 +1064,8 @@
     "previous_60d_trade_count": 3,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 2.83321334,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.43,
-    "model_churn_probability": 0.010716,
-    "model_churn_probability_percent": 1.07,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.43
   },
   {
     "dealer_id": 1089,
@@ -1433,11 +1077,7 @@
     "previous_trade_count": 59,
     "recent_60d_trade_count_log": 3.09104245,
     "previous_trade_count_log": 4.09434456,
-    "site_usage_rate": 0.62,
-    "model_churn_probability": 0.000752,
-    "model_churn_probability_percent": 0.08,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.62
   },
   {
     "dealer_id": 1090,
@@ -1449,11 +1089,7 @@
     "previous_trade_count": 30,
     "recent_60d_trade_count_log": 2.39789527,
     "previous_trade_count_log": 3.4339872,
-    "site_usage_rate": 0.61,
-    "model_churn_probability": 0.000538,
-    "model_churn_probability_percent": 0.05,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.61
   },
   {
     "dealer_id": 1091,
@@ -1465,11 +1101,7 @@
     "previous_trade_count": 216,
     "recent_60d_trade_count_log": 3.55534806,
     "previous_trade_count_log": 5.37989735,
-    "site_usage_rate": 0.66,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.66
   },
   {
     "dealer_id": 1092,
@@ -1481,11 +1113,7 @@
     "previous_trade_count": 17,
     "recent_60d_trade_count_log": 2.39789527,
     "previous_trade_count_log": 2.89037176,
-    "site_usage_rate": 0.41,
-    "model_churn_probability": 0.000182,
-    "model_churn_probability_percent": 0.02,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.41
   },
   {
     "dealer_id": 1093,
@@ -1497,11 +1125,7 @@
     "previous_trade_count": 75,
     "recent_60d_trade_count_log": 2.56494936,
     "previous_trade_count_log": 4.33073334,
-    "site_usage_rate": 0.5,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.5
   },
   {
     "dealer_id": 1094,
@@ -1513,11 +1137,7 @@
     "previous_trade_count": 247,
     "recent_60d_trade_count_log": 3.68887945,
     "previous_trade_count_log": 5.51342875,
-    "site_usage_rate": 0.8,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.8
   },
   {
     "dealer_id": 1095,
@@ -1528,12 +1148,8 @@
     "previous_60d_trade_count": 3,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 2.63905733,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.49,
-    "model_churn_probability": 0.008576,
-    "model_churn_probability_percent": 0.86,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.49
   },
   {
     "dealer_id": 1096,
@@ -1544,12 +1160,8 @@
     "previous_60d_trade_count": 4,
     "previous_trade_count": 0,
     "recent_60d_trade_count_log": 2.83321334,
-    "previous_trade_count_log": 0.0,
-    "site_usage_rate": 0.39,
-    "model_churn_probability": 0.011441,
-    "model_churn_probability_percent": 1.14,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "previous_trade_count_log": 0,
+    "site_usage_rate": 0.39
   },
   {
     "dealer_id": 1097,
@@ -1561,11 +1173,7 @@
     "previous_trade_count": 31,
     "recent_60d_trade_count_log": 2.89037176,
     "previous_trade_count_log": 3.4657359,
-    "site_usage_rate": 0.37,
-    "model_churn_probability": 0.010465,
-    "model_churn_probability_percent": 1.05,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.37
   },
   {
     "dealer_id": 1098,
@@ -1577,11 +1185,7 @@
     "previous_trade_count": 37,
     "recent_60d_trade_count_log": 2.48490665,
     "previous_trade_count_log": 3.63758616,
-    "site_usage_rate": 0.49,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.49
   },
   {
     "dealer_id": 1099,
@@ -1593,10 +1197,6 @@
     "previous_trade_count": 53,
     "recent_60d_trade_count_log": 2.63905733,
     "previous_trade_count_log": 3.98898405,
-    "site_usage_rate": 0.49,
-    "model_churn_probability": 6.2e-05,
-    "model_churn_probability_percent": 0.01,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active"
+    "site_usage_rate": 0.49
   }
 ]

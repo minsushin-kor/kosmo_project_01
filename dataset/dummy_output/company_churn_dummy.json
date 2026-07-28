@@ -9,7 +9,7 @@
     ],
     "dealer_count": 4,
     "active_dealer_count": 4,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 10,
     "previous_60d_trade_count": 3,
     "recent_trade_per_dealer": 2.5,
@@ -17,12 +17,7 @@
     "recent_trade_per_dealer_log": 1.25276297,
     "previous_trade_per_dealer_log": 0.55961579,
     "activity_growth_log": 0.69314718,
-    "site_usage_rate_avg": 0.415,
-    "model_churn_probability": 0.328672,
-    "model_churn_probability_percent": 32.87,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.415
   },
   {
     "company_id": 2,
@@ -43,12 +38,7 @@
     "recent_trade_per_dealer_log": 2.53369681,
     "previous_trade_per_dealer_log": 0.87546874,
     "activity_growth_log": 1.65822808,
-    "site_usage_rate_avg": 0.454,
-    "model_churn_probability": 0.139833,
-    "model_churn_probability_percent": 13.98,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.454
   },
   {
     "company_id": 3,
@@ -64,16 +54,11 @@
     "recent_60d_trade_count": 39,
     "previous_60d_trade_count": 4,
     "recent_trade_per_dealer": 9.75,
-    "previous_trade_per_dealer": 1.0,
+    "previous_trade_per_dealer": 1,
     "recent_trade_per_dealer_log": 2.37490575,
     "previous_trade_per_dealer_log": 0.69314718,
     "activity_growth_log": 1.68175857,
-    "site_usage_rate_avg": 0.5075,
-    "model_churn_probability": 0.142467,
-    "model_churn_probability_percent": 14.25,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.5075
   },
   {
     "company_id": 4,
@@ -86,20 +71,15 @@
     ],
     "dealer_count": 5,
     "active_dealer_count": 5,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 1,
-    "recent_trade_per_dealer": 0.0,
+    "recent_trade_per_dealer": 0,
     "previous_trade_per_dealer": 0.2,
-    "recent_trade_per_dealer_log": 0.0,
+    "recent_trade_per_dealer_log": 0,
     "previous_trade_per_dealer_log": 0.18232156,
     "activity_growth_log": -0.18232156,
-    "site_usage_rate_avg": 0.448,
-    "model_churn_probability": 0.829464,
-    "model_churn_probability_percent": 82.95,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive",
-    "is_company_churn": 1
+    "site_usage_rate_avg": 0.448
   },
   {
     "company_id": 5,
@@ -121,12 +101,7 @@
     "recent_trade_per_dealer_log": 1.87180218,
     "previous_trade_per_dealer_log": 0.84729786,
     "activity_growth_log": 1.02450432,
-    "site_usage_rate_avg": 0.3617,
-    "model_churn_probability": 0.115442,
-    "model_churn_probability_percent": 11.54,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.3617
   },
   {
     "company_id": 6,
@@ -146,12 +121,7 @@
     "recent_trade_per_dealer_log": 1.32175584,
     "previous_trade_per_dealer_log": 0.55961579,
     "activity_growth_log": 0.76214005,
-    "site_usage_rate_avg": 0.4,
-    "model_churn_probability": 0.462842,
-    "model_churn_probability_percent": 46.28,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.4
   },
   {
     "company_id": 7,
@@ -166,17 +136,12 @@
     "active_dealer_ratio": 0.75,
     "recent_60d_trade_count": 16,
     "previous_60d_trade_count": 4,
-    "recent_trade_per_dealer": 4.0,
-    "previous_trade_per_dealer": 1.0,
+    "recent_trade_per_dealer": 4,
+    "previous_trade_per_dealer": 1,
     "recent_trade_per_dealer_log": 1.60943791,
     "previous_trade_per_dealer_log": 0.69314718,
     "activity_growth_log": 0.91629073,
-    "site_usage_rate_avg": 0.4075,
-    "model_churn_probability": 0.23182,
-    "model_churn_probability_percent": 23.18,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.4075
   },
   {
     "company_id": 8,
@@ -190,7 +155,7 @@
     ],
     "dealer_count": 6,
     "active_dealer_count": 6,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 13,
     "previous_60d_trade_count": 2,
     "recent_trade_per_dealer": 2.166667,
@@ -198,12 +163,7 @@
     "recent_trade_per_dealer_log": 1.15267951,
     "previous_trade_per_dealer_log": 0.28768207,
     "activity_growth_log": 0.86499744,
-    "site_usage_rate_avg": 0.38,
-    "model_churn_probability": 0.587515,
-    "model_churn_probability_percent": 58.75,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive",
-    "is_company_churn": 1
+    "site_usage_rate_avg": 0.38
   },
   {
     "company_id": 9,
@@ -218,7 +178,7 @@
     ],
     "dealer_count": 7,
     "active_dealer_count": 7,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 36,
     "previous_60d_trade_count": 2,
     "recent_trade_per_dealer": 5.142857,
@@ -226,12 +186,7 @@
     "recent_trade_per_dealer_log": 1.81528997,
     "previous_trade_per_dealer_log": 0.25131443,
     "activity_growth_log": 1.56397554,
-    "site_usage_rate_avg": 0.3729,
-    "model_churn_probability": 0.0615,
-    "model_churn_probability_percent": 6.15,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.3729
   },
   {
     "company_id": 10,
@@ -253,12 +208,7 @@
     "recent_trade_per_dealer_log": 1.2039728,
     "previous_trade_per_dealer_log": 0.40546511,
     "activity_growth_log": 0.7985077,
-    "site_usage_rate_avg": 0.29,
-    "model_churn_probability": 0.700858,
-    "model_churn_probability_percent": 70.09,
-    "model_risk_grade": "High",
-    "predicted_status": "Inactive",
-    "is_company_churn": 1
+    "site_usage_rate_avg": 0.29
   },
   {
     "company_id": 11,
@@ -275,17 +225,12 @@
     "active_dealer_ratio": 0.6667,
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
-    "recent_trade_per_dealer": 0.0,
-    "previous_trade_per_dealer": 0.0,
-    "recent_trade_per_dealer_log": 0.0,
-    "previous_trade_per_dealer_log": 0.0,
-    "activity_growth_log": 0.0,
-    "site_usage_rate_avg": 0.3333,
-    "model_churn_probability": 0.984632,
-    "model_churn_probability_percent": 98.46,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive",
-    "is_company_churn": 1
+    "recent_trade_per_dealer": 0,
+    "previous_trade_per_dealer": 0,
+    "recent_trade_per_dealer_log": 0,
+    "previous_trade_per_dealer_log": 0,
+    "activity_growth_log": 0,
+    "site_usage_rate_avg": 0.3333
   },
   {
     "company_id": 12,
@@ -301,16 +246,11 @@
     "recent_60d_trade_count": 1,
     "previous_60d_trade_count": 0,
     "recent_trade_per_dealer": 0.25,
-    "previous_trade_per_dealer": 0.0,
+    "previous_trade_per_dealer": 0,
     "recent_trade_per_dealer_log": 0.22314355,
-    "previous_trade_per_dealer_log": 0.0,
+    "previous_trade_per_dealer_log": 0,
     "activity_growth_log": 0.22314355,
-    "site_usage_rate_avg": 0.355,
-    "model_churn_probability": 0.984632,
-    "model_churn_probability_percent": 98.46,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive",
-    "is_company_churn": 1
+    "site_usage_rate_avg": 0.355
   },
   {
     "company_id": 13,
@@ -332,12 +272,7 @@
     "recent_trade_per_dealer_log": 1.34373475,
     "previous_trade_per_dealer_log": 0.6061358,
     "activity_growth_log": 0.73759894,
-    "site_usage_rate_avg": 0.31,
-    "model_churn_probability": 0.4156,
-    "model_churn_probability_percent": 41.56,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.31
   },
   {
     "company_id": 14,
@@ -360,12 +295,7 @@
     "recent_trade_per_dealer_log": 1.31218639,
     "previous_trade_per_dealer_log": 0.45198512,
     "activity_growth_log": 0.86020127,
-    "site_usage_rate_avg": 0.3814,
-    "model_churn_probability": 0.535664,
-    "model_churn_probability_percent": 53.57,
-    "model_risk_grade": "Medium",
-    "predicted_status": "Inactive",
-    "is_company_churn": 1
+    "site_usage_rate_avg": 0.3814
   },
   {
     "company_id": 15,
@@ -377,7 +307,7 @@
     ],
     "dealer_count": 4,
     "active_dealer_count": 4,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 38,
     "previous_60d_trade_count": 6,
     "recent_trade_per_dealer": 9.5,
@@ -385,12 +315,7 @@
     "recent_trade_per_dealer_log": 2.35137526,
     "previous_trade_per_dealer_log": 0.91629073,
     "activity_growth_log": 1.43508453,
-    "site_usage_rate_avg": 0.4075,
-    "model_churn_probability": 0.0036,
-    "model_churn_probability_percent": 0.36,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.4075
   },
   {
     "company_id": 16,
@@ -403,20 +328,15 @@
     ],
     "dealer_count": 5,
     "active_dealer_count": 5,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 42,
     "previous_60d_trade_count": 10,
     "recent_trade_per_dealer": 8.4,
-    "previous_trade_per_dealer": 2.0,
+    "previous_trade_per_dealer": 2,
     "recent_trade_per_dealer_log": 2.24070969,
     "previous_trade_per_dealer_log": 1.09861229,
     "activity_growth_log": 1.1420974,
-    "site_usage_rate_avg": 0.436,
-    "model_churn_probability": 0.0,
-    "model_churn_probability_percent": 0.0,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.436
   },
   {
     "company_id": 17,
@@ -427,20 +347,15 @@
     ],
     "dealer_count": 3,
     "active_dealer_count": 3,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 0,
-    "recent_trade_per_dealer": 0.0,
-    "previous_trade_per_dealer": 0.0,
-    "recent_trade_per_dealer_log": 0.0,
-    "previous_trade_per_dealer_log": 0.0,
-    "activity_growth_log": 0.0,
-    "site_usage_rate_avg": 0.45,
-    "model_churn_probability": 0.828527,
-    "model_churn_probability_percent": 82.85,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive",
-    "is_company_churn": 1
+    "recent_trade_per_dealer": 0,
+    "previous_trade_per_dealer": 0,
+    "recent_trade_per_dealer_log": 0,
+    "previous_trade_per_dealer_log": 0,
+    "activity_growth_log": 0,
+    "site_usage_rate_avg": 0.45
   },
   {
     "company_id": 18,
@@ -452,20 +367,15 @@
     ],
     "dealer_count": 4,
     "active_dealer_count": 4,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 13,
     "previous_60d_trade_count": 4,
     "recent_trade_per_dealer": 3.25,
-    "previous_trade_per_dealer": 1.0,
+    "previous_trade_per_dealer": 1,
     "recent_trade_per_dealer_log": 1.44691898,
     "previous_trade_per_dealer_log": 0.69314718,
     "activity_growth_log": 0.7537718,
-    "site_usage_rate_avg": 0.4325,
-    "model_churn_probability": 0.057474,
-    "model_churn_probability_percent": 5.75,
-    "model_risk_grade": "Safe",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.4325
   },
   {
     "company_id": 19,
@@ -477,20 +387,15 @@
     ],
     "dealer_count": 4,
     "active_dealer_count": 4,
-    "active_dealer_ratio": 1.0,
+    "active_dealer_ratio": 1,
     "recent_60d_trade_count": 0,
     "previous_60d_trade_count": 2,
-    "recent_trade_per_dealer": 0.0,
+    "recent_trade_per_dealer": 0,
     "previous_trade_per_dealer": 0.5,
-    "recent_trade_per_dealer_log": 0.0,
+    "recent_trade_per_dealer_log": 0,
     "previous_trade_per_dealer_log": 0.40546511,
     "activity_growth_log": -0.40546511,
-    "site_usage_rate_avg": 0.355,
-    "model_churn_probability": 0.858681,
-    "model_churn_probability_percent": 85.87,
-    "model_risk_grade": "Critical",
-    "predicted_status": "Inactive",
-    "is_company_churn": 1
+    "site_usage_rate_avg": 0.355
   },
   {
     "company_id": 20,
@@ -512,11 +417,6 @@
     "recent_trade_per_dealer_log": 1.34373475,
     "previous_trade_per_dealer_log": 0.40546511,
     "activity_growth_log": 0.93826964,
-    "site_usage_rate_avg": 0.3433,
-    "model_churn_probability": 0.26853,
-    "model_churn_probability_percent": 26.85,
-    "model_risk_grade": "Low",
-    "predicted_status": "Active",
-    "is_company_churn": 0
+    "site_usage_rate_avg": 0.3433
   }
 ]

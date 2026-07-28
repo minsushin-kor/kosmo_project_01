@@ -202,12 +202,18 @@ public class MyPageService {
         Object owner = car.getOwner();
         Long ownerId = null;
         String ownerName = null;
+        String saleType = null;
+        String sellerType = null;
         if (owner instanceof Member) {
             ownerId = ((Member) owner).getMemberId();
             ownerName = ((Member) owner).getName();
+            saleType = "AUCTION";
+            sellerType = "일반회원";
         } else if (owner instanceof Dealer) {
             ownerId = ((Dealer) owner).getDealerId();
             ownerName = ((Dealer) owner).getName();
+            saleType = "NORMAL";
+            sellerType = "회사딜러";
         }
 
         List<CarDto.ImageDto> imageDtos = car.getImages().stream()
@@ -216,6 +222,11 @@ public class MyPageService {
                         .isMain(img.getIsMain())
                         .build())
                 .collect(Collectors.toList());
+
+        boolean goldenBadgeStatus = false;
+        if (car.getDealer() != null && car.getDealer().getCompany() != null) {
+            goldenBadgeStatus = Boolean.TRUE.equals(car.getDealer().getCompany().getGoldenBadgeStatus());
+        }
 
         return CarDto.Response.builder()
                 .carId(car.getCarId())
@@ -231,11 +242,16 @@ public class MyPageService {
                 .color(car.getColor())
                 .interior(car.getInterior())
                 .sellingPrice(car.getSellingPrice())
+                .mmr(car.getMmr())
                 .status(car.getStatus())
+                .createdAt(car.getCreatedAt())
                 .ownerType(car.getOwnerType())
                 .ownerId(ownerId)
                 .ownerName(ownerName)
+                .saleType(saleType)
+                .sellerType(sellerType)
                 .images(imageDtos)
+                .goldenBadgeStatus(goldenBadgeStatus)
                 .build();
     }
 

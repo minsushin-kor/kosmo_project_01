@@ -1,7 +1,5 @@
 package com.car.app.car;
 
-import com.car.app.dealer.Dealer;
-import com.car.app.member.Member;
 import com.car.app.security.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import com.car.app.transaction.Transaction;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 중고차 매물 등록과 관련된 HTTP 요청을 수신하는 REST 컨트롤러입니다.
@@ -43,53 +40,7 @@ public class CarController {
             // 차량 등록 비즈니스 로직 수행
             Car car = carService.registerCar(username, authentication.getAuthorities(), request);
 
-            // 소유주 정보 추출 (일반 회원 또는 딜러 다형성 처리)
-            Object owner = car.getOwner();
-            Long ownerId = null;
-            String ownerName = null;
-            if (owner instanceof Member) {
-                ownerId = ((Member) owner).getMemberId();
-                ownerName = ((Member) owner).getName();
-            } else if (owner instanceof Dealer) {
-                ownerId = ((Dealer) owner).getDealerId();
-                ownerName = ((Dealer) owner).getName();
-            }
-
-            // 이미지 엔티티 목록을 응답용 DTO로 매핑
-            List<CarDto.ImageDto> imageDtos = car.getImages().stream()
-                    .map(img -> CarDto.ImageDto.builder()
-                            .imageUrl(img.getImageUrl())
-                            .isMain(img.getIsMain())
-                            .build())
-                    .collect(Collectors.toList());
-
-            boolean goldenBadgeStatus = false;
-            if (car.getDealer() != null) {
-                goldenBadgeStatus = car.getDealer().getCompany().getGoldenBadgeStatus();
-            }
-
-            // 최종 API 응답 포맷 조립
-            CarDto.Response response = CarDto.Response.builder()
-                    .carId(car.getCarId())
-                    .year(car.getYear())
-                    .make(car.getMake())
-                    .model(car.getModel())
-                    .option(car.getOption())
-                    .body(car.getBody())
-                    .transmission(car.getTransmission())
-                    .state(car.getState())
-                    .condition(car.getCondition())
-                    .odometer(car.getOdometer())
-                    .color(car.getColor())
-                    .interior(car.getInterior())
-                    .sellingPrice(car.getSellingPrice())
-                    .status(car.getStatus())
-                    .ownerType(car.getOwnerType())
-                    .ownerId(ownerId)
-                    .ownerName(ownerName)
-                    .images(imageDtos)
-                    .goldenBadgeStatus(goldenBadgeStatus)
-                    .build();
+            CarDto.Response response = carService.mapToResponse(car);
 
             return ResponseEntity.ok(ApiResponse.success(response, "중고차 매물이 성공적으로 등록되었습니다."));
         } catch (SecurityException e) {
@@ -123,54 +74,19 @@ public class CarController {
 
         Page<Car> carPage = carService.searchCars(make, model, transmission, state, status, minPrice, maxPrice, minYear, maxYear, pageable);
 
-        Page<CarDto.Response> responsePage = carPage.map(car -> {
-            Object owner = car.getOwner();
-            Long ownerId = null;
-            String ownerName = null;
-            if (owner instanceof Member) {
-                ownerId = ((Member) owner).getMemberId();
-                ownerName = ((Member) owner).getName();
-            } else if (owner instanceof Dealer) {
-                ownerId = ((Dealer) owner).getDealerId();
-                ownerName = ((Dealer) owner).getName();
-            }
-
-            List<CarDto.ImageDto> imageDtos = car.getImages().stream()
-                    .map(img -> CarDto.ImageDto.builder()
-                            .imageUrl(img.getImageUrl())
-                            .isMain(img.getIsMain())
-                            .build())
-                    .collect(Collectors.toList());
-
-            boolean goldenBadgeStatus = false;
-            if (car.getDealer() != null) {
-                goldenBadgeStatus = car.getDealer().getCompany().getGoldenBadgeStatus();
-            }
-
-            return CarDto.Response.builder()
-                    .carId(car.getCarId())
-                    .year(car.getYear())
-                    .make(car.getMake())
-                    .model(car.getModel())
-                    .option(car.getOption())
-                    .body(car.getBody())
-                    .transmission(car.getTransmission())
-                    .state(car.getState())
-                    .condition(car.getCondition())
-                    .odometer(car.getOdometer())
-                    .color(car.getColor())
-                    .interior(car.getInterior())
-                    .sellingPrice(car.getSellingPrice())
-                    .status(car.getStatus())
-                    .ownerType(car.getOwnerType())
-                    .ownerId(ownerId)
-                    .ownerName(ownerName)
-                    .images(imageDtos)
-                    .goldenBadgeStatus(goldenBadgeStatus)
-                    .build();
-        });
+        Page<CarDto.Response> responsePage = carPage.map(carService::mapToResponse);
 
         return ResponseEntity.ok(ApiResponse.success(responsePage, "차량 목록 검색 및 조회가 완료되었습니다."));
+    }
+
+    /**
+     * 일반 구매자 AI 추천 대상 전체 딜러 차량 목록을 한 번에 조회합니다.
+     * (dealer_id 존재, member_id 없음, status == 'REGISTERED', 페이징 없이 전체 반환)
+     */
+    @GetMapping("/buyer-recommendation-candidates")
+    public ResponseEntity<ApiResponse<List<CarDto.Response>>> getBuyerRecommendationCandidates() {
+        List<CarDto.Response> candidates = carService.getBuyerRecommendationCandidates();
+        return ResponseEntity.ok(ApiResponse.success(candidates, "일반 구매자 추천 대상 전체 차량 목록 조회가 완료되었습니다."));
     }
 
     /**
@@ -182,50 +98,7 @@ public class CarController {
         try {
             Car car = carService.getCarDetail(carId);
 
-            Object owner = car.getOwner();
-            Long ownerId = null;
-            String ownerName = null;
-            if (owner instanceof Member) {
-                ownerId = ((Member) owner).getMemberId();
-                ownerName = ((Member) owner).getName();
-            } else if (owner instanceof Dealer) {
-                ownerId = ((Dealer) owner).getDealerId();
-                ownerName = ((Dealer) owner).getName();
-            }
-
-            List<CarDto.ImageDto> imageDtos = car.getImages().stream()
-                    .map(img -> CarDto.ImageDto.builder()
-                            .imageUrl(img.getImageUrl())
-                            .isMain(img.getIsMain())
-                            .build())
-                    .collect(Collectors.toList());
-
-            boolean goldenBadgeStatus = false;
-            if (car.getDealer() != null) {
-                goldenBadgeStatus = car.getDealer().getCompany().getGoldenBadgeStatus();
-            }
-
-            CarDto.Response response = CarDto.Response.builder()
-                    .carId(car.getCarId())
-                    .year(car.getYear())
-                    .make(car.getMake())
-                    .model(car.getModel())
-                    .option(car.getOption())
-                    .body(car.getBody())
-                    .transmission(car.getTransmission())
-                    .state(car.getState())
-                    .condition(car.getCondition())
-                    .odometer(car.getOdometer())
-                    .color(car.getColor())
-                    .interior(car.getInterior())
-                    .sellingPrice(car.getSellingPrice())
-                    .status(car.getStatus())
-                    .ownerType(car.getOwnerType())
-                    .ownerId(ownerId)
-                    .ownerName(ownerName)
-                    .images(imageDtos)
-                    .goldenBadgeStatus(goldenBadgeStatus)
-                    .build();
+            CarDto.Response response = carService.mapToResponse(car);
 
             return ResponseEntity.ok(ApiResponse.success(response, "차량 상세 조회가 완료되었습니다."));
         } catch (IllegalArgumentException e) {

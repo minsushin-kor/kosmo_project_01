@@ -17,10 +17,13 @@ RUN python -m pip install --upgrade pip \
 COPY --chown=app:app Model/main.py \
     Model/dealer_churn_service_model.pkl \
     Model/company_churn_service_model.pkl \
+    Model/vehicle_condition_catboost_model.pkl \
+    Model/vehicle_mmr_catboost_model.pkl \
     /app/Model/
 
 COPY --chown=app:app dataset/dummy_output/dealer_churn_dummy.json \
     dataset/dummy_output/company_churn_dummy.json \
+    dataset/dummy_output/vehicle_recommendation_dummy.json \
     /app/dataset/dummy_output/
 
 USER app
