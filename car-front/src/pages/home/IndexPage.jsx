@@ -1,176 +1,409 @@
-import { useMemo, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import SearchBox from "../../components/common/SearchBox";
 import {
   initialSearchCondition,
 } from "../../data/searchData";
 import CarCard from "../../components/car/CarCard";
 import RightSidebar from "../../components/common/RightSidebar";
-import { getAllCars } from "../../utils/carViewUtils";
-import { useAuth } from "../../hooks/useAuth";
-import { AUTH_ROLES } from "../../data/authUser";
+import {
+  getAllCars,
+} from "../../utils/carViewUtils";
+import {
+  useAuth,
+} from "../../hooks/useAuth";
+import {
+  AUTH_ROLES,
+} from "../../data/authUser";
 import "../../css/home/indexPage.css";
 
-function IndexPage() {
-  const { loginUser } = useAuth();
-  const [searchCondition, setSearchCondition] = useState(initialSearchCondition);
-  const [sortType, setSortType] = useState("latest");
-  const [viewCount, setViewCount] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
+const DEFAULT_SORT_TYPE =
+  "latest";
 
-  const allCars = useMemo(() => getAllCars(), []);
+const DEFAULT_VIEW_COUNT = 10;
+
+const PAGE_GUIDES = {
+  member: {
+    title: "딜러 판매 차량",
+    description:
+      "회사 소속 딜러가 등록한 일반 중고거래 매물입니다.",
+  },
+
+  auction: {
+    title: "일반회원 경매 차량",
+    description:
+      "일반회원이 등록한 차량에 비공개 입찰할 수 있습니다.",
+  },
+
+  default: {
+    title: "차량 목록",
+    description:
+      "로그인 권한에 따라 구매 또는 입찰 가능한 매물이 구분됩니다.",
+  },
+};
+
+function getRegisteredTime(car) {
+  const timestamp = new Date(
+    car.registeredDate
+  ).getTime();
+
+  return Number.isNaN(timestamp)
+    ? 0
+    : timestamp;
+}
+
+function IndexPage() {
+  const {
+    loginUser,
+  } = useAuth();
+
+  const [
+    searchCondition,
+    setSearchCondition,
+  ] = useState(
+    initialSearchCondition
+  );
+
+  const [
+    sortType,
+    setSortType,
+  ] = useState(
+    DEFAULT_SORT_TYPE
+  );
+
+  const [
+    viewCount,
+    setViewCount,
+  ] = useState(
+    DEFAULT_VIEW_COUNT
+  );
+
+  const [
+    currentPage,
+    setCurrentPage,
+  ] = useState(1);
+
+  const allCars = useMemo(
+    () => getAllCars(),
+    []
+  );
+
+  const role =
+    loginUser?.role;
 
   const roleCars = useMemo(() => {
-    if (loginUser?.role === AUTH_ROLES.MEMBER) {
+    if (
+      role === AUTH_ROLES.MEMBER
+    ) {
       return allCars.filter(
-        (car) => car.saleType === "NORMAL" && car.sellerType === "회사딜러"
+        (car) =>
+          car.saleType ===
+            "NORMAL" &&
+          car.sellerType ===
+            "회사딜러"
       );
     }
 
     if (
-      loginUser?.role === AUTH_ROLES.COMPANY ||
-      loginUser?.role === AUTH_ROLES.DEALER
+      role === AUTH_ROLES.COMPANY ||
+      role === AUTH_ROLES.DEALER
     ) {
       return allCars.filter(
-        (car) => car.saleType === "AUCTION" && car.sellerType === "일반회원"
+        (car) =>
+          car.saleType ===
+            "AUCTION" &&
+          car.sellerType ===
+            "일반회원"
       );
     }
 
     return allCars;
-  }, [allCars, loginUser?.role]);
+  }, [allCars, role]);
 
   const pageGuide = useMemo(() => {
-    if (loginUser?.role === AUTH_ROLES.MEMBER) {
-      return {
-        title: "딜러 판매 차량",
-        description: "회사 소속 딜러가 등록한 일반 중고거래 매물입니다.",
-      };
+    if (
+      role === AUTH_ROLES.MEMBER
+    ) {
+      return PAGE_GUIDES.member;
     }
 
     if (
-      loginUser?.role === AUTH_ROLES.COMPANY ||
-      loginUser?.role === AUTH_ROLES.DEALER
+      role === AUTH_ROLES.COMPANY ||
+      role === AUTH_ROLES.DEALER
     ) {
-      return {
-        title: "일반회원 경매 차량",
-        description: "일반회원이 등록한 차량에 비공개 입찰할 수 있습니다.",
-      };
+      return PAGE_GUIDES.auction;
     }
 
-    return {
-      title: "차량 목록",
-      description: "로그인 권한에 따라 구매 또는 입찰 가능한 매물이 구분됩니다.",
-    };
-  }, [loginUser?.role]);
+    return PAGE_GUIDES.default;
+  }, [role]);
 
-  const filteredCars = useMemo(() => {
-    let result = roleCars.filter((car) => {
-      const matchBrand =
-        searchCondition.brand === "" || car.brand === searchCondition.brand;
+  const filteredCars =
+    useMemo(() => {
+      const modelKeyword =
+        searchCondition.modelName
+          .trim()
+          .toLowerCase();
 
-      const modelKeyword = searchCondition.modelName.trim().toLowerCase();
-
-      const matchModelName =
-        modelKeyword === "" ||
-        car.modelName.toLowerCase().includes(modelKeyword) ||
-        car.carName.toLowerCase().includes(modelKeyword);
-
-      const matchRegion =
-        searchCondition.region === "" || car.region === searchCondition.region;
-
-      const matchMinPrice = car.price >= Number(searchCondition.minPrice);
-      const matchMaxPrice = car.price <= Number(searchCondition.maxPrice);
-
-      const matchYear =
-        searchCondition.year === "" || car.year >= Number(searchCondition.year);
-
-      const matchMileage =
-        searchCondition.mileage === "" ||
-        car.mileage <= Number(searchCondition.mileage);
-
-      return (
-        matchBrand &&
-        matchModelName &&
-        matchRegion &&
-        matchMinPrice &&
-        matchMaxPrice &&
-        matchYear &&
-        matchMileage
+      const minPrice = Number(
+        searchCondition.minPrice
       );
-    });
 
-    if (sortType === "latest") {
-      result = [...result].sort(
-        (a, b) => new Date(b.registeredDate) - new Date(a.registeredDate)
+      const maxPrice = Number(
+        searchCondition.maxPrice
       );
-    }
 
-    if (sortType === "priceLow") {
-      result = [...result].sort((a, b) => a.price - b.price);
-    }
+      const minYear =
+        searchCondition.year === ""
+          ? null
+          : Number(
+              searchCondition.year
+            );
 
-    if (sortType === "priceHigh") {
-      result = [...result].sort((a, b) => b.price - a.price);
-    }
+      const maxMileage =
+        searchCondition.mileage === ""
+          ? null
+          : Number(
+              searchCondition.mileage
+            );
 
-    if (sortType === "yearHigh") {
-      result = [...result].sort((a, b) => b.year - a.year);
-    }
+      const filtered =
+        roleCars.filter((car) => {
+          const matchBrand =
+            searchCondition.brand ===
+              "" ||
+            car.brand ===
+              searchCondition.brand;
 
-    if (sortType === "mileageLow") {
-      result = [...result].sort((a, b) => a.mileage - b.mileage);
-    }
+          const carModelName =
+            String(
+              car.modelName || ""
+            ).toLowerCase();
 
-    return result;
-  }, [roleCars, searchCondition, sortType]);
+          const carName =
+            String(
+              car.carName || ""
+            ).toLowerCase();
 
-  const totalPage = Math.ceil(filteredCars.length / viewCount);
-  const startIndex = (currentPage - 1) * viewCount;
-  const endIndex = startIndex + viewCount;
-  const visibleCars = filteredCars.slice(startIndex, endIndex);
-  const pageNumbers = Array.from({ length: totalPage }, (_, index) => index + 1);
+          const matchModelName =
+            modelKeyword === "" ||
+            carModelName.includes(
+              modelKeyword
+            ) ||
+            carName.includes(
+              modelKeyword
+            );
 
-  function handleSortChange(e) {
-    setSortType(e.target.value);
-    setCurrentPage(1);
-  }
+          const matchRegion =
+            searchCondition.region ===
+              "" ||
+            car.region ===
+              searchCondition.region;
 
-  function handleViewCountChange(e) {
-    setViewCount(Number(e.target.value));
-    setCurrentPage(1);
-  }
+          const carPrice = Number(
+            car.price
+          );
 
-  function handlePrevPage() {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  }
+          const matchPrice =
+            carPrice >= minPrice &&
+            carPrice <= maxPrice;
 
-  function handleNextPage() {
-    if (currentPage < totalPage) {
-      setCurrentPage(currentPage + 1);
-    }
-  }
+          const matchYear =
+            minYear === null ||
+            Number(car.year) >= minYear;
+
+          const matchMileage =
+            maxMileage === null ||
+            Number(car.mileage) <=
+              maxMileage;
+
+          return (
+            matchBrand &&
+            matchModelName &&
+            matchRegion &&
+            matchPrice &&
+            matchYear &&
+            matchMileage
+          );
+        });
+
+      const result = [
+        ...filtered,
+      ];
+
+      switch (sortType) {
+        case "priceLow":
+          result.sort(
+            (a, b) =>
+              Number(a.price) -
+              Number(b.price)
+          );
+          break;
+
+        case "priceHigh":
+          result.sort(
+            (a, b) =>
+              Number(b.price) -
+              Number(a.price)
+          );
+          break;
+
+        case "yearHigh":
+          result.sort(
+            (a, b) =>
+              Number(b.year) -
+              Number(a.year)
+          );
+          break;
+
+        case "mileageLow":
+          result.sort(
+            (a, b) =>
+              Number(a.mileage) -
+              Number(b.mileage)
+          );
+          break;
+
+        case "latest":
+        default:
+          result.sort(
+            (a, b) =>
+              getRegisteredTime(b) -
+              getRegisteredTime(a)
+          );
+          break;
+      }
+
+      return result;
+    }, [
+      roleCars,
+      searchCondition,
+      sortType,
+    ]);
+
+  const totalPage = Math.ceil(
+    filteredCars.length /
+      viewCount
+  );
+
+  const safeCurrentPage =
+    totalPage === 0
+      ? 1
+      : Math.min(
+          currentPage,
+          totalPage
+        );
+
+  const visibleCars = useMemo(() => {
+    const startIndex =
+      (safeCurrentPage - 1) *
+      viewCount;
+
+    return filteredCars.slice(
+      startIndex,
+      startIndex + viewCount
+    );
+  }, [
+    filteredCars,
+    safeCurrentPage,
+    viewCount,
+  ]);
+
+  const pageNumbers = useMemo(
+    () =>
+      Array.from(
+        {
+          length: totalPage,
+        },
+        (_, index) => index + 1
+      ),
+    [totalPage]
+  );
+
+  const handleSearchConditionChange =
+    useCallback((condition) => {
+      setSearchCondition(
+        condition
+      );
+
+      setCurrentPage(1);
+    }, []);
+
+  const handleSortChange =
+    useCallback((event) => {
+      setSortType(
+        event.target.value
+      );
+
+      setCurrentPage(1);
+    }, []);
+
+  const handleViewCountChange =
+    useCallback((event) => {
+      setViewCount(
+        Number(
+          event.target.value
+        )
+      );
+
+      setCurrentPage(1);
+    }, []);
+
+  const handlePrevPage =
+    useCallback(() => {
+      setCurrentPage(
+        (prev) =>
+          Math.max(1, prev - 1)
+      );
+    }, []);
+
+  const handleNextPage =
+    useCallback(() => {
+      setCurrentPage(
+        (prev) =>
+          Math.min(
+            totalPage,
+            prev + 1
+          )
+      );
+    }, [totalPage]);
 
   return (
     <main className="index-page">
       <section className="index-main-layout">
         <aside className="left-search-sidebar">
           <SearchBox
-            searchCondition={searchCondition}
-            setSearchCondition={(condition) => {
-              setSearchCondition(condition);
-              setCurrentPage(1);
-            }}
+            searchCondition={
+              searchCondition
+            }
+            setSearchCondition={
+              handleSearchConditionChange
+            }
           />
         </aside>
 
         <section className="car-list-section">
           <div className="car-list-header">
             <div>
-              <h2>{pageGuide.title}</h2>
+              <h2>
+                {pageGuide.title}
+              </h2>
+
               <p className="car-list-summary">
-                {pageGuide.description}<br />
-                총 <strong>{filteredCars.length}</strong>대의 차량이 검색되었습니다.
+                {
+                  pageGuide.description
+                }
+                <br />
+                총{" "}
+                <strong>
+                  {
+                    filteredCars.length
+                  }
+                </strong>
+                대의 차량이
+                검색되었습니다.
               </p>
             </div>
 
@@ -178,23 +411,49 @@ function IndexPage() {
               <select
                 className="car-sort-select"
                 value={sortType}
-                onChange={handleSortChange}
+                onChange={
+                  handleSortChange
+                }
               >
-                <option value="latest">최근등록순</option>
-                <option value="priceLow">낮은가격순</option>
-                <option value="priceHigh">높은가격순</option>
-                <option value="yearHigh">최신연식순</option>
-                <option value="mileageLow">주행거리 짧은순</option>
+                <option value="latest">
+                  최근등록순
+                </option>
+
+                <option value="priceLow">
+                  낮은가격순
+                </option>
+
+                <option value="priceHigh">
+                  높은가격순
+                </option>
+
+                <option value="yearHigh">
+                  최신연식순
+                </option>
+
+                <option value="mileageLow">
+                  주행거리 짧은순
+                </option>
               </select>
 
               <select
                 className="car-sort-select"
                 value={viewCount}
-                onChange={handleViewCountChange}
+                onChange={
+                  handleViewCountChange
+                }
               >
-                <option value={10}>10개씩 보기</option>
-                <option value={15}>15개씩 보기</option>
-                <option value={20}>20개씩 보기</option>
+                <option value={10}>
+                  10개씩 보기
+                </option>
+
+                <option value={15}>
+                  15개씩 보기
+                </option>
+
+                <option value={20}>
+                  20개씩 보기
+                </option>
               </select>
             </div>
           </div>
@@ -202,9 +461,14 @@ function IndexPage() {
           {visibleCars.length > 0 ? (
             <>
               <div className="car-card-list">
-                {visibleCars.map((car) => (
-                  <CarCard key={car.id} car={car} />
-                ))}
+                {visibleCars.map(
+                  (car) => (
+                    <CarCard
+                      key={car.id}
+                      car={car}
+                    />
+                  )
+                )}
               </div>
 
               {totalPage > 1 && (
@@ -212,29 +476,49 @@ function IndexPage() {
                   <button
                     type="button"
                     className="page-button"
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 1}
+                    onClick={
+                      handlePrevPage
+                    }
+                    disabled={
+                      safeCurrentPage ===
+                      1
+                    }
                   >
                     이전
                   </button>
 
-                  {pageNumbers.map((page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      className={`page-button ${currentPage === page ? "active" : ""
+                  {pageNumbers.map(
+                    (page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        className={`page-button ${
+                          safeCurrentPage ===
+                          page
+                            ? "active"
+                            : ""
                         }`}
-                      onClick={() => setCurrentPage(page)}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                        onClick={() =>
+                          setCurrentPage(
+                            page
+                          )
+                        }
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
 
                   <button
                     type="button"
                     className="page-button"
-                    onClick={handleNextPage}
-                    disabled={currentPage === totalPage}
+                    onClick={
+                      handleNextPage
+                    }
+                    disabled={
+                      safeCurrentPage ===
+                      totalPage
+                    }
                   >
                     다음
                   </button>
@@ -242,7 +526,10 @@ function IndexPage() {
               )}
             </>
           ) : (
-            <div className="empty-result">조건에 맞는 차량이 없습니다.</div>
+            <div className="empty-result">
+              조건에 맞는 차량이
+              없습니다.
+            </div>
           )}
         </section>
 
@@ -255,7 +542,9 @@ function IndexPage() {
               setCurrentPage
             }
             allCars={allCars}
-            candidateCars={roleCars}
+            candidateCars={
+              roleCars
+            }
           />
         </aside>
       </section>

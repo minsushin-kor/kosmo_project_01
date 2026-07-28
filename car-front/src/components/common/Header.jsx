@@ -9,11 +9,27 @@ import {
   AUTH_ROLES,
 } from "../../data/authUser";
 import {
+  prefetchRoute,
+} from "../../data/routeLoaders";
+import {
   useAuth,
 } from "../../hooks/useAuth";
 import NotificationDropdown from "./NotificationDropdown";
 import MessageDropdown from "../message/MessageDropdown";
 import "../../css/common/header.css";
+
+function getPrefetchHandlers(path) {
+  return {
+    onMouseEnter: () =>
+      prefetchRoute(path),
+
+    onFocus: () =>
+      prefetchRoute(path),
+
+    onTouchStart: () =>
+      prefetchRoute(path),
+  };
+}
 
 function Header() {
   const navigate = useNavigate();
@@ -65,7 +81,12 @@ function Header() {
     >
       <div className="header-left">
         <div className="logo">
-          <Link to={logoPath}>
+          <Link
+            to={logoPath}
+            {...getPrefetchHandlers(
+              logoPath
+            )}
+          >
             이름뭐라짓지
           </Link>
         </div>
@@ -75,6 +96,9 @@ function Header() {
             <Link
               key={menu.id}
               to={menu.path}
+              {...getPrefetchHandlers(
+                menu.path
+              )}
             >
               {menu.name}
             </Link>
@@ -88,6 +112,9 @@ function Header() {
             <Link
               to="/signup"
               className="mypage-link"
+              {...getPrefetchHandlers(
+                "/signup"
+              )}
             >
               회원가입
             </Link>
@@ -95,6 +122,9 @@ function Header() {
             <Link
               to="/login"
               className="login-btn"
+              {...getPrefetchHandlers(
+                "/login"
+              )}
             >
               로그인
             </Link>
@@ -104,6 +134,9 @@ function Header() {
             <Link
               to="/company/coupons"
               className="header-coupon-link"
+              {...getPrefetchHandlers(
+                "/company/coupons"
+              )}
             >
               쿠폰함
 
@@ -123,6 +156,9 @@ function Header() {
             <Link
               to="/company/mypage"
               className="company-name-link"
+              {...getPrefetchHandlers(
+                "/company/mypage"
+              )}
             >
               {companyName}
             </Link>
@@ -141,6 +177,9 @@ function Header() {
               <Link
                 to="/company"
                 className="dealer-company-link"
+                {...getPrefetchHandlers(
+                  "/company"
+                )}
               >
                 {companyName}
               </Link>
@@ -148,6 +187,9 @@ function Header() {
               <Link
                 to="/dealer"
                 className="dealer-name-link"
+                {...getPrefetchHandlers(
+                  "/dealer"
+                )}
               >
                 {dealerName}
               </Link>
@@ -162,6 +204,9 @@ function Header() {
             <Link
               to="/dealer"
               className="mypage-link"
+              {...getPrefetchHandlers(
+                "/dealer"
+              )}
             >
               마이페이지
             </Link>
@@ -185,6 +230,9 @@ function Header() {
             <Link
               to="/mypage"
               className="mypage-link"
+              {...getPrefetchHandlers(
+                "/mypage"
+              )}
             >
               마이페이지
             </Link>
