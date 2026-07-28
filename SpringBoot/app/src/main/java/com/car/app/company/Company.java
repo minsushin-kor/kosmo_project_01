@@ -54,6 +54,9 @@ public class Company {
     @Builder.Default
     private Double riskScore = 0.0;
 
+    @Column(name = "risk_grade", length = 30)
+    private String riskGrade;
+
     @Column(name = "golden_badge_status")
     @Builder.Default
     private Boolean goldenBadgeStatus = false;

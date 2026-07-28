@@ -242,4 +242,25 @@ Spring Boot 개발 프로젝트 통합 진행상황 및 세부 기능 명세
   - `GET /api/admin/ai/churn-dealers`: 전체 딜러 이탈 위험도, 사유, 추천 조치 목록
   - `GET /api/admin/ai/churn-companies`: 전체 상사 이탈 위험도, 사유 목록
   - `GET /api/admin/ai/churn-status`: 마지막 예측 계산 시각(`lastCalculatedAt`) 및 뱃치 상태 조회
+
+--------------------------------------------------------------------------------
+18. 계약 검증 기반 6가지 피드백 고도화 및 연동 테스트 구현 (FastAPI Contract Refactoring & Integration Testing)
+--------------------------------------------------------------------------------
+* 1. 최신 이탈 입력값 실시간 생성 강제 ([AiService.java])
+  - `createDealerBatchItemInMemory` 및 `createCompanyBatchItemInMemory` 헬퍼 메소드 내 과거 `dealer_churn`, `company_churn` 스냅샷 우회 조회 코드를 완전히 제거.
+  - 과거 스냅샷 유무와 무관하게 언제나 `transactions` (거래) 및 `bids` (입찰) 원본 DB에서 집계된 실시간 수치만 FastAPI 송신 객체로 조립하도록 보증.
+* 2. 상사 스냅샷 실제 집계값 저장 ([AiService.java])
+  - FastAPI 응답 성공 후 `company_churn` 스냅샷 테이블 저장 시 `recentTradeCount`, `previousTradeCount`, `siteUsageRateAvg`에 `0L, 0L, 0.5` 고정값이 아닌, 실제 FastAPI로 전달했던 `CompanyBatchItem` 수치를 그대로 보관.
+* 3. system tier와 FastAPI riskGrade 컬럼 분리 ([Dealer.java], [Company.java], [AiService.java])
+  - 기존 쿠폰/골든뱃지 로직의 `tier` (`NORMAL`, `CARE_REQUIRED`, `TOP_5`) 기준이 깨지지 않도록 유지하고, FastAPI의 상세 이탈 등급(`Critical`, `High`, `Medium`, `Low`, `Safe`)은 신규 추가된 `risk_grade` 필드에만 독립 저장.
+* 4. MMR 응답 자료형 Double 변경 ([AiClient.java])
+  - FastAPI의 `predicted_mmr` 소수점 실수 응답(`13111445.77`) 역직렬화 오류 및 소수점 손실 방지를 위해 `VehiclePredictionResult.predictedMmr` 타입을 `Double`로 전면 수정.
+* 5. 딜러 추천 API 일원화 및 정리 ([DealerRecommendationController.java], [AiController.java], [AiService.java])
+  - 기존 역할 인증(`hasRole('DEALER')`) 기반 `GET /api/dealers/recommendations`에서 Condition/MMR 정렬 추천 메소드(`aiService.getRecommendedCarsForDealer`)를 호출하도록 연결.
+  - 중복 생성되었던 `GET /api/ai/recommend-dealer` 및 미사용 구형 FastAPI `GET /api/ai/recommendations` 호출 정리.
+* 6. 계약 검증 통합 테스트 구축 및 100% 통과 ([AiIntegrationTests.java])
+  - 과거 스냅샷 무시 및 최신 집계값 생성 검증 (`testLatestMetricsUsedIgnoringPastSnapshot`)
+  - 소수점 MMR(Double) 정상 수신/저장 검증 (`testDoubleMmrDeserializationAndSaving`)
+  - Condition DESC -> MMR DESC 정렬 검증 (`testDealerRecommendationOrderingByConditionAndMmr`)
+  - FastAPI 성공(`status == "success"`) 시에만 후속 쿠폰/뱃지 연쇄 실행 검증 (`testFollowupExecutedOnlyOnFastApiSuccess`)
 ================================================================================

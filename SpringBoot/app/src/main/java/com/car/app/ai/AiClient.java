@@ -245,7 +245,7 @@ public class AiClient {
         @com.fasterxml.jackson.annotation.JsonProperty("predicted_condition")
         private Double predictedCondition;
         @com.fasterxml.jackson.annotation.JsonProperty("predicted_mmr")
-        private Long predictedMmr;
+        private Double predictedMmr;
     }
 
     @Getter
