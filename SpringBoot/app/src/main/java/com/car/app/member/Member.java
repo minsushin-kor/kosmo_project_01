@@ -21,6 +21,9 @@ public class Member {
     @Column(name = "member_id")
     private Long memberId;
 
+    @Column(name = "login_id", unique = true, length = 100)
+    private String loginId;
+    
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
 

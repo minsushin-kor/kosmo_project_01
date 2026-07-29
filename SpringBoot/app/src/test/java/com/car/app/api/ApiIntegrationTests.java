@@ -89,8 +89,10 @@ public class ApiIntegrationTests {
     @BeforeEach
     void setUp() {
         // 1. 회원 / 딜러 / 상사 / 관리자 계정 보장 및 생성
-        memberRepository.findByEmail("admin@test.com")
+        memberRepository.findByLoginId("admin@test.com")
+                .or(() -> memberRepository.findByEmail("admin@test.com"))
                 .orElseGet(() -> memberRepository.save(Member.builder()
+                        .loginId("admin@test.com")
                         .email("admin@test.com")
                         .password(passwordEncoder.encode("password"))
                         .name("관리자")
@@ -99,8 +101,10 @@ public class ApiIntegrationTests {
                         .status("ACTIVE")
                         .build()));
 
-        savedMember = memberRepository.findByEmail("testmember@test.com")
+        savedMember = memberRepository.findByLoginId("testmember@test.com")
+                .or(() -> memberRepository.findByEmail("testmember@test.com"))
                 .orElseGet(() -> memberRepository.save(Member.builder()
+                        .loginId("testmember@test.com")
                         .email("testmember@test.com")
                         .password(passwordEncoder.encode("password"))
                         .name("테스트회원")
@@ -109,8 +113,10 @@ public class ApiIntegrationTests {
                         .status("ACTIVE")
                         .build()));
 
-        savedCompany = companyRepository.findByMasterEmail("company@test.com")
+        savedCompany = companyRepository.findByLoginId("company@test.com")
+                .or(() -> companyRepository.findByMasterEmail("company@test.com"))
                 .orElseGet(() -> companyRepository.save(Company.builder()
+                        .loginId("company@test.com")
                         .name("테스트상사")
                         .masterEmail("company@test.com")
                         .password(passwordEncoder.encode("password"))

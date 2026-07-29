@@ -69,6 +69,7 @@ public class AiIntegrationTests {
     void setUp() {
         String randomSuffix = UUID.randomUUID().toString().substring(0, 8);
         testCompany = Company.builder()
+                .loginId("company_" + randomSuffix)
                 .businessNumber("123-45-" + randomSuffix)
                 .name("테스트상사_" + randomSuffix)
                 .masterEmail("company_" + randomSuffix + "@test.com")

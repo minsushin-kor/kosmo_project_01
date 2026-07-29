@@ -36,6 +36,7 @@ class MappingTests {
     void testEntityMappingAndCrud() {
         // 1. Member
         Member member = Member.builder()
+                .loginId("test-member@car.com")
                 .email("test-member@car.com")
                 .password("securePass123!")
                 .name("홍길동")
@@ -50,6 +51,7 @@ class MappingTests {
 
         // 2. Company
         Company company = Company.builder()
+                .loginId("master@testcompany.com")
                 .businessNumber("111-22-33333")
                 .name("테스트상사")
                 .masterEmail("master@testcompany.com")

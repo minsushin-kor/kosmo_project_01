@@ -13,12 +13,14 @@ DROP TABLE IF EXISTS members CASCADE;
 -- 1. members (일반 회원)
 CREATE TABLE members (
     member_id BIGSERIAL PRIMARY KEY,
+    login_id VARCHAR(100) UNIQUE,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(50) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     profile_image_url VARCHAR(500), -- 프로필 사진 이미지 URL (단일)
     role VARCHAR(20) DEFAULT 'MEMBER', -- 회원 권한 ('MEMBER', 'ADMIN')
+    status VARCHAR(30) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -28,6 +30,7 @@ CREATE TABLE companies (
     company_id BIGSERIAL PRIMARY KEY,
     business_number VARCHAR(20) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
+    login_id VARCHAR(100) UNIQUE,
     master_email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     address VARCHAR(255),
@@ -47,6 +50,7 @@ CREATE TABLE dealers (
     login_id VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE,
     phone VARCHAR(20) NOT NULL,
     profile_image_url VARCHAR(500), -- 딜러 프로필 사진 이미지 URL (단일)
     status VARCHAR(20) DEFAULT 'ACTIVE',
