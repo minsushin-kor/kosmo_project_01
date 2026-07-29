@@ -12,6 +12,9 @@ import {
   getCarDetail,
 } from "../../api/carApi";
 import {
+  placeAuctionBid,
+} from "../../api/auctionApi";
+import {
   useAuth,
 } from "../../hooks/useAuth";
 import {
@@ -33,9 +36,6 @@ import {
 
 const AUCTION_WINNERS_KEY =
   "car_front_auction_winners";
-
-const AUCTION_BIDS_KEY =
-  "car_front_auction_bids";
 
 const MESSAGE_STORAGE_KEY =
   "car_front_messages";
@@ -157,23 +157,6 @@ function getAuctionWinners() {
   }
 }
 
-function getSavedBids() {
-  try {
-    return JSON.parse(
-      localStorage.getItem(
-        AUCTION_BIDS_KEY
-      ) || "[]"
-    );
-  } catch (error) {
-    console.error(
-      "입찰 정보 조회 실패:",
-      error
-    );
-
-    return [];
-  }
-}
-
 function getSavedMessages() {
   try {
     return JSON.parse(
@@ -267,6 +250,11 @@ function CarDetailPage() {
   ] = useState("");
 
   const [
+    isBidSubmitting,
+    setIsBidSubmitting,
+  ] = useState(false);
+
+  const [
     tradeMessage,
     setTradeMessage,
   ] = useState("");
@@ -274,13 +262,7 @@ function CarDetailPage() {
   const [
     bidList,
     setBidList,
-  ] = useState(() => {
-    return getSavedBids().filter(
-      (bid) =>
-        Number(bid.carId) ===
-        Number(id)
-    );
-  });
+  ] = useState([]);
 
   const canUseWishlist =
     [
@@ -434,27 +416,6 @@ function CarDetailPage() {
     canUseWishlist,
     wishlistCarId,
   ]);
-
-  useEffect(() => {
-    const timeoutId =
-      window.setTimeout(() => {
-        setBidList(
-          getSavedBids().filter(
-            (bid) =>
-              Number(
-                bid.carId
-              ) ===
-              Number(id)
-          )
-        );
-      }, 0);
-
-    return () => {
-      window.clearTimeout(
-        timeoutId
-      );
-    };
-  }, [id]);
 
   useEffect(() => {
     if (car?.id) {
@@ -929,10 +890,14 @@ function CarDetailPage() {
     }
   }
 
-  function handleBidSubmit(
+  async function handleBidSubmit(
     event
   ) {
     event.preventDefault();
+
+    if (isBidSubmitting) {
+      return;
+    }
 
     if (!isAuctionCar) {
       setBidMessage(
@@ -942,12 +907,20 @@ function CarDetailPage() {
       return;
     }
 
-    const priceNumber =
-      Number(bidPrice);
-
     if (!loginUser) {
       setBidMessage(
         "로그인 후 입찰할 수 있습니다."
+      );
+
+      return;
+    }
+
+    if (
+      loginUser.role !==
+      AUTH_ROLES.DEALER
+    ) {
+      setBidMessage(
+        "회사 소속 딜러 계정만 입찰할 수 있습니다."
       );
 
       return;
@@ -961,18 +934,20 @@ function CarDetailPage() {
       return;
     }
 
-    if (
-      loginUser.role !==
-      AUTH_ROLES.COMPANY &&
-      loginUser.role !==
-      AUTH_ROLES.DEALER
-    ) {
+    const auctionId =
+      auction.auctionId ||
+      car.auctionId;
+
+    if (!auctionId) {
       setBidMessage(
-        "회사 또는 회사딜러 계정만 입찰할 수 있습니다."
+        "경매 정보를 확인할 수 없습니다."
       );
 
       return;
     }
+
+    const priceNumber =
+      Number(bidPrice);
 
     if (
       !Number.isFinite(
@@ -1003,91 +978,112 @@ function CarDetailPage() {
 
     if (myBid) {
       setBidMessage(
-        "이미 입찰한 차량입니다. 현재 화면에서는 중복 입찰을 막아두었습니다."
+        "이미 입찰한 차량입니다. 블라인드 경매는 딜러당 한 번만 입찰할 수 있습니다."
       );
 
       return;
     }
 
-    const bidderType =
-      loginUser.role ||
-      AUTH_ROLES.MEMBER;
-
-    const bidderId =
-      getLoginUserId(
-        loginUser
+    try {
+      setIsBidSubmitting(
+        true
       );
 
-    if (!bidderId) {
       setBidMessage(
-        "로그인 사용자 정보를 확인할 수 없습니다."
+        "입찰을 처리하고 있습니다."
       );
 
-      return;
+      const savedBid =
+        await placeAuctionBid(
+          auctionId,
+          priceNumber
+        );
+
+      const normalizedBid = {
+        id:
+          savedBid?.bidId,
+
+        bidId:
+          savedBid?.bidId,
+
+        carId:
+          Number(carId),
+
+        carName,
+
+        auctionId:
+          savedBid?.auctionId ||
+          auctionId,
+
+        bidderType:
+          AUTH_ROLES.DEALER,
+
+        bidderId:
+          savedBid?.dealerId ||
+          loginUser.dealerId ||
+          getLoginUserId(
+            loginUser
+          ),
+
+        bidderName:
+          savedBid?.dealerName ||
+          getLoginUserName(
+            loginUser
+          ),
+
+        bidPrice:
+          Number(
+            savedBid?.bidAmount ??
+            priceNumber
+          ),
+
+        bidStatus:
+          savedBid?.status ||
+          "입찰완료",
+
+        createdAt:
+          savedBid?.createdAt ||
+          new Date().toISOString(),
+      };
+
+      setBidList(
+        (previousBids) => [
+          normalizedBid,
+          ...previousBids.filter(
+            (bid) =>
+              String(
+                bid.bidId ||
+                bid.id
+              ) !==
+              String(
+                normalizedBid.bidId
+              )
+          ),
+        ]
+      );
+
+      setBidPrice("");
+
+      setBidMessage(
+        "입찰이 완료되었습니다. 다른 딜러의 입찰 금액은 공개되지 않습니다."
+      );
+    } catch (error) {
+      console.error(
+        "경매 입찰 실패:",
+        error
+      );
+
+      setBidMessage(
+        error?.response?.data
+          ?.message ||
+        error?.message ||
+        "입찰 처리 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsBidSubmitting(
+        false
+      );
     }
-
-    const bidderName =
-      getLoginUserName(
-        loginUser
-      );
-
-    const newBid = {
-      id: crypto.randomUUID(),
-
-      carId,
-      carName,
-
-      auctionId:
-        auction.auctionId ||
-        carId,
-
-      bidderType,
-      bidderId,
-      bidderName,
-
-      bidPrice:
-        priceNumber,
-
-      bidStatus:
-        "입찰완료",
-
-      createdAt:
-        new Date().toISOString(),
-    };
-
-    const savedBids =
-      getSavedBids();
-
-    const nextBids = [
-      newBid,
-      ...savedBids,
-    ];
-
-    localStorage.setItem(
-      AUCTION_BIDS_KEY,
-      JSON.stringify(
-        nextBids
-      )
-    );
-
-    window.dispatchEvent(
-      new Event(
-        "auction-bid-change"
-      )
-    );
-
-    setBidList(
-      (prevBids) => [
-        newBid,
-        ...prevBids,
-      ]
-    );
-
-    setBidPrice("");
-
-    setBidMessage(
-      "입찰이 완료되었습니다. 다른 입찰자의 금액은 공개되지 않습니다."
-    );
   }
 
   function handlePurchaseComplete() {
@@ -1525,8 +1521,8 @@ function CarDetailPage() {
           <button
             type="button"
             className={`car-detail-wishlist-button ${isWished
-                ? "is-active"
-                : ""
+              ? "is-active"
+              : ""
               }`}
             onClick={
               handleWishlistClick
@@ -1673,16 +1669,13 @@ function CarDetailPage() {
                     0
                   ).toLocaleString()}만원 이상`}
                   disabled={
+                    isBidSubmitting ||
                     isAuctionDone ||
                     Boolean(
                       myBid
                     ) ||
-                    ![
-                      AUTH_ROLES.COMPANY,
-                      AUTH_ROLES.DEALER,
-                    ].includes(
-                      loginUser?.role
-                    )
+                    loginUser?.role !==
+                    AUTH_ROLES.DEALER
                   }
                 />
 
@@ -1720,19 +1713,20 @@ function CarDetailPage() {
                 <button
                   type="submit"
                   disabled={
+                    isBidSubmitting ||
                     isAuctionDone ||
                     Boolean(
                       myBid
                     ) ||
-                    ![
-                      AUTH_ROLES.COMPANY,
-                      AUTH_ROLES.DEALER,
-                    ].includes(
-                      loginUser?.role
-                    )
+                    loginUser?.role !==
+                    AUTH_ROLES.DEALER
                   }
                 >
-                  입찰하기
+                  {isBidSubmitting
+                    ? "입찰 처리 중..."
+                    : myBid
+                      ? "입찰 완료"
+                      : "입찰하기"}
                 </button>
 
                 <button

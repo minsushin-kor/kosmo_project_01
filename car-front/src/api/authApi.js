@@ -18,24 +18,32 @@ export async function login({
         );
     }
 
-    const response = await apiClient.post(
-        "/auth/login",
-        {
-            loginId,
-            password,
-            roleType,
-        }
-    );
+    const response =
+        await apiClient.post(
+            "/auth/login",
+            {
+                loginId,
+                password,
+                roleType,
+            }
+        );
 
     return {
         token: response.token,
+
         role:
             mapServerRoleToClientRole(
                 response.role
             ),
-        serverRole: response.role,
-        name: response.name,
-        loginId: response.loginId,
+
+        serverRole:
+            response.role,
+
+        name:
+            response.name,
+
+        loginId:
+            response.loginId,
     };
 }
 
