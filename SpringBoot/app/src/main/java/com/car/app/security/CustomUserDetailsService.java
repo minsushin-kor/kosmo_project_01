@@ -6,6 +6,8 @@ import com.car.app.dealer.Dealer;
 import com.car.app.dealer.DealerRepository;
 import com.car.app.member.Member;
 import com.car.app.member.MemberRepository;
+import com.car.app.user.User;
+import com.car.app.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,6 +21,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
+    private final UserRepository userRepository;
     private final MemberRepository memberRepository;
     private final CompanyRepository companyRepository;
     private final DealerRepository dealerRepository;
@@ -26,6 +29,20 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+
+        // 0단계: 통합 UserRepository에서 우선 조회
+        Optional<User> userOpt = userRepository.findByLoginId(username)
+                .or(() -> userRepository.findByEmail(username));
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            String role = "ROLE_" + user.getRoleType().toUpperCase();
+            return new CustomUserDetails(
+                    user.getLoginId(),
+                    user.getPassword(),
+                    role,
+                    user.getName()
+            );
+        }
 
         // 1단계: 상사 마스터 (loginId 우선, masterEmail 보조)
         Optional<Company> companyOpt = companyRepository.findByLoginId(username)

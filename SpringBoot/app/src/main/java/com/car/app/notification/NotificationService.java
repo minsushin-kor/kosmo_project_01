@@ -122,7 +122,8 @@ public class NotificationService {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_MEMBER"));
 
         if (isMember) {
-            Member member = memberRepository.findByEmail(username)
+            Member member = memberRepository.findByLoginId(username)
+                    .or(() -> memberRepository.findByEmail(username))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
             return new RecipientInfo("MEMBER", member.getMemberId());
         } else {

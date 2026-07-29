@@ -36,7 +36,8 @@ public class ChatService {
      */
     @Transactional
     public ChatRoom createOrGetChatRoom(Long carId, String memberEmail) {
-        Member member = memberRepository.findByEmail(memberEmail)
+        Member member = memberRepository.findByLoginId(memberEmail)
+                .or(() -> memberRepository.findByEmail(memberEmail))
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
 
         Car car = carRepository.findById(carId)
@@ -78,7 +79,8 @@ public class ChatService {
         List<ChatRoom> rooms;
 
         if (isMember) {
-            Member member = memberRepository.findByEmail(userEmailOrLoginId)
+            Member member = memberRepository.findByLoginId(userEmailOrLoginId)
+                    .or(() -> memberRepository.findByEmail(userEmailOrLoginId))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
             rooms = chatRoomRepository.findByMemberMemberId(member.getMemberId());
         } else {

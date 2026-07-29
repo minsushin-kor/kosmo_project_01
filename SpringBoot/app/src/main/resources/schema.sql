@@ -9,55 +9,78 @@ DROP TABLE IF EXISTS cars CASCADE;
 DROP TABLE IF EXISTS dealers CASCADE;
 DROP TABLE IF EXISTS companies CASCADE;
 DROP TABLE IF EXISTS members CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
--- 1. members (일반 회원)
-CREATE TABLE members (
-    member_id BIGSERIAL PRIMARY KEY,
-    login_id VARCHAR(100) UNIQUE,
-    email VARCHAR(100) UNIQUE NOT NULL,
+-- 0. users (통합 사용자 최상위 계정 테이블)
+CREATE TABLE users (
+    user_id BIGSERIAL PRIMARY KEY,
+    login_id VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(50) NOT NULL,
     phone VARCHAR(20) NOT NULL,
-    profile_image_url VARCHAR(500), -- 프로필 사진 이미지 URL (단일)
-    role VARCHAR(20) DEFAULT 'MEMBER', -- 회원 권한 ('MEMBER', 'ADMIN')
+    email VARCHAR(100) UNIQUE,
+    profile_image_url VARCHAR(500),
+    role_type VARCHAR(30) NOT NULL, -- 'MEMBER', 'DEALER', 'COMPANY_MASTER', 'ADMIN'
     status VARCHAR(30) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 1. members (일반 회원)
+CREATE TABLE members (
+    member_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT UNIQUE,
+    login_id VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    profile_image_url VARCHAR(500),
+    role VARCHAR(20) DEFAULT 'MEMBER',
+    status VARCHAR(30) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_members_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
 -- 2. companies (상사)
 CREATE TABLE companies (
     company_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT UNIQUE,
     business_number VARCHAR(20) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
-    login_id VARCHAR(100) UNIQUE,
+    login_id VARCHAR(50) UNIQUE NOT NULL,
     master_email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     address VARCHAR(255),
     phone VARCHAR(20),
-    profile_image_url VARCHAR(500), -- 상사 대표 이미지 또는 로고 이미지 URL (단일)
+    profile_image_url VARCHAR(500),
     membership_status BOOLEAN DEFAULT FALSE,
     tier VARCHAR(20) DEFAULT 'NORMAL',
     risk_score DOUBLE PRECISION DEFAULT 0.0,
+    golden_badge_status BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_companies_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 -- 3. dealers (딜러)
 CREATE TABLE dealers (
     dealer_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT UNIQUE,
     company_id BIGINT NOT NULL,
     login_id VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE,
     phone VARCHAR(20) NOT NULL,
-    profile_image_url VARCHAR(500), -- 딜러 프로필 사진 이미지 URL (단일)
+    profile_image_url VARCHAR(500),
     status VARCHAR(20) DEFAULT 'ACTIVE',
     tier VARCHAR(20) DEFAULT 'NORMAL',
     risk_score DOUBLE PRECISION DEFAULT 0.0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_dealers_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_dealers_company FOREIGN KEY (company_id) REFERENCES companies(company_id) ON DELETE CASCADE
 );
 
