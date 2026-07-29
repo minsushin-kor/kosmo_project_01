@@ -171,25 +171,7 @@ public class CompanyPublicController {
 
         private DealerDto.Response mapToDealerResponse(
                         Dealer dealer) {
-
-                return DealerDto.Response
-                                .builder()
-                                .dealerId(
-                                                dealer.getDealerId())
-                                .loginId(
-                                                dealer.getLoginId())
-                                .name(
-                                                dealer.getName())
-                                .phone(
-                                                dealer.getPhone())
-                                .status(
-                                                dealer.getStatus())
-                                .tier(
-                                                dealer.getTier())
-                                .riskScore(
-                                                dealer.getRiskScore())
-                                .profileImageUrl(
-                                                dealer.getProfileImageUrl())
-                                .build();
+                return DealerDto.Response.fromEntity(
+                                dealer);
         }
 }

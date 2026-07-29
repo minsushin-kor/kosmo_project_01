@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import PageTitle from "../../components/common/PageTitle";
 import ImageUploader from "../../components/common/ImageUploader";
 import { createCompanyDealer } from "../../api/dealerApi";
-import { saveCompanyDealerToStorage } from "../../utils/companyDealerStorage";
 import "../../css/common/page.css";
 import "../../css/company/companyDealerCreatePage.css";
 import {
@@ -123,66 +122,10 @@ function CompanyDealerCreatePage() {
         profileImageUrl,
       };
 
-      const createdDealer =
-        await createCompanyDealer(
-          requestData
-        );
+      await createCompanyDealer(
+        requestData
+      );
 
-      /*
-       * 현재 딜러 관리 목록 일부가
-       * localStorage를 사용하므로
-       * API 응답도 함께 저장합니다.
-       */
-      saveCompanyDealerToStorage({
-        id:
-          createdDealer.dealerId,
-
-        dealerId:
-          createdDealer.dealerId,
-
-        name:
-          createdDealer.name,
-
-        loginId:
-          createdDealer.loginId,
-
-        phone:
-          createdDealer.phone,
-
-        email:
-          createdDealer.email ||
-          formData.email.trim(),
-
-        memo:
-          formData.memo.trim(),
-
-        carCount: 0,
-
-        soldCount: 0,
-
-        status:
-          createdDealer.status ===
-            "ACTIVE"
-            ? "정상"
-            : createdDealer.status,
-
-        joinDate:
-          new Date()
-            .toISOString()
-            .slice(0, 10),
-
-        profileImageUrl:
-          createdDealer.profileImageUrl ||
-          profileImageUrl,
-
-        imageName:
-          dealerImages[0]?.file
-            ?.name || "",
-
-        imagePreviewUrl:
-          createdDealer.profileImageUrl ||
-          profileImageUrl,
-      });
 
       alert(
         "딜러 계정이 생성되었습니다."

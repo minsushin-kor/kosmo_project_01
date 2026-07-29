@@ -1,26 +1,27 @@
 import {
+  useEffect,
+  useState,
+} from "react";
+import {
   Link,
 } from "react-router-dom";
 import {
-  companyDealers,
-} from "../../data/companyData";
-import {
-  getCompanyDealersFromStorage,
-} from "../../utils/companyDealerStorage";
+  getCompanyDealers,
+} from "../../api/dealerApi";
 import "../../css/company/companyDealersPublicPage.css";
 
-function normalizeDealer(
-  dealer
-) {
+function normalizeDealer(dealer) {
   const dealerId =
     dealer.dealerId ||
     dealer.id;
 
   const profileImageUrl =
     dealer.profileImageUrl ||
-    dealer.imagePreviewUrl ||
-    dealer.profileImage ||
     "";
+
+  const statusCode = String(
+    dealer.status || "ACTIVE"
+  ).toUpperCase();
 
   return {
     ...dealer,
@@ -30,55 +31,93 @@ function normalizeDealer(
 
     profileImageUrl,
 
+    statusCode,
+
     status:
-      dealer.status === "ACTIVE"
+      statusCode === "ACTIVE"
         ? "정상"
-        : dealer.status ||
-        "정상",
+        : statusCode === "SUSPENDED"
+          ? "정지"
+          : statusCode,
 
-    carCount:
-      Number(
-        dealer.carCount || 0
-      ),
+    carCount: Number(
+      dealer.carCount || 0
+    ),
 
-    soldCount:
-      Number(
-        dealer.soldCount || 0
-      ),
+    soldCount: Number(
+      dealer.soldCount || 0
+    ),
   };
 }
 
 function CompanyDealersPublicPage() {
-  const storageDealers =
-    getCompanyDealersFromStorage();
+  const [
+    dealers,
+    setDealers,
+  ] = useState([]);
 
-  const dealerMap =
-    new Map();
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
 
-  [
-    ...storageDealers,
-    ...companyDealers,
-  ].forEach((dealer) => {
-    const normalizedDealer =
-      normalizeDealer(dealer);
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
-    dealerMap.set(
-      String(
-        normalizedDealer.id
-      ),
-      normalizedDealer
-    );
-  });
+  useEffect(() => {
+    let isActive = true;
 
-  const dealers =
-    Array.from(
-      dealerMap.values()
-    ).filter((dealer) => {
-      return (
-        dealer.status ===
-        "정상"
-      );
-    });
+    getCompanyDealers()
+      .then((result) => {
+        if (!isActive) {
+          return;
+        }
+
+        const dealerList =
+          Array.isArray(result)
+            ? result
+            : [];
+
+        const activeDealers =
+          dealerList
+            .map(normalizeDealer)
+            .filter(
+              (dealer) =>
+                dealer.statusCode ===
+                "ACTIVE"
+            );
+
+        setDealers(activeDealers);
+      })
+      .catch((error) => {
+        if (!isActive) {
+          return;
+        }
+
+        console.error(
+          "공개 딜러 목록 조회 실패:",
+          error
+        );
+
+        setErrorMessage(
+          error.message ||
+          "소속 딜러 목록을 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   return (
     <main className="company-dealers-public-page">
@@ -106,7 +145,18 @@ function CompanyDealersPublicPage() {
       </section>
 
       <section className="company-dealers-public-section">
-        {dealers.length === 0 ? (
+        {isLoading ? (
+          <div className="company-dealers-public-empty">
+            소속 딜러 목록을 불러오는 중입니다.
+          </div>
+        ) : errorMessage ? (
+          <div
+            className="company-dealers-public-empty"
+            role="alert"
+          >
+            {errorMessage}
+          </div>
+        ) : dealers.length === 0 ? (
           <div className="company-dealers-public-empty">
             공개 가능한 딜러가 없습니다.
           </div>
@@ -116,9 +166,7 @@ function CompanyDealersPublicPage() {
               (dealer) => (
                 <article
                   className="company-dealers-public-card"
-                  key={
-                    dealer.id
-                  }
+                  key={dealer.id}
                 >
                   <div className="company-dealers-public-profile">
                     {dealer.profileImageUrl ? (
@@ -138,9 +186,7 @@ function CompanyDealersPublicPage() {
                               .currentTarget
                               .nextElementSibling;
 
-                          if (
-                            fallback
-                          ) {
+                          if (fallback) {
                             fallback.style.display =
                               "flex";
                           }
@@ -166,9 +212,7 @@ function CompanyDealersPublicPage() {
 
                   <div className="company-dealers-public-info">
                     <h2>
-                      {
-                        dealer.name
-                      }
+                      {dealer.name}
                     </h2>
 
                     <p>
@@ -184,10 +228,7 @@ function CompanyDealersPublicPage() {
                       </span>
 
                       <strong>
-                        {
-                          dealer.carCount
-                        }
-                        대
+                        {dealer.carCount}대
                       </strong>
                     </div>
 
@@ -197,10 +238,7 @@ function CompanyDealersPublicPage() {
                       </span>
 
                       <strong>
-                        {
-                          dealer.soldCount
-                        }
-                        대
+                        {dealer.soldCount}대
                       </strong>
                     </div>
                   </div>

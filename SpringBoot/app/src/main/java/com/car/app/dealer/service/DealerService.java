@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 /**
  * 상사 소속 딜러 계정의 관리 및 발급, 정지를 처리하는 서비스 클래스입니다.
@@ -34,10 +35,12 @@ public class DealerService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
         // 2단계: 신규 딜러의 로그인 ID 및 이메일 중복 여부 확인
-        if (userRepository.existsByLoginId(request.getLoginId()) || dealerRepository.findByLoginId(request.getLoginId()).isPresent()) {
+        if (userRepository.existsByLoginId(request.getLoginId())
+                || dealerRepository.findByLoginId(request.getLoginId()).isPresent()) {
             throw new IllegalArgumentException("이미 존재하는 딜러 아이디입니다.");
         }
-        if (request.getEmail() != null && !request.getEmail().isBlank() && dealerRepository.existsByEmail(request.getEmail())) {
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && dealerRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
@@ -120,13 +123,32 @@ public class DealerService {
             throw new SecurityException("본인 상사 소속 딜러만 수정할 수 있습니다.");
         }
 
-        if (request.getName() != null) dealer.setName(request.getName());
-        if (request.getPhone() != null) dealer.setPhone(request.getPhone());
-        if (request.getProfileImageUrl() != null) dealer.setProfileImageUrl(request.getProfileImageUrl());
+        if (request.getName() != null)
+            dealer.setName(request.getName());
+        if (request.getPhone() != null)
+            dealer.setPhone(request.getPhone());
+        if (request.getProfileImageUrl() != null)
+            dealer.setProfileImageUrl(request.getProfileImageUrl());
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             dealer.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
         return dealerRepository.save(dealer);
+    }
+
+    /**
+     * 현재 로그인한 회사에 소속된 전체 딜러를 조회합니다.
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<Dealer> getCompanyDealers(
+            String masterLoginId) {
+        Company company = companyRepository
+                .findByLoginId(masterLoginId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "존재하지 않는 상사 마스터 계정입니다."));
+
+        return dealerRepository
+                .findByCompanyCompanyId(
+                        company.getCompanyId());
     }
 }

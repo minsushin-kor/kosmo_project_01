@@ -9,9 +9,6 @@ import {
   useParams,
 } from "react-router-dom";
 import {
-  companyDealers,
-} from "../../data/companyData";
-import {
   AUTH_ROLES,
   setAuthUser,
 } from "../../data/authUser";
@@ -20,8 +17,14 @@ import {
 } from "../../hooks/useAuth";
 import CarCard from "../../components/car/CarCard";
 import {
-  getAllCars,
-} from "../../utils/carViewUtils";
+  getPublicDealer,
+} from "../../api/dealerApi";
+import {
+  getPublicDealerCars,
+} from "../../api/companyApi";
+import {
+  mapServerCarToClientCar,
+} from "../../api/carApi";
 import {
   getReviewsByDealerId,
   saveDealerReview,
@@ -34,6 +37,26 @@ import "../../css/company/dealerPage.css";
 
 const DEALER_PROFILE_STORAGE_KEY =
   "car_front_dealer_profiles";
+
+const ACTIVITY_REGIONS = [
+  "서울특별시",
+  "부산광역시",
+  "대구광역시",
+  "인천광역시",
+  "광주광역시",
+  "대전광역시",
+  "울산광역시",
+  "세종특별자치시",
+  "경기도",
+  "강원특별자치도",
+  "충청북도",
+  "충청남도",
+  "전북특별자치도",
+  "전라남도",
+  "경상북도",
+  "경상남도",
+  "제주특별자치도",
+];
 
 function getDealerProfiles() {
   const savedProfiles =
@@ -83,6 +106,7 @@ function saveDealerProfile(
     String(dealerId)
     ],
     ...profile,
+
     updatedAt:
       new Date().toISOString(),
   };
@@ -124,6 +148,38 @@ function formatDate(dateText) {
   );
 }
 
+function normalizeDealerCars(
+  carResponse
+) {
+  if (
+    !Array.isArray(
+      carResponse
+    )
+  ) {
+    return [];
+  }
+
+  return carResponse
+    .map((car) => {
+      /*
+       * 이미 프론트 화면 형식으로 변환된 데이터라면
+       * 중복 변환하지 않고 그대로 사용합니다.
+       */
+      if (
+        car?.brand ||
+        car?.modelName ||
+        car?.sellerName
+      ) {
+        return car;
+      }
+
+      return mapServerCarToClientCar(
+        car
+      );
+    })
+    .filter(Boolean);
+}
+
 function DealerPage() {
   const {
     dealerId: routeDealerId,
@@ -149,7 +205,28 @@ function DealerPage() {
   const isOwnPage =
     loginUser?.role ===
     AUTH_ROLES.DEALER &&
-    loginDealerId === dealerId;
+    loginDealerId ===
+    dealerId;
+
+  const [
+    serverDealer,
+    setServerDealer,
+  ] = useState(null);
+
+  const [
+    dealerCars,
+    setDealerCars,
+  ] = useState([]);
+
+  const [
+    isDealerLoading,
+    setIsDealerLoading,
+  ] = useState(true);
+
+  const [
+    dealerLoadError,
+    setDealerLoadError,
+  ] = useState("");
 
   const [
     savedProfile,
@@ -191,229 +268,6 @@ function DealerPage() {
     view: "all",
   }));
 
-  const selectedCarView =
-    carViewState.dealerId ===
-      dealerId
-      ? carViewState.view
-      : "all";
-
-  function setSelectedCarView(
-    view
-  ) {
-    setCarViewState({
-      dealerId,
-      view,
-    });
-  }
-
-  const carSectionRef =
-    useRef(null);
-
-  const dealerCars = useMemo(
-    () =>
-      getAllCars().filter(
-        (car) =>
-          Number(
-            car.dealerId
-          ) === dealerId
-      ),
-    [dealerId]
-  );
-
-  const soldCars = useMemo(
-    () =>
-      dealerCars.filter(
-        (car) =>
-          car.status ===
-          "판매완료" ||
-          car.status ===
-          "거래완료"
-      ),
-    [dealerCars]
-  );
-
-  const visibleDealerCars =
-    useMemo(() => {
-      if (
-        selectedCarView ===
-        "sold"
-      ) {
-        return soldCars;
-      }
-
-      return dealerCars;
-    }, [
-      dealerCars,
-      selectedCarView,
-      soldCars,
-    ]);
-
-  const dealer =
-    useMemo(() => {
-      const savedDealer =
-        companyDealers.find(
-          (item) =>
-            Number(item.id) ===
-            dealerId
-        );
-
-      const dealerCar =
-        dealerCars[0];
-
-      return {
-        id: dealerId,
-
-        name:
-          savedProfile.name ||
-          savedDealer?.name ||
-          dealerCar?.sellerName ||
-          (
-            isOwnPage
-              ? loginUser?.name
-              : ""
-          ) ||
-          `딜러 ${dealerId}`,
-
-        phone:
-          savedProfile.phone ||
-          savedDealer?.phone ||
-          dealerCar?.sellerPhone ||
-          (
-            isOwnPage
-              ? loginUser?.phone
-              : ""
-          ) ||
-          "-",
-
-        email:
-          savedProfile.email ||
-          savedDealer?.email ||
-          (
-            isOwnPage
-              ? loginUser?.email
-              : ""
-          ) ||
-          "-",
-
-        position:
-          savedProfile.position ||
-          savedDealer?.position ||
-          (
-            isOwnPage
-              ? loginUser?.position
-              : ""
-          ) ||
-          "딜러",
-
-        task:
-          savedProfile.task ||
-          savedDealer?.task ||
-          (
-            isOwnPage
-              ? loginUser?.task
-              : ""
-          ) ||
-          "중고차 상담 및 판매",
-
-        activityRegion:
-          savedProfile
-            .activityRegion ||
-          savedDealer
-            ?.activityRegion ||
-          dealerCar?.region ||
-          (
-            isOwnPage
-              ? loginUser
-                ?.activityRegion
-              : ""
-          ) ||
-          "서울특별시",
-
-        introduction:
-          savedProfile
-            .introduction ||
-          savedDealer
-            ?.introduction ||
-          (
-            isOwnPage
-              ? loginUser
-                ?.introduction
-              : ""
-          ) ||
-          "차량 상태를 정확하게 안내하고 안전한 거래를 진행하겠습니다.",
-
-        profileImageUrl:
-          savedProfile
-            .profileImageUrl ||
-          savedProfile
-            .profileImage ||
-          savedDealer
-            ?.profileImageUrl ||
-          savedDealer
-            ?.imagePreviewUrl ||
-          savedDealer
-            ?.profileImage ||
-          (
-            isOwnPage
-              ? (
-                loginUser
-                  ?.profileImageUrl ||
-                loginUser
-                  ?.profileImage
-              )
-              : ""
-          ) ||
-          "",
-
-        companyId:
-          dealerCar?.companyId ||
-          savedDealer?.companyId ||
-          (
-            isOwnPage
-              ? loginUser
-                ?.companyId
-              : ""
-          ) ||
-          1,
-
-        companyName:
-          dealerCar
-            ?.companyName ||
-          savedDealer
-            ?.companyName ||
-          (
-            isOwnPage
-              ? loginUser
-                ?.companyName
-              : ""
-          ) ||
-          "Kosmo 인증모터스",
-
-        joinDate:
-          savedDealer?.joinDate ||
-          (
-            isOwnPage
-              ? loginUser
-                ?.joinDate
-              : ""
-          ) ||
-          "2026-07-01",
-
-        carCount:
-          dealerCars.length,
-
-        soldCount:
-          soldCars.length,
-      };
-    }, [
-      dealerCars,
-      dealerId,
-      isOwnPage,
-      loginUser,
-      savedProfile,
-      soldCars.length,
-    ]);
-
   const [
     reviews,
     setReviews,
@@ -443,6 +297,88 @@ function DealerPage() {
     setReviewMessage,
   ] = useState("");
 
+  const carSectionRef =
+    useRef(null);
+
+  const selectedCarView =
+    carViewState.dealerId ===
+      dealerId
+      ? carViewState.view
+      : "all";
+
+  function setSelectedCarView(
+    view
+  ) {
+    setCarViewState({
+      dealerId,
+      view,
+    });
+  }
+
+  useEffect(() => {
+    let isActive = true;
+
+    Promise.all([
+      getPublicDealer(
+        dealerId
+      ),
+      getPublicDealerCars(
+        dealerId
+      ),
+    ])
+      .then(
+        ([
+          dealerResponse,
+          carResponse,
+        ]) => {
+          if (!isActive) {
+            return;
+          }
+
+          setServerDealer(
+            dealerResponse ||
+            null
+          );
+
+          setDealerCars(
+            normalizeDealerCars(
+              carResponse
+            )
+          );
+
+          setDealerLoadError("");
+        }
+      )
+      .catch((error) => {
+        if (!isActive) {
+          return;
+        }
+
+        console.error(
+          "딜러 공개페이지 조회 실패:",
+          error
+        );
+
+        setDealerLoadError(
+          error.message ||
+          "딜러 정보를 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setIsDealerLoading(
+          false
+        );
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [dealerId]);
+
   useEffect(() => {
     function loadProfile() {
       setSavedProfile(
@@ -452,7 +388,11 @@ function DealerPage() {
       );
     }
 
-    loadProfile();
+    const timeoutId =
+      window.setTimeout(
+        loadProfile,
+        0
+      );
 
     window.addEventListener(
       "dealer-profile-change",
@@ -460,13 +400,16 @@ function DealerPage() {
     );
 
     return () => {
+      window.clearTimeout(
+        timeoutId
+      );
+
       window.removeEventListener(
         "dealer-profile-change",
         loadProfile
       );
     };
   }, [dealerId]);
-
 
   useEffect(() => {
     function loadReviews() {
@@ -477,7 +420,11 @@ function DealerPage() {
       );
     }
 
-    loadReviews();
+    const timeoutId =
+      window.setTimeout(
+        loadReviews,
+        0
+      );
 
     window.addEventListener(
       "dealer-review-change",
@@ -485,6 +432,10 @@ function DealerPage() {
     );
 
     return () => {
+      window.clearTimeout(
+        timeoutId
+      );
+
       window.removeEventListener(
         "dealer-review-change",
         loadReviews
@@ -538,43 +489,236 @@ function DealerPage() {
     };
   }, [isProfileEditing]);
 
-  const reviewableTrades = (() => {
-    if (
-      loginUser?.role !==
-      AUTH_ROLES.MEMBER
-    ) {
-      return [];
-    }
+  const soldCars =
+    useMemo(
+      () =>
+        dealerCars.filter(
+          (car) =>
+            car.status ===
+            "판매완료" ||
+            car.status ===
+            "거래완료"
+        ),
+      [dealerCars]
+    );
 
-    const writtenTradeIds =
-      new Set(
-        reviews
-          .filter(
-            (review) =>
-              Number(
-                review.memberId
-              ) ===
-              Number(
-                loginUser.id
+  const visibleDealerCars =
+    useMemo(() => {
+      if (
+        selectedCarView ===
+        "sold"
+      ) {
+        return soldCars;
+      }
+
+      return dealerCars;
+    }, [
+      dealerCars,
+      selectedCarView,
+      soldCars,
+    ]);
+
+  const dealer =
+    useMemo(() => {
+      const dealerCar =
+        dealerCars[0];
+
+      return {
+        id: dealerId,
+
+        name:
+          savedProfile.name ||
+          serverDealer?.name ||
+          dealerCar?.sellerName ||
+          (
+            isOwnPage
+              ? loginUser?.name
+              : ""
+          ) ||
+          `딜러 ${dealerId}`,
+
+        phone:
+          savedProfile.phone ||
+          serverDealer?.phone ||
+          dealerCar?.sellerPhone ||
+          (
+            isOwnPage
+              ? loginUser?.phone
+              : ""
+          ) ||
+          "-",
+
+        email:
+          savedProfile.email ||
+          serverDealer?.email ||
+          (
+            isOwnPage
+              ? loginUser?.email
+              : ""
+          ) ||
+          "-",
+
+        position:
+          savedProfile.position ||
+          serverDealer?.position ||
+          (
+            isOwnPage
+              ? loginUser?.position
+              : ""
+          ) ||
+          "딜러",
+
+        task:
+          savedProfile.task ||
+          serverDealer?.task ||
+          (
+            isOwnPage
+              ? loginUser?.task
+              : ""
+          ) ||
+          "중고차 상담 및 판매",
+
+        activityRegion:
+          savedProfile
+            .activityRegion ||
+          serverDealer
+            ?.activityRegion ||
+          dealerCar?.region ||
+          (
+            isOwnPage
+              ? loginUser
+                ?.activityRegion
+              : ""
+          ) ||
+          "서울특별시",
+
+        introduction:
+          savedProfile
+            .introduction ||
+          serverDealer
+            ?.introduction ||
+          (
+            isOwnPage
+              ? loginUser
+                ?.introduction
+              : ""
+          ) ||
+          "차량 상태를 정확하게 안내하고 안전한 거래를 진행하겠습니다.",
+
+        profileImageUrl:
+          savedProfile
+            .profileImageUrl ||
+          savedProfile
+            .profileImage ||
+          serverDealer
+            ?.profileImageUrl ||
+          (
+            isOwnPage
+              ? (
+                loginUser
+                  ?.profileImageUrl ||
+                loginUser
+                  ?.profileImage
               )
-          )
-          .map((review) =>
+              : ""
+          ) ||
+          "",
+
+        companyId:
+          serverDealer
+            ?.companyId ||
+          dealerCar?.companyId ||
+          (
+            isOwnPage
+              ? loginUser
+                ?.companyId
+              : null
+          ),
+
+        companyName:
+          serverDealer
+            ?.companyName ||
+          dealerCar
+            ?.companyName ||
+          (
+            isOwnPage
+              ? loginUser
+                ?.companyName
+              : ""
+          ) ||
+          "소속 회사",
+
+        joinDate:
+          serverDealer
+            ?.createdAt ||
+          (
+            isOwnPage
+              ? loginUser
+                ?.joinDate
+              : ""
+          ) ||
+          null,
+
+        carCount:
+          dealerCars.length,
+
+        soldCount:
+          soldCars.length,
+      };
+    }, [
+      dealerCars,
+      dealerId,
+      isOwnPage,
+      loginUser,
+      savedProfile,
+      serverDealer,
+      soldCars.length,
+    ]);
+
+  const reviewableTrades =
+    useMemo(() => {
+      if (
+        loginUser?.role !==
+        AUTH_ROLES.MEMBER
+      ) {
+        return [];
+      }
+
+      const writtenTradeIds =
+        new Set(
+          reviews
+            .filter(
+              (review) =>
+                Number(
+                  review.memberId
+                ) ===
+                Number(
+                  loginUser.id
+                )
+            )
+            .map((review) =>
+              String(
+                review.tradeId
+              )
+            )
+        );
+
+      return getReviewableTrades(
+        loginUser.id,
+        dealerId
+      ).filter(
+        (trade) =>
+          !writtenTradeIds.has(
             String(
-              review.tradeId
+              trade.id
             )
           )
       );
-
-    return getReviewableTrades(
-      loginUser.id,
-      dealerId
-    ).filter(
-      (trade) =>
-        !writtenTradeIds.has(
-          String(trade.id)
-        )
-    );
-  })();
+    }, [
+      dealerId,
+      loginUser,
+      reviews,
+    ]);
 
   const averageRating =
     useMemo(() => {
@@ -727,7 +871,9 @@ function DealerPage() {
 
     const nextProfile = {
       name: nextName,
+
       phone: nextPhone,
+
       email: nextEmail,
 
       position:
@@ -808,7 +954,9 @@ function DealerPage() {
     const trade =
       reviewableTrades.find(
         (item) =>
-          String(item.id) ===
+          String(
+            item.id
+          ) ===
           String(
             selectedTradeId
           )
@@ -824,7 +972,8 @@ function DealerPage() {
 
     try {
       saveDealerReview({
-        id: crypto.randomUUID(),
+        id:
+          crypto.randomUUID(),
 
         tradeId:
           trade.id,
@@ -874,6 +1023,21 @@ function DealerPage() {
   return (
     <main className="page-container dealer-profile-page">
       <section className="page-section dealer-profile-section">
+        {isDealerLoading && (
+          <p className="dealer-profile-save-message">
+            딜러 정보를 불러오는 중입니다.
+          </p>
+        )}
+
+        {dealerLoadError && (
+          <p
+            className="dealer-profile-save-message"
+            role="alert"
+          >
+            {dealerLoadError}
+          </p>
+        )}
+
         <div className="dealer-profile-top">
           <div className="dealer-profile-avatar">
             {dealer.profileImageUrl ? (
@@ -905,26 +1069,40 @@ function DealerPage() {
                   }}
                 >
                   {String(
-                    dealer.name || "딜"
-                  ).slice(0, 1)}
+                    dealer.name ||
+                    "딜"
+                  ).slice(
+                    0,
+                    1
+                  )}
                 </span>
               </>
             ) : (
               <span className="dealer-profile-avatar-fallback">
                 {String(
-                  dealer.name || "딜"
-                ).slice(0, 1)}
+                  dealer.name ||
+                  "딜"
+                ).slice(
+                  0,
+                  1
+                )}
               </span>
             )}
           </div>
 
           <div className="dealer-profile-main">
-            <Link
-              to={`/companies/${dealer.companyId}`}
-              className="dealer-profile-company-link"
-            >
-              {dealer.companyName}
-            </Link>
+            {dealer.companyId ? (
+              <Link
+                to={`/companies/${dealer.companyId}`}
+                className="dealer-profile-company-link"
+              >
+                {dealer.companyName}
+              </Link>
+            ) : (
+              <span className="dealer-profile-company-link">
+                {dealer.companyName}
+              </span>
+            )}
 
             <div className="dealer-profile-name-row">
               <div className="dealer-profile-name-box">
@@ -984,11 +1162,17 @@ function DealerPage() {
               소속회사
             </span>
 
-            <Link
-              to={`/companies/${dealer.companyId}`}
-            >
-              {dealer.companyName}
-            </Link>
+            {dealer.companyId ? (
+              <Link
+                to={`/companies/${dealer.companyId}`}
+              >
+                {dealer.companyName}
+              </Link>
+            ) : (
+              <strong>
+                {dealer.companyName}
+              </strong>
+            )}
           </article>
 
           <article>
@@ -1185,7 +1369,11 @@ function DealerPage() {
           </div>
         </div>
 
-        {visibleDealerCars.length ===
+        {isDealerLoading ? (
+          <div className="dealer-car-empty">
+            등록 매물을 불러오는 중입니다.
+          </div>
+        ) : visibleDealerCars.length ===
           0 ? (
           <div className="dealer-car-empty">
             {selectedCarView ===
@@ -1198,7 +1386,10 @@ function DealerPage() {
             {visibleDealerCars.map(
               (car) => (
                 <CarCard
-                  key={car.id}
+                  key={
+                    car.carId ||
+                    car.id
+                  }
                   car={car}
                 />
               )
@@ -1283,7 +1474,13 @@ function DealerPage() {
                     )
                   }
                 >
-                  {[5, 4, 3, 2, 1].map(
+                  {[
+                    5,
+                    4,
+                    3,
+                    2,
+                    1,
+                  ].map(
                     (score) => (
                       <option
                         key={score}
@@ -1346,7 +1543,8 @@ function DealerPage() {
           </strong>
         </div>
 
-        {reviews.length === 0 ? (
+        {reviews.length ===
+          0 ? (
           <div className="dealer-review-empty">
             아직 등록된 리뷰가
             없습니다.
@@ -1550,73 +1748,16 @@ function DealerPage() {
                         지역 선택
                       </option>
 
-                      <option value="서울특별시">
-                        서울특별시
-                      </option>
-
-                      <option value="부산광역시">
-                        부산광역시
-                      </option>
-
-                      <option value="대구광역시">
-                        대구광역시
-                      </option>
-
-                      <option value="인천광역시">
-                        인천광역시
-                      </option>
-
-                      <option value="광주광역시">
-                        광주광역시
-                      </option>
-
-                      <option value="대전광역시">
-                        대전광역시
-                      </option>
-
-                      <option value="울산광역시">
-                        울산광역시
-                      </option>
-
-                      <option value="세종특별자치시">
-                        세종특별자치시
-                      </option>
-
-                      <option value="경기도">
-                        경기도
-                      </option>
-
-                      <option value="강원특별자치도">
-                        강원특별자치도
-                      </option>
-
-                      <option value="충청북도">
-                        충청북도
-                      </option>
-
-                      <option value="충청남도">
-                        충청남도
-                      </option>
-
-                      <option value="전북특별자치도">
-                        전북특별자치도
-                      </option>
-
-                      <option value="전라남도">
-                        전라남도
-                      </option>
-
-                      <option value="경상북도">
-                        경상북도
-                      </option>
-
-                      <option value="경상남도">
-                        경상남도
-                      </option>
-
-                      <option value="제주특별자치도">
-                        제주특별자치도
-                      </option>
+                      {ACTIVITY_REGIONS.map(
+                        (region) => (
+                          <option
+                            key={region}
+                            value={region}
+                          >
+                            {region}
+                          </option>
+                        )
+                      )}
                     </select>
                   </label>
                 </div>

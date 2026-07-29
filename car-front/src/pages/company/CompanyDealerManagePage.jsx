@@ -1,4 +1,6 @@
 import {
+  useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -10,45 +12,43 @@ import AdminTable from "../../components/admin/AdminTable";
 import AdminSearchFilter from "../../components/admin/AdminSearchFilter";
 import AdminModal from "../../components/admin/AdminModal";
 import {
-  companyDealers,
-} from "../../data/companyData";
-import {
-  getCompanyDealersFromStorage,
-  updateCompanyDealerStatus,
-} from "../../utils/companyDealerStorage";
+  getCompanyDealers,
+  withdrawCompanyDealer,
+} from "../../api/dealerApi";
 import "../../css/common/page.css";
 import "../../css/admin/adminManagePage.css";
 import "../../css/admin/adminModal.css";
 
+const STATUS_LABEL_MAP = {
+  ACTIVE: "정상",
+  SUSPENDED: "정지",
+};
+
 function normalizeDealer(
   dealer
 ) {
-  const dealerId =
-    dealer.dealerId ||
-    dealer.id;
-
-  const profileImageUrl =
-    dealer.profileImageUrl ||
-    dealer.imagePreviewUrl ||
-    dealer.profileImage ||
-    "";
+  const statusCode = String(
+    dealer.status || "ACTIVE"
+  ).toUpperCase();
 
   return {
     ...dealer,
 
-    id: dealerId,
-    dealerId,
+    id: dealer.dealerId,
 
-    profileImageUrl,
+    dealerId:
+      dealer.dealerId,
 
-    imagePreviewUrl:
-      profileImageUrl,
+    profileImageUrl:
+      dealer.profileImageUrl ||
+      "",
+
+    statusCode,
 
     status:
-      dealer.status === "ACTIVE"
-        ? "정상"
-        : dealer.status ||
-        "정상",
+      STATUS_LABEL_MAP[
+      statusCode
+      ] || statusCode,
 
     carCount:
       Number(
@@ -59,48 +59,23 @@ function normalizeDealer(
       Number(
         dealer.soldCount || 0
       ),
+
+    joinDate:
+      dealer.createdAt
+        ? new Date(
+          dealer.createdAt
+        ).toLocaleDateString(
+          "ko-KR"
+        )
+        : "-",
   };
 }
 
-function getInitialDealers() {
-  const storageDealers =
-    getCompanyDealersFromStorage();
-
-  const dealerMap =
-    new Map();
-
-  [
-    ...storageDealers,
-    ...companyDealers,
-  ].forEach((dealer) => {
-    const normalizedDealer =
-      normalizeDealer(dealer);
-
-    dealerMap.set(
-      String(
-        normalizedDealer.id
-      ),
-      normalizedDealer
-    );
-  });
-
-  return Array.from(
-    dealerMap.values()
-  );
-}
-
 function CompanyDealerManagePage() {
-  /*
-   * 첫 렌더링 시 딜러 목록을 바로 생성합니다.
-   *
-   * 기존처럼 빈 배열로 먼저 렌더링한 뒤
-   * useEffect에서 setDealers를 실행하지 않으므로
-   * 불필요한 추가 렌더링이 발생하지 않습니다.
-   */
   const [
     dealers,
     setDealers,
-  ] = useState(getInitialDealers);
+  ] = useState([]);
 
   const [
     searchText,
@@ -117,62 +92,195 @@ function CompanyDealerManagePage() {
     setSelectedDealer,
   ] = useState(null);
 
-  const handleResetFilter = () => {
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
+
+  const [
+    isUpdating,
+    setIsUpdating,
+  ] = useState(false);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
+
+  const loadDealers =
+    useCallback(async () => {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        const result =
+          await getCompanyDealers();
+
+        const dealerList =
+          Array.isArray(result)
+            ? result
+            : [];
+
+        setDealers(
+          dealerList.map(
+            normalizeDealer
+          )
+        );
+      } catch (error) {
+        console.error(
+          "소속 딜러 목록 조회 실패:",
+          error
+        );
+
+        setErrorMessage(
+          error.message ||
+          "소속 딜러 목록을 불러오지 못했습니다."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    getCompanyDealers()
+      .then((result) => {
+        if (!isActive) {
+          return;
+        }
+
+        const dealerList =
+          Array.isArray(result)
+            ? result
+            : [];
+
+        setDealers(
+          dealerList.map(
+            normalizeDealer
+          )
+        );
+      })
+      .catch((error) => {
+        if (!isActive) {
+          return;
+        }
+
+        console.error(
+          "소속 딜러 목록 조회 실패:",
+          error
+        );
+
+        setErrorMessage(
+          error.message ||
+          "소속 딜러 목록을 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  function handleResetFilter() {
     setSearchText("");
     setStatusFilter("전체");
-  };
+  }
 
-  const handleOpenDetail = (
+  function handleOpenDetail(
     dealer
-  ) => {
+  ) {
     setSelectedDealer(dealer);
-  };
+  }
 
-  const handleCloseDetail = () => {
-    setSelectedDealer(null);
-  };
-
-  const handleChangeDealerStatus = (
-    status
-  ) => {
-    if (!selectedDealer) {
+  function handleCloseDetail() {
+    if (isUpdating) {
       return;
     }
 
-    const selectedDealerId =
-      selectedDealer.id;
+    setSelectedDealer(null);
+  }
 
-    setDealers((prevDealers) =>
-      prevDealers.map(
-        (dealer) =>
-          String(dealer.id) ===
-            String(selectedDealerId)
-            ? {
-              ...dealer,
-              status,
-            }
-            : dealer
-      )
-    );
+  async function handleWithdrawDealer() {
+    if (
+      !selectedDealer ||
+      isUpdating
+    ) {
+      return;
+    }
 
-    setSelectedDealer(
-      (prevDealer) => {
-        if (!prevDealer) {
-          return null;
-        }
+    if (
+      selectedDealer.statusCode ===
+      "SUSPENDED"
+    ) {
+      return;
+    }
 
-        return {
-          ...prevDealer,
-          status,
-        };
-      }
-    );
+    const confirmed =
+      window.confirm(
+        `${selectedDealer.name} 딜러를 정지 처리하시겠습니까?`
+      );
 
-    updateCompanyDealerStatus(
-      selectedDealerId,
-      status
-    );
-  };
+    if (!confirmed) {
+      return;
+    }
+
+    setIsUpdating(true);
+    setErrorMessage("");
+
+    try {
+      await withdrawCompanyDealer(
+        selectedDealer.dealerId
+      );
+
+      const updatedDealer = {
+        ...selectedDealer,
+        statusCode:
+          "SUSPENDED",
+        status: "정지",
+      };
+
+      setDealers(
+        (currentDealers) =>
+          currentDealers.map(
+            (dealer) =>
+              dealer.dealerId ===
+                updatedDealer.dealerId
+                ? updatedDealer
+                : dealer
+          )
+      );
+
+      setSelectedDealer(
+        updatedDealer
+      );
+
+      window.alert(
+        "딜러 계정이 정지 처리되었습니다."
+      );
+    } catch (error) {
+      console.error(
+        "딜러 정지 처리 실패:",
+        error
+      );
+
+      const message =
+        error.message ||
+        "딜러 정지 처리 중 오류가 발생했습니다.";
+
+      setErrorMessage(message);
+      window.alert(message);
+    } finally {
+      setIsUpdating(false);
+    }
+  }
 
   const filteredDealers =
     useMemo(() => {
@@ -183,34 +291,21 @@ function CompanyDealerManagePage() {
 
       return dealers.filter(
         (dealer) => {
-          const name =
-            String(
-              dealer.name || ""
-            ).toLowerCase();
-
-          const loginId =
-            String(
-              dealer.loginId || ""
-            ).toLowerCase();
-
-          const phone =
-            String(
-              dealer.phone || ""
-            ).toLowerCase();
-
-          const email =
-            String(
-              dealer.email || ""
-            ).toLowerCase();
+          const searchableText = [
+            dealer.name,
+            dealer.loginId,
+            dealer.phone,
+            dealer.email,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
 
           const keywordMatch =
             keyword === "" ||
-            name.includes(keyword) ||
-            loginId.includes(
+            searchableText.includes(
               keyword
-            ) ||
-            phone.includes(keyword) ||
-            email.includes(keyword);
+            );
 
           const statusMatch =
             statusFilter ===
@@ -230,143 +325,152 @@ function CompanyDealerManagePage() {
       statusFilter,
     ]);
 
-  const columns = [
-    {
-      key: "name",
-      label: "딜러명",
+  const columns =
+    useMemo(
+      () => [
+        {
+          key: "name",
+          label: "딜러명",
 
-      render: (dealer) => (
-        <div className="dealer-list-profile">
-          {dealer.profileImageUrl ? (
-            <img
-              src={
-                dealer.profileImageUrl
-              }
-              alt={`${dealer.name} 딜러 프로필`}
-              onError={(event) => {
-                event.currentTarget.style.display =
-                  "none";
+          render: (
+            dealer
+          ) => (
+            <div className="dealer-list-profile">
+              {dealer.profileImageUrl ? (
+                <img
+                  src={
+                    dealer.profileImageUrl
+                  }
+                  alt={`${dealer.name} 딜러 프로필`}
+                  onError={(
+                    event
+                  ) => {
+                    event.currentTarget.style.display =
+                      "none";
 
-                const fallback =
-                  event.currentTarget
-                    .nextElementSibling;
+                    const fallback =
+                      event
+                        .currentTarget
+                        .nextElementSibling;
 
-                if (fallback) {
-                  fallback.style.display =
-                    "flex";
+                    if (
+                      fallback
+                    ) {
+                      fallback.style.display =
+                        "flex";
+                    }
+                  }}
+                />
+              ) : null}
+
+              <div
+                className="dealer-list-profile-empty"
+                style={{
+                  display:
+                    dealer.profileImageUrl
+                      ? "none"
+                      : "flex",
+                }}
+              >
+                {String(
+                  dealer.name ||
+                  "딜"
+                ).slice(
+                  0,
+                  1
+                )}
+              </div>
+
+              <span>
+                {
+                  dealer.name
                 }
-              }}
-            />
-          ) : null}
-
-          <div
-            className="dealer-list-profile-empty"
-            style={{
-              display:
-                dealer.profileImageUrl
-                  ? "none"
-                  : "flex",
-            }}
-          >
-            {String(
-              dealer.name || "딜"
-            ).slice(0, 1)}
-          </div>
-
-          <span>
-            {dealer.name}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: "loginId",
-      label: "아이디",
-    },
-    {
-      key: "phone",
-      label: "연락처",
-    },
-    {
-      key: "carCount",
-      label: "등록 매물",
-
-      render: (dealer) =>
-        `${Number(
-          dealer.carCount || 0
-        )}대`,
-    },
-    {
-      key: "soldCount",
-      label: "판매 완료",
-
-      render: (dealer) =>
-        `${Number(
-          dealer.soldCount || 0
-        )}대`,
-    },
-    {
-      key: "status",
-      label: "상태",
-
-      render: (dealer) => (
-        <span
-          className={`manage-badge ${dealer.status}`}
-        >
-          {dealer.status}
-        </span>
-      ),
-    },
-    {
-      key: "manage",
-      label: "관리",
-
-      render: (
-        dealer,
-        onRowAction
-      ) => (
-        <button
-          type="button"
-          className="small-btn"
-          onClick={() =>
-            onRowAction?.(
-              dealer
-            )
-          }
-        >
-          상세
-        </button>
-      ),
-    },
-  ];
-
-  const filters = [
-    {
-      name: "status",
-      value: statusFilter,
-      onChange:
-        setStatusFilter,
-
-      options: [
-        {
-          label: "전체 상태",
-          value: "전체",
+              </span>
+            </div>
+          ),
         },
         {
-          label: "정상",
-          value: "정상",
+          key: "loginId",
+          label: "아이디",
         },
         {
-          label: "승인대기",
-          value: "승인대기",
+          key: "phone",
+          label: "연락처",
         },
         {
-          label: "정지",
-          value: "정지",
+          key: "email",
+          label: "이메일",
+        },
+        {
+          key: "status",
+          label: "상태",
+
+          render: (
+            dealer
+          ) => (
+            <span
+              className={`manage-badge ${dealer.status}`}
+            >
+              {
+                dealer.status
+              }
+            </span>
+          ),
+        },
+        {
+          key: "manage",
+          label: "관리",
+
+          render: (
+            dealer,
+            onRowAction
+          ) => (
+            <button
+              type="button"
+              className="small-btn"
+              onClick={() =>
+                onRowAction?.(
+                  dealer
+                )
+              }
+            >
+              상세
+            </button>
+          ),
         },
       ],
-    },
-  ];
+      []
+    );
+
+  const filters =
+    useMemo(
+      () => [
+        {
+          name: "status",
+          value:
+            statusFilter,
+          onChange:
+            setStatusFilter,
+
+          options: [
+            {
+              label:
+                "전체 상태",
+              value: "전체",
+            },
+            {
+              label: "정상",
+              value: "정상",
+            },
+            {
+              label: "정지",
+              value: "정지",
+            },
+          ],
+        },
+      ],
+      [statusFilter]
+    );
 
   return (
     <main className="page-container">
@@ -377,17 +481,51 @@ function CompanyDealerManagePage() {
 
       <section className="admin-manage-panel">
         <div className="admin-manage-panel-header">
-          <h3>
-            소속 딜러 목록
-          </h3>
+          <div>
+            <h3>
+              소속 딜러 목록
+            </h3>
 
-          <Link
-            to="/company/dealers/create"
-            className="admin-header-link-btn"
-          >
-            딜러 계정 생성
-          </Link>
+            <p className="admin-panel-sub-text">
+              현재 회사에 등록된 딜러 계정을 DB에서 조회합니다.
+            </p>
+          </div>
+
+          <div className="admin-header-action-area">
+            <button
+              type="button"
+              className="small-btn"
+              onClick={
+                loadDealers
+              }
+              disabled={
+                isLoading
+              }
+            >
+              {isLoading
+                ? "조회 중"
+                : "새로고침"}
+            </button>
+
+            <Link
+              to="/company/dealers/create"
+              className="admin-header-link-btn"
+            >
+              딜러 계정 생성
+            </Link>
+          </div>
         </div>
+
+        {errorMessage && (
+          <p
+            className="admin-panel-sub-text"
+            role="alert"
+          >
+            {
+              errorMessage
+            }
+          </p>
+        )}
 
         <AdminSearchFilter
           searchValue={
@@ -405,11 +543,19 @@ function CompanyDealerManagePage() {
 
         <AdminTable
           columns={columns}
-          data={filteredDealers}
+          data={
+            isLoading
+              ? []
+              : filteredDealers
+          }
           totalCount={
             filteredDealers.length
           }
-          emptyMessage="조회된 딜러가 없습니다."
+          emptyMessage={
+            isLoading
+              ? "소속 딜러 목록을 불러오는 중입니다."
+              : "조회된 딜러가 없습니다."
+          }
           onRowAction={
             handleOpenDetail
           }
@@ -430,15 +576,20 @@ function CompanyDealerManagePage() {
                   selectedDealer.profileImageUrl
                 }
                 alt={`${selectedDealer.name} 딜러 프로필`}
-                onError={(event) => {
+                onError={(
+                  event
+                ) => {
                   event.currentTarget.style.display =
                     "none";
 
                   const fallback =
-                    event.currentTarget
+                    event
+                      .currentTarget
                       .nextElementSibling;
 
-                  if (fallback) {
+                  if (
+                    fallback
+                  ) {
                     fallback.style.display =
                       "flex";
                   }
@@ -458,7 +609,10 @@ function CompanyDealerManagePage() {
               {String(
                 selectedDealer.name ||
                 "딜"
-              ).slice(0, 1)}
+              ).slice(
+                0,
+                1
+              )}
             </div>
           </div>
 
@@ -494,7 +648,8 @@ function CompanyDealerManagePage() {
 
               <strong>
                 {
-                  selectedDealer.phone
+                  selectedDealer.phone ||
+                  "-"
                 }
               </strong>
             </div>
@@ -506,36 +661,35 @@ function CompanyDealerManagePage() {
 
               <strong>
                 {
-                  selectedDealer.email
+                  selectedDealer.email ||
+                  "-"
                 }
               </strong>
             </div>
 
             <div className="admin-detail-row">
               <span>
-                등록 매물
+                등급
               </span>
 
               <strong>
-                {Number(
-                  selectedDealer.carCount ||
-                  0
-                )}
-                대
+                {
+                  selectedDealer.tier ||
+                  "NORMAL"
+                }
               </strong>
             </div>
 
             <div className="admin-detail-row">
               <span>
-                판매 완료
+                위험 점수
               </span>
 
               <strong>
                 {Number(
-                  selectedDealer.soldCount ||
+                  selectedDealer.riskScore ||
                   0
-                )}
-                대
+                ).toFixed(1)}
               </strong>
             </div>
 
@@ -554,69 +708,27 @@ function CompanyDealerManagePage() {
                 </span>
               </strong>
             </div>
-
-            <div className="admin-detail-row">
-              <span>
-                등록일
-              </span>
-
-              <strong>
-                {
-                  selectedDealer.joinDate
-                }
-              </strong>
-            </div>
-
-            {selectedDealer.memo && (
-              <div className="admin-detail-row">
-                <span>
-                  메모
-                </span>
-
-                <strong>
-                  {
-                    selectedDealer.memo
-                  }
-                </strong>
-              </div>
-            )}
           </div>
 
           <div className="admin-status-btn-area">
             <button
               type="button"
-              className="status-btn approve"
-              onClick={() =>
-                handleChangeDealerStatus(
-                  "정상"
-                )
-              }
-            >
-              정상처리
-            </button>
-
-            <button
-              type="button"
-              className="status-btn wait"
-              onClick={() =>
-                handleChangeDealerStatus(
-                  "승인대기"
-                )
-              }
-            >
-              승인대기
-            </button>
-
-            <button
-              type="button"
               className="status-btn stop"
-              onClick={() =>
-                handleChangeDealerStatus(
-                  "정지"
-                )
+              onClick={
+                handleWithdrawDealer
+              }
+              disabled={
+                isUpdating ||
+                selectedDealer.statusCode ===
+                "SUSPENDED"
               }
             >
-              정지처리
+              {isUpdating
+                ? "처리 중"
+                : selectedDealer.statusCode ===
+                  "SUSPENDED"
+                  ? "정지됨"
+                  : "정지처리"}
             </button>
           </div>
 
@@ -626,6 +738,9 @@ function CompanyDealerManagePage() {
               className="modal-main-btn"
               onClick={
                 handleCloseDetail
+              }
+              disabled={
+                isUpdating
               }
             >
               확인
