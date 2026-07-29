@@ -28,9 +28,9 @@ public class ReviewController {
             @RequestBody ReviewDto.Request request) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String writerEmail = authentication.getName();
+            String writerLoginId = authentication.getName();
 
-            Review review = reviewService.createReview(transactionId, writerEmail, request);
+            Review review = reviewService.createReview(transactionId, writerLoginId, request);
 
             ReviewDto.Response response = ReviewDto.Response.builder()
                     .reviewId(review.getReviewId())

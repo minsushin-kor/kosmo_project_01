@@ -26,7 +26,7 @@ public class AuthController {
             Member member = authService.signupMember(request);
             return ResponseEntity.ok(ApiResponse.success(member.getMemberId(), "회원가입이 성공적으로 완료되었습니다."));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_DUPLICATE_EMAIL", e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_DUPLICATE_MEMBER", e.getMessage()));
         }
     }
 

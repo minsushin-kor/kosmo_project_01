@@ -12,6 +12,7 @@ public class CompanyDto {
     public static class PublicResponse {
         private Long companyId;
         private String name;
+        private String loginId;
         private String masterEmail;
         private String phone;
         private String businessNumber;

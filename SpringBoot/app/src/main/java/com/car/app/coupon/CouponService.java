@@ -228,8 +228,8 @@ public class CouponService {
     }
 
     @Transactional(readOnly = true)
-    public List<Coupon> getMyCompanyCoupons(String masterEmail) {
-        Company company = companyRepository.findByLoginId(masterEmail)
+    public List<Coupon> getMyCompanyCoupons(String masterLoginId) {
+        Company company = companyRepository.findByLoginId(masterLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회사 계정입니다."));
         return couponRepository.findByCompanyCompanyId(company.getCompanyId());
     }

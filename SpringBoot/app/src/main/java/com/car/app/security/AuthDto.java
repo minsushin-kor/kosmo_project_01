@@ -46,7 +46,7 @@ public class AuthDto {
     @AllArgsConstructor
     @Builder
     public static class LoginRequest {
-        private String username;
+        private String loginId;
         private String password;
         private String roleType; // 'MEMBER', 'COMPANY_MASTER', 'DEALER', 'ADMIN'
     }
@@ -60,6 +60,6 @@ public class AuthDto {
         private String token;
         private String role;
         private String name;
-        private String username;
+        private String loginId;
     }
 }

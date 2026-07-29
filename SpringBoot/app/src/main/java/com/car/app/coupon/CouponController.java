@@ -94,9 +94,9 @@ public class CouponController {
     public ResponseEntity<ApiResponse<List<CouponResponse>>> getMyCompanyCoupons() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String masterEmail = authentication.getName();
+            String masterLoginId = authentication.getName();
 
-            List<CouponResponse> responseList = couponService.getMyCompanyCoupons(masterEmail).stream()
+            List<CouponResponse> responseList = couponService.getMyCompanyCoupons(masterLoginId).stream()
                     .map(c -> CouponResponse.builder()
                             .couponId(c.getCouponId())
                             .name(c.getName())

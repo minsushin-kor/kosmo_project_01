@@ -25,14 +25,17 @@ public class DealerService {
      * 상사 마스터 권한 하에 소속 딜러 계정을 신규 개설합니다.
      */
     @Transactional
-    public Dealer createDealer(String masterEmail, DealerDto.CreateRequest request) {
-        // 1단계: 상사 마스터 이메일 검증 및 상사 식별
-        Company company = companyRepository.findByLoginId(masterEmail)
+    public Dealer createDealer(String masterLoginId, DealerDto.CreateRequest request) {
+        // 1단계: 상사 마스터 로그인 아이디 검증 및 상사 식별
+        Company company = companyRepository.findByLoginId(masterLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
-        // 2단계: 신규 딜러의 로그인 ID 중복 여부 확인
+        // 2단계: 신규 딜러의 로그인 ID 및 이메일 중복 여부 확인
         if (userRepository.existsByLoginId(request.getLoginId()) || dealerRepository.findByLoginId(request.getLoginId()).isPresent()) {
             throw new IllegalArgumentException("이미 존재하는 딜러 아이디입니다.");
+        }
+        if (request.getEmail() != null && !request.getEmail().isBlank() && dealerRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
         // 3단계: 통합 계정 User 생성 및 딜러 배속
@@ -68,12 +71,12 @@ public class DealerService {
     /**
      * 상사 소속 딜러를 정지(비활성화) 처리합니다.
      *
-     * @param masterEmail 현재 로그인한 상사 마스터의 이메일
-     * @param dealerId    제외할 딜러의 고유 ID
+     * @param masterLoginId 현재 로그인한 상사 마스터의 로그인 아이디
+     * @param dealerId      제외할 딜러의 고유 ID
      */
     @Transactional
-    public void withdrawDealer(String masterEmail, Long dealerId) {
-        Company company = companyRepository.findByLoginId(masterEmail)
+    public void withdrawDealer(String masterLoginId, Long dealerId) {
+        Company company = companyRepository.findByLoginId(masterLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
         Dealer dealer = dealerRepository.findById(dealerId)
@@ -88,8 +91,8 @@ public class DealerService {
     }
 
     @Transactional(readOnly = true)
-    public Dealer getDealerDetail(String masterEmail, Long dealerId) {
-        Company company = companyRepository.findByLoginId(masterEmail)
+    public Dealer getDealerDetail(String masterLoginId, Long dealerId) {
+        Company company = companyRepository.findByLoginId(masterLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
         Dealer dealer = dealerRepository.findById(dealerId)
@@ -103,8 +106,8 @@ public class DealerService {
     }
 
     @Transactional
-    public Dealer updateDealer(String masterEmail, Long dealerId, DealerDto.CreateRequest request) {
-        Company company = companyRepository.findByLoginId(masterEmail)
+    public Dealer updateDealer(String masterLoginId, Long dealerId, DealerDto.CreateRequest request) {
+        Company company = companyRepository.findByLoginId(masterLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
         Dealer dealer = dealerRepository.findById(dealerId)

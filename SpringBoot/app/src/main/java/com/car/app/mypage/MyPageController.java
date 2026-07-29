@@ -25,9 +25,9 @@ public class MyPageController {
     public ResponseEntity<ApiResponse<MyPageDto.Response>> getProfile() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
+            String loginId = authentication.getName();
 
-            MyPageDto.Response response = myPageService.getProfile(username, authentication.getAuthorities());
+            MyPageDto.Response response = myPageService.getProfile(loginId, authentication.getAuthorities());
 
             return ResponseEntity.ok(ApiResponse.success(response, "마이페이지 조회가 완료되었습니다."));
         } catch (SecurityException e) {

@@ -31,7 +31,8 @@ public class MyPageDto {
     @AllArgsConstructor
     @Builder
     public static class ProfileInfo {
-        private String username; // 이메일 또는 로그인 ID
+        private String loginId;
+        private String email;
         private String name;
         private String phone;
         private String profileImageUrl;

@@ -35,8 +35,8 @@ public class ChatService {
      * 1:1 라이브 채팅방을 개설하거나 기존에 존재하던 채팅방을 조회하여 반환합니다.
      */
     @Transactional
-    public ChatRoom createOrGetChatRoom(Long carId, String memberEmail) {
-        Member member = memberRepository.findByLoginId(memberEmail)
+    public ChatRoom createOrGetChatRoom(Long carId, String memberLoginId) {
+        Member member = memberRepository.findByLoginId(memberLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
 
         Car car = carRepository.findById(carId)
@@ -50,7 +50,7 @@ public class ChatService {
         Dealer dealer = car.getDealer();
 
         // 본인이 본인 매물에 채팅방을 개설하는 행위를 제한합니다.
-        if (member.getEmail().equals(dealer.getLoginId())) {
+        if (member.getLoginId().equals(dealer.getLoginId())) {
             throw new IllegalArgumentException("본인이 소유한 매물에는 문의 채팅방을 개설할 수 없습니다.");
         }
 
@@ -71,18 +71,18 @@ public class ChatService {
      * 사용자가 참가하고 있는 모든 채팅방 리스트를 조회합니다.
      */
     @Transactional(readOnly = true)
-    public List<ChatDto.RoomResponse> getChatRooms(String userEmailOrLoginId, Collection<? extends GrantedAuthority> authorities) {
+    public List<ChatDto.RoomResponse> getChatRooms(String loginId, Collection<? extends GrantedAuthority> authorities) {
         boolean isMember = authorities.stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_MEMBER"));
 
         List<ChatRoom> rooms;
 
         if (isMember) {
-            Member member = memberRepository.findByLoginId(userEmailOrLoginId)
+            Member member = memberRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
             rooms = chatRoomRepository.findByMemberMemberId(member.getMemberId());
         } else {
-            Dealer dealer = dealerRepository.findByLoginId(userEmailOrLoginId)
+            Dealer dealer = dealerRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
             rooms = chatRoomRepository.findByDealerDealerId(dealer.getDealerId());
         }
@@ -96,13 +96,13 @@ public class ChatService {
      * 특정 채팅방 내의 과거 대화 내역 전체를 조회합니다.
      */
     @Transactional(readOnly = true)
-    public List<ChatDto.MessageResponse> getMessagesInRoom(Long roomId, String userEmailOrLoginId) {
+    public List<ChatDto.MessageResponse> getMessagesInRoom(Long roomId, String loginId) {
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채팅방입니다."));
 
         // 조회 요청자가 해당 채팅방의 참여자(일반 회원 혹은 딜러)인지 검증합니다.
-        boolean isAuthorized = room.getMember().getEmail().equals(userEmailOrLoginId) ||
-                room.getDealer().getLoginId().equals(userEmailOrLoginId);
+        boolean isAuthorized = room.getMember().getLoginId().equals(loginId) ||
+                room.getDealer().getLoginId().equals(loginId);
 
         if (!isAuthorized) {
             throw new AccessDeniedException("해당 채팅방의 대화 내역을 조회할 권한이 없습니다.");
@@ -118,15 +118,15 @@ public class ChatService {
      * 수신된 실시간 채팅 메시지를 데이터베이스에 안전하게 기록하고 응답 DTO로 반환합니다.
      */
     @Transactional
-    public ChatDto.MessageResponse saveMessage(Long roomId, String messageText, String senderEmailOrLoginId, boolean isMember) {
+    public ChatDto.MessageResponse saveMessage(Long roomId, String messageText, String senderLoginId, boolean isMember) {
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채팅방입니다."));
 
         // 전송자가 해당 채팅방 참여자이면서 해당 역할군이 맞는지 체크
-        if (isMember && !room.getMember().getEmail().equals(senderEmailOrLoginId)) {
+        if (isMember && !room.getMember().getLoginId().equals(senderLoginId)) {
             throw new AccessDeniedException("해당 채팅방에 메시지를 보낼 권한이 없습니다.");
         }
-        if (!isMember && !room.getDealer().getLoginId().equals(senderEmailOrLoginId)) {
+        if (!isMember && !room.getDealer().getLoginId().equals(senderLoginId)) {
             throw new AccessDeniedException("해당 채팅방에 메시지를 보낼 권한이 없습니다.");
         }
 

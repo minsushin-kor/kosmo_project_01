@@ -83,17 +83,17 @@ public class AuctionService {
      * 차주(일반 회원)가 등록한 본인 매물의 경매 입찰 현황 리스트를 실시간 조회하는 메서드입니다.
      *
      * @param carId       조회할 차량 ID
-     * @param memberEmail 로그인한 일반 회원의 이메일 (JWT 토큰에서 추출)
+     * @param memberLoginId 로그인한 일반 회원의 로그인 아이디 (JWT 토큰에서 추출)
      * @return 경매에 들어온 입찰 DTO 리스트
      */
     @Transactional(readOnly = true)
-    public List<AuctionDto.BidResponse> getBidsForSeller(Long carId, String memberEmail) {
+    public List<AuctionDto.BidResponse> getBidsForSeller(Long carId, String memberLoginId) {
         // 1단계: 차량 매물 존재 여부 검증
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
 
         // 2단계 [소유권 및 보안 검증]: 차를 등록한 본인이 아니면 입찰 가격을 볼 수 없도록 차단
-        if (car.getMember() == null || !car.getMember().getEmail().equalsIgnoreCase(memberEmail)) {
+        if (car.getMember() == null || !car.getMember().getLoginId().equalsIgnoreCase(memberLoginId)) {
             throw new SecurityException("본인이 등록한 차량의 입찰 내역만 조회할 수 있습니다.");
         }
 
@@ -123,17 +123,17 @@ public class AuctionService {
      * 특정 경매를 수동으로 마감 처리하고 낙찰자를 결정합니다. (판매자 또는 관리자 요청 시)
      *
      * @param auctionId   경매 ID
-     * @param sellerEmail 요청자의 이메일 (null인 경우 권한 검증 패스)
+     * @param sellerLoginId 요청자의 로그인 아이디 (null인 경우 권한 검증 패스)
      * @return 마감 및 낙찰 처리된 경매 엔티티
      */
     @Transactional
-    public Auction closeAuction(Long auctionId, String sellerEmail) {
+    public Auction closeAuction(Long auctionId, String sellerLoginId) {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 경매입니다."));
         
         // 판매자 본인 소유의 차량인지 검증
-        if (sellerEmail != null && (auction.getCar().getMember() == null || 
-            !auction.getCar().getMember().getEmail().equalsIgnoreCase(sellerEmail))) {
+        if (sellerLoginId != null && (auction.getCar().getMember() == null || 
+            !auction.getCar().getMember().getLoginId().equalsIgnoreCase(sellerLoginId))) {
             throw new SecurityException("본인이 등록한 차량의 경매만 종료할 수 있습니다.");
         }
 

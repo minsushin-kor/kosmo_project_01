@@ -16,7 +16,7 @@ public class ReviewService {
      * 거래 완료 후 상대방(딜러)에 대한 리뷰와 별점 평가를 등록합니다.
      */
     @Transactional
-    public Review createReview(Long transactionId, String writerEmail, ReviewDto.Request request) {
+    public Review createReview(Long transactionId, String writerLoginId, ReviewDto.Request request) {
         // 1. 거래 조회
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거래 내역입니다."));
@@ -28,7 +28,7 @@ public class ReviewService {
 
         // 3. 작성자 권한 검증: 현재 거래 차량의 원래 소유자(판매 회원)인지 확인
         Car car = transaction.getCar();
-        if (car.getMember() == null || !car.getMember().getEmail().equalsIgnoreCase(writerEmail)) {
+        if (car.getMember() == null || !car.getMember().getLoginId().equalsIgnoreCase(writerLoginId)) {
             throw new SecurityException("본인이 판매한 거래 건에 대해서만 리뷰를 작성할 수 있습니다.");
         }
 

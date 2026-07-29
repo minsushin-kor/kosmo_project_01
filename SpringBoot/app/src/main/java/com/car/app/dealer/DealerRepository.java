@@ -8,5 +8,6 @@ import java.util.Optional;
 public interface DealerRepository extends JpaRepository<Dealer, Long> {
     Optional<Dealer> findByLoginId(String loginId);
     Optional<Dealer> findByEmail(String email);
+    boolean existsByEmail(String email);
     List<Dealer> findByCompanyCompanyId(Long companyId);
 }
