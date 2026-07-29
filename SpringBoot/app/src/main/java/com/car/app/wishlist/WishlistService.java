@@ -35,7 +35,8 @@ public class WishlistService {
         boolean isDealer = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_DEALER"));
 
         if (isMember) {
-            Member member = memberRepository.findByEmail(username)
+            Member member = memberRepository.findByLoginId(username)
+                    .or(() -> memberRepository.findByEmail(username))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
 
             Optional<Wishlist> existingWish = wishlistRepository.findByMemberMemberIdAndCarCarId(member.getMemberId(), carId);

@@ -1,5 +1,6 @@
 package com.car.app.member;
 
+import com.car.app.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -21,7 +22,11 @@ public class Member {
     @Column(name = "member_id")
     private Long memberId;
 
-    @Column(name = "login_id", unique = true, length = 100)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(name = "login_id", unique = true, nullable = false, length = 50)
     private String loginId;
     
     @Column(name = "email", unique = true, nullable = false, length = 100)

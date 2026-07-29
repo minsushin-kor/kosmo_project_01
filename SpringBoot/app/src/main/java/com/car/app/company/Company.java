@@ -1,5 +1,6 @@
 package com.car.app.company;
 
+import com.car.app.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -21,13 +22,17 @@ public class Company {
     @Column(name = "company_id")
     private Long companyId;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @Column(name = "business_number", unique = true, nullable = false, length = 20)
     private String businessNumber;
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "login_id", unique = true, length = 100)
+    @Column(name = "login_id", unique = true, nullable = false, length = 50)
     private String loginId;
     
     @Column(name = "master_email", unique = true, nullable = false, length = 100)

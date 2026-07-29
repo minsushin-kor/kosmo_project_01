@@ -47,8 +47,9 @@ public class MyPageService {
         boolean isMember = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_MEMBER") || a.getAuthority().equals("ROLE_ADMIN"));
 
         if (isCompanyMaster) {
-            Company company = companyRepository.findByMasterEmail(username)
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
+            Company company = companyRepository.findByLoginId(username)
+                    .or(() -> companyRepository.findByMasterEmail(username))
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회사 계정입니다."));
 
             MyPageDto.ProfileInfo profile = MyPageDto.ProfileInfo.builder()
                     .username(company.getMasterEmail())
@@ -154,7 +155,8 @@ public class MyPageService {
                     .build();
 
         } else if (isMember) {
-            Member member = memberRepository.findByEmail(username)
+            Member member = memberRepository.findByLoginId(username)
+                    .or(() -> memberRepository.findByEmail(username))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
 
             MyPageDto.ProfileInfo profile = MyPageDto.ProfileInfo.builder()

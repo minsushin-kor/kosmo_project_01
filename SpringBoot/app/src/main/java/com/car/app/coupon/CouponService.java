@@ -229,8 +229,9 @@ public class CouponService {
 
     @Transactional(readOnly = true)
     public List<Coupon> getMyCompanyCoupons(String masterEmail) {
-        Company company = companyRepository.findByMasterEmail(masterEmail)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
+        Company company = companyRepository.findByLoginId(masterEmail)
+                .or(() -> companyRepository.findByMasterEmail(masterEmail))
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회사 계정입니다."));
         return couponRepository.findByCompanyCompanyId(company.getCompanyId());
     }
 }

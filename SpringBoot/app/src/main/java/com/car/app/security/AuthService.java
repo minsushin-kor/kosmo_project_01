@@ -6,6 +6,8 @@ import com.car.app.dealer.Dealer;
 import com.car.app.dealer.DealerRepository;
 import com.car.app.member.Member;
 import com.car.app.member.MemberRepository;
+import com.car.app.user.User;
+import com.car.app.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private final UserRepository userRepository;
     private final MemberRepository memberRepository;
     private final CompanyRepository companyRepository;
     private final DealerRepository dealerRepository;
@@ -29,17 +32,35 @@ public class AuthService {
      */
     @Transactional
     public Member signupMember(AuthDto.MemberSignupRequest request) {
-        String loginId = (request.getLoginId() != null && !request.getLoginId().isBlank())
-                ? request.getLoginId() : request.getEmail();
+        if (request.getLoginId() == null || request.getLoginId().isBlank()) {
+            throw new IllegalArgumentException("로그인 아이디는 필수 입력 항목입니다.");
+        }
+        String loginId = request.getLoginId().trim();
 
-        if (memberRepository.findByLoginId(loginId).isPresent()) {
+        if (userRepository.existsByLoginId(loginId) || memberRepository.existsByLoginId(loginId)) {
             throw new IllegalArgumentException("이미 사용 중인 로그인 아이디입니다.");
         }
+        if (memberRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        User user = User.builder()
+                .loginId(loginId)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .name(request.getName())
+                .phone(request.getPhone())
+                .email(request.getEmail())
+                .profileImageUrl(request.getProfileImageUrl())
+                .roleType("MEMBER")
+                .status("ACTIVE")
+                .build();
+        user = userRepository.save(user);
 
         Member member = Member.builder()
+                .user(user)
                 .loginId(loginId)
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(user.getPassword())
                 .name(request.getName())
                 .phone(request.getPhone())
                 .profileImageUrl(request.getProfileImageUrl())
@@ -61,22 +82,37 @@ public class AuthService {
      */
     @Transactional
     public Company signupCompany(AuthDto.CompanySignupRequest request) {
-        String loginId = (request.getLoginId() != null && !request.getLoginId().isBlank())
-                ? request.getLoginId() : request.getMasterEmail();
+        if (request.getLoginId() == null || request.getLoginId().isBlank()) {
+            throw new IllegalArgumentException("로그인 아이디는 필수 입력 항목입니다.");
+        }
+        String loginId = request.getLoginId().trim();
 
-        if (companyRepository.findByLoginId(loginId).isPresent()) {
+        if (userRepository.existsByLoginId(loginId) || companyRepository.findByLoginId(loginId).isPresent()) {
             throw new IllegalArgumentException("이미 사용 중인 로그인 아이디입니다.");
         }
         if (companyRepository.findByBusinessNumber(request.getBusinessNumber()).isPresent()) {
             throw new IllegalArgumentException("이미 사용 중인 사업자 번호입니다.");
         }
 
+        User user = User.builder()
+                .loginId(loginId)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .name(request.getName())
+                .phone(request.getPhone())
+                .email(request.getMasterEmail())
+                .profileImageUrl(request.getProfileImageUrl())
+                .roleType("COMPANY_MASTER")
+                .status("ACTIVE")
+                .build();
+        user = userRepository.save(user);
+
         Company company = Company.builder()
+                .user(user)
                 .loginId(loginId)
                 .businessNumber(request.getBusinessNumber())
                 .name(request.getName())
                 .masterEmail(request.getMasterEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(user.getPassword())
                 .address(request.getAddress())
                 .phone(request.getPhone())
                 .profileImageUrl(request.getProfileImageUrl())
@@ -87,8 +123,7 @@ public class AuthService {
     }
 
     /**
-     * 일반 회원, 관리자, 상사 마스터, 딜러 계정에 대한 통합 로그인을 수행하고 JWT 토큰을 발행합니다.
-     * (loginId 우선 조회)
+     * 통합 계정(User) 및 개별 테이블 조회를 통해 로그인을 수행하고 JWT 토큰을 발행합니다.
      */
     @Transactional(readOnly = true)
     public AuthDto.LoginResponse login(AuthDto.LoginRequest request) {

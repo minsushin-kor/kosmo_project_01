@@ -166,8 +166,10 @@ public class AiIntegrationTests {
     @Test
     @DisplayName("계약검증 3: 딜러 추천 결과가 Condition 내림차순 -> MMR 내림차순 순서를 정확히 유지하는지 확인")
     void testDealerRecommendationOrderingByConditionAndMmr() {
+        String memberUuid = UUID.randomUUID().toString().substring(0, 8);
         Member member = Member.builder()
-                .email("member_" + UUID.randomUUID().toString().substring(0, 8) + "@test.com")
+                .loginId("member_" + memberUuid)
+                .email("member_" + memberUuid + "@test.com")
                 .password("password123")
                 .name("회원")
                 .phone("010-9999-8888")
