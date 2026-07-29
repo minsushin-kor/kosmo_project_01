@@ -30,9 +30,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        // 0단계: 통합 UserRepository에서 우선 조회
-        Optional<User> userOpt = userRepository.findByLoginId(username)
-                .or(() -> userRepository.findByEmail(username));
+        // 0단계: 통합 UserRepository에서 조회
+        Optional<User> userOpt = userRepository.findByLoginId(username);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String role = "ROLE_" + user.getRoleType().toUpperCase();
@@ -44,27 +43,25 @@ public class CustomUserDetailsService implements UserDetailsService {
             );
         }
 
-        // 1단계: 상사 마스터 (loginId 우선, masterEmail 보조)
-        Optional<Company> companyOpt = companyRepository.findByLoginId(username)
-                .or(() -> companyRepository.findByMasterEmail(username));
+        // 1단계: 상사 마스터 (loginId 기준)
+        Optional<Company> companyOpt = companyRepository.findByLoginId(username);
         if (companyOpt.isPresent()) {
             Company company = companyOpt.get();
             return new CustomUserDetails(
-                    company.getLoginId() != null ? company.getLoginId() : company.getMasterEmail(),
+                    company.getLoginId(),
                     company.getPassword(),
                     "ROLE_COMPANY_MASTER",
                     company.getName()
             );
         }
 
-        // 2단계: 일반 회원 및 관리자 (loginId 우선, email 보조)
-        Optional<Member> memberOpt = memberRepository.findByLoginId(username)
-                .or(() -> memberRepository.findByEmail(username));
+        // 2단계: 일반 회원 및 관리자 (loginId 기준)
+        Optional<Member> memberOpt = memberRepository.findByLoginId(username);
         if (memberOpt.isPresent()) {
             Member member = memberOpt.get();
             String role = "ROLE_" + member.getRole().toUpperCase();
             return new CustomUserDetails(
-                    member.getLoginId() != null ? member.getLoginId() : member.getEmail(),
+                    member.getLoginId(),
                     member.getPassword(),
                     role,
                     member.getName()

@@ -52,13 +52,13 @@ public class CarService {
      * 중고차 매물 및 차량 이미지들을 등록하는 트랜잭션 메서드입니다.
      * 일반 회원이 등록할 경우 경매 세션이 자동으로 연결되어 개설됩니다.
      *
-     * @param username    로그인한 사용자 ID (이메일 혹은 로그인 ID)
+     * @param loginId     로그인한 사용자 ID (loginId)
      * @param authorities 로그인한 사용자의 보안 역할 권한 목록
      * @param request     차량 스펙 및 이미지 정보가 포함된 DTO
      * @return 저장 및 경매 연계가 완료된 Car 엔티티
      */
     @Transactional
-    public Car registerCar(String username, Collection<? extends GrantedAuthority> authorities, CarDto.CreateRequest request) {
+    public Car registerCar(String loginId, Collection<? extends GrantedAuthority> authorities, CarDto.CreateRequest request) {
         Member memberOwner = null;
         Dealer dealerOwner = null;
 
@@ -67,13 +67,12 @@ public class CarService {
         boolean isDealer = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_DEALER"));
 
         if (isMember) {
-            // 회원인 경우: 이메일로 회원 엔티티 로드
-            memberOwner = memberRepository.findByLoginId(username)
-                    .or(() -> memberRepository.findByEmail(username))
+            // 회원인 경우: 로그인 아이디로 회원 엔티티 로드
+            memberOwner = memberRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
         } else if (isDealer) {
             // 딜러인 경우: 로그인 ID로 딜러 엔티티 로드
-            dealerOwner = dealerRepository.findByLoginId(username)
+            dealerOwner = dealerRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
         } else {
             // 권한 미달인 경우 가로채서 예외 발생
@@ -177,12 +176,12 @@ public class CarService {
      * 본인 등록 차량 정보 수정
      */
     @Transactional
-    public Car updateCar(Long carId, String username, CarDto.CreateRequest request) {
+    public Car updateCar(Long carId, String loginId, CarDto.CreateRequest request) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
 
-        boolean isOwner = (car.getMember() != null && (username.equals(car.getMember().getLoginId()) || username.equals(car.getMember().getEmail()))) ||
-                          (car.getDealer() != null && car.getDealer().getLoginId().equals(username));
+        boolean isOwner = (car.getMember() != null && loginId.equals(car.getMember().getLoginId())) ||
+                          (car.getDealer() != null && car.getDealer().getLoginId().equals(loginId));
         if (!isOwner) {
             throw new SecurityException("본인이 등록한 차량만 수정할 수 있습니다.");
         }
@@ -201,12 +200,12 @@ public class CarService {
      * 본인 등록 차량 삭제 (상태 DELETED로 변경)
      */
     @Transactional
-    public void deleteCar(Long carId, String username) {
+    public void deleteCar(Long carId, String loginId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
 
-        boolean isOwner = (car.getMember() != null && (username.equals(car.getMember().getLoginId()) || username.equals(car.getMember().getEmail()))) ||
-                          (car.getDealer() != null && car.getDealer().getLoginId().equals(username));
+        boolean isOwner = (car.getMember() != null && loginId.equals(car.getMember().getLoginId())) ||
+                          (car.getDealer() != null && car.getDealer().getLoginId().equals(loginId));
         if (!isOwner) {
             throw new SecurityException("본인이 등록한 차량만 삭제할 수 있습니다.");
         }
@@ -286,12 +285,11 @@ public class CarService {
      * 거래(Transaction) 내역을 생성하고 차량 상태를 SOLD로 변경합니다.
      */
     @Transactional
-    public Transaction purchaseCar(Long carId, String memberEmail) {
+    public Transaction purchaseCar(Long carId, String memberLoginId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
 
-        Member buyer = memberRepository.findByLoginId(memberEmail)
-                .or(() -> memberRepository.findByEmail(memberEmail))
+        Member buyer = memberRepository.findByLoginId(memberLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
 
         // 검증 1: 딜러가 등록한 차량 매물인지 확인

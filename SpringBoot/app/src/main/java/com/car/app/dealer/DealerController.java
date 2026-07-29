@@ -23,10 +23,10 @@ public class DealerController {
     @PostMapping
     public ResponseEntity<ApiResponse<DealerDto.Response>> createDealer(@RequestBody DealerDto.CreateRequest request) {
         try {
-            // 현재 인증된 세션에서 상사 마스터의 이메일 추출
-            String masterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+            // 현재 인증된 세션에서 상사 마스터의 로그인 아이디 추출
+            String masterLoginId = SecurityContextHolder.getContext().getAuthentication().getName();
             
-            Dealer dealer = dealerService.createDealer(masterEmail, request);
+            Dealer dealer = dealerService.createDealer(masterLoginId, request);
             
             DealerDto.Response response = DealerDto.Response.builder()
                     .dealerId(dealer.getDealerId())
@@ -51,10 +51,10 @@ public class DealerController {
     @DeleteMapping("/{dealerId}")
     public ResponseEntity<ApiResponse<Void>> withdrawDealer(@PathVariable Long dealerId) {
         try {
-            // 현재 인증된 세션에서 상사 마스터의 이메일 추출
-            String masterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+            // 현재 인증된 세션에서 상사 마스터의 로그인 아이디 추출
+            String masterLoginId = SecurityContextHolder.getContext().getAuthentication().getName();
             
-            dealerService.withdrawDealer(masterEmail, dealerId);
+            dealerService.withdrawDealer(masterLoginId, dealerId);
             
             return ResponseEntity.ok(ApiResponse.success(null, "해당 딜러가 상사 명단에서 제외(비활성화)되었습니다."));
         } catch (SecurityException e) {
@@ -70,8 +70,8 @@ public class DealerController {
     @GetMapping("/{dealerId}")
     public ResponseEntity<ApiResponse<DealerDto.Response>> getDealerDetail(@PathVariable Long dealerId) {
         try {
-            String masterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-            Dealer dealer = dealerService.getDealerDetail(masterEmail, dealerId);
+            String masterLoginId = SecurityContextHolder.getContext().getAuthentication().getName();
+            Dealer dealer = dealerService.getDealerDetail(masterLoginId, dealerId);
             DealerDto.Response response = DealerDto.Response.builder()
                     .dealerId(dealer.getDealerId())
                     .loginId(dealer.getLoginId())
@@ -96,8 +96,8 @@ public class DealerController {
     @PutMapping("/{dealerId}")
     public ResponseEntity<ApiResponse<DealerDto.Response>> updateDealer(@PathVariable Long dealerId, @RequestBody DealerDto.CreateRequest request) {
         try {
-            String masterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-            Dealer dealer = dealerService.updateDealer(masterEmail, dealerId, request);
+            String masterLoginId = SecurityContextHolder.getContext().getAuthentication().getName();
+            Dealer dealer = dealerService.updateDealer(masterLoginId, dealerId, request);
             DealerDto.Response response = DealerDto.Response.builder()
                     .dealerId(dealer.getDealerId())
                     .loginId(dealer.getLoginId())

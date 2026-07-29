@@ -54,10 +54,10 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('MEMBER', 'DEALER', 'ADMIN', 'COMPANY_MASTER')")
     public ResponseEntity<ApiResponse<Report>> createReport(@RequestBody ReportCreateRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
+        String loginId = auth.getName();
 
-        Optional<Member> memberOpt = memberRepository.findByLoginId(username).or(() -> memberRepository.findByEmail(username));
-        Optional<Dealer> dealerOpt = dealerRepository.findByLoginId(username);
+        Optional<Member> memberOpt = memberRepository.findByLoginId(loginId);
+        Optional<Dealer> dealerOpt = dealerRepository.findByLoginId(loginId);
 
         String reporterType = "MEMBER";
         Long reporterId = 0L;

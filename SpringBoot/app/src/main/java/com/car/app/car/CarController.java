@@ -35,10 +35,10 @@ public class CarController {
         try {
             // 현재 로그인된 사용자의 인증 정보 획득
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
+            String loginId = authentication.getName();
             
             // 차량 등록 비즈니스 로직 수행
-            Car car = carService.registerCar(username, authentication.getAuthorities(), request);
+            Car car = carService.registerCar(loginId, authentication.getAuthorities(), request);
 
             CarDto.Response response = carService.mapToResponse(car);
 
@@ -115,9 +115,9 @@ public class CarController {
     public ResponseEntity<ApiResponse<Long>> purchaseCar(@PathVariable Long carId) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String memberEmail = authentication.getName();
+            String memberLoginId = authentication.getName();
 
-            Transaction transaction = carService.purchaseCar(carId, memberEmail);
+            Transaction transaction = carService.purchaseCar(carId, memberLoginId);
 
             return ResponseEntity.ok(ApiResponse.success(transaction.getTransactionId(), "즉시 구매 요청이 성공적으로 완료되었습니다."));
         } catch (IllegalArgumentException e) {

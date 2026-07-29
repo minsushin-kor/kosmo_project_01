@@ -93,6 +93,9 @@ public class AuthService {
         if (companyRepository.findByBusinessNumber(request.getBusinessNumber()).isPresent()) {
             throw new IllegalArgumentException("이미 사용 중인 사업자 번호입니다.");
         }
+        if (companyRepository.existsByMasterEmail(request.getMasterEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
 
         User user = User.builder()
                 .loginId(loginId)
@@ -127,7 +130,7 @@ public class AuthService {
      */
     @Transactional(readOnly = true)
     public AuthDto.LoginResponse login(AuthDto.LoginRequest request) {
-        String username = request.getUsername();
+        String loginId = request.getLoginId();
         String password = request.getPassword();
         String roleType = request.getRoleType();
 
@@ -136,14 +139,13 @@ public class AuthService {
         String name = null;
 
         if ("COMPANY_MASTER".equalsIgnoreCase(roleType)) {
-            Company company = companyRepository.findByLoginId(username)
-                    .or(() -> companyRepository.findByMasterEmail(username))
+            Company company = companyRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
             dbPassword = company.getPassword();
             role = "COMPANY_MASTER";
             name = company.getName();
         } else if ("DEALER".equalsIgnoreCase(roleType)) {
-            Dealer dealer = dealerRepository.findByLoginId(username)
+            Dealer dealer = dealerRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
             if ("WITHDRAWN".equalsIgnoreCase(dealer.getStatus())) {
                 throw new IllegalArgumentException("활동이 정지되거나 제외된 딜러 계정입니다.");
@@ -152,8 +154,7 @@ public class AuthService {
             role = "DEALER";
             name = dealer.getName();
         } else if ("MEMBER".equalsIgnoreCase(roleType) || "ADMIN".equalsIgnoreCase(roleType)) {
-            Member member = memberRepository.findByLoginId(username)
-                    .or(() -> memberRepository.findByEmail(username))
+            Member member = memberRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
             dbPassword = member.getPassword();
             role = member.getRole().toUpperCase();
@@ -170,13 +171,13 @@ public class AuthService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        String token = jwtProvider.createToken(username, "ROLE_" + role, name);
+        String token = jwtProvider.createToken(loginId, "ROLE_" + role, name);
 
         return AuthDto.LoginResponse.builder()
                 .token(token)
                 .role("ROLE_" + role)
                 .name(name)
-                .username(username)
+                .loginId(loginId)
                 .build();
     }
 }

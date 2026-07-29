@@ -55,7 +55,7 @@ public class AdminController {
     public static class AccountResponse {
         private Long id;
         private String name;
-        private String emailOrLoginId;
+        private String loginId;
         private String phone;
         private String status;
         private String role;
@@ -98,12 +98,12 @@ public class AdminController {
         List<Member> allMembers = memberRepository.findAll(Sort.by("createdAt").descending());
 
         List<AccountResponse> filtered = allMembers.stream()
-                .filter(m -> query == null || query.isBlank() || m.getName().contains(query) || m.getEmail().contains(query) || (m.getPhone() != null && m.getPhone().contains(query)))
+                .filter(m -> query == null || query.isBlank() || m.getName().contains(query) || m.getLoginId().contains(query) || (m.getEmail() != null && m.getEmail().contains(query)) || (m.getPhone() != null && m.getPhone().contains(query)))
                 .filter(m -> status == null || status.isBlank() || status.equalsIgnoreCase(m.getStatus()))
                 .map(m -> AccountResponse.builder()
                         .id(m.getMemberId())
                         .name(m.getName())
-                        .emailOrLoginId(m.getEmail())
+                        .loginId(m.getLoginId())
                         .phone(m.getPhone())
                         .status(m.getStatus() != null ? m.getStatus() : "ACTIVE")
                         .role("ROLE_MEMBER")
@@ -155,7 +155,7 @@ public class AdminController {
                 .map(c -> AccountResponse.builder()
                         .id(c.getCompanyId())
                         .name(c.getName())
-                        .emailOrLoginId(c.getMasterEmail())
+                        .loginId(c.getLoginId())
                         .phone(c.getPhone())
                         .status(c.getMembershipStatus() != null && c.getMembershipStatus() ? "ACTIVE" : "INACTIVE")
                         .role("ROLE_COMPANY_MASTER")
@@ -203,7 +203,7 @@ public class AdminController {
                 .map(d -> AccountResponse.builder()
                         .id(d.getDealerId())
                         .name(d.getName())
-                        .emailOrLoginId(d.getLoginId())
+                        .loginId(d.getLoginId())
                         .phone(d.getPhone())
                         .status(d.getStatus())
                         .role("ROLE_DEALER")
@@ -261,7 +261,7 @@ public class AdminController {
                 .map(m -> AccountResponse.builder()
                         .id(m.getMemberId())
                         .name(m.getName())
-                        .emailOrLoginId(m.getEmail())
+                        .loginId(m.getLoginId())
                         .phone(m.getPhone())
                         .status(m.getStatus() != null ? m.getStatus() : "ACTIVE")
                         .role("ROLE_MEMBER")

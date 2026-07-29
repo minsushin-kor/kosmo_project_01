@@ -28,9 +28,9 @@ public class ChatController {
     public ResponseEntity<ApiResponse<ChatDto.RoomResponse>> createRoom(@RequestBody ChatDto.RoomCreateRequest request) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String memberEmail = authentication.getName();
+            String memberLoginId = authentication.getName();
 
-            ChatRoom room = chatService.createOrGetChatRoom(request.getCarId(), memberEmail);
+            ChatRoom room = chatService.createOrGetChatRoom(request.getCarId(), memberLoginId);
             
             // Response DTO 매핑
             String carName = String.format("%d년식 %s %s",
@@ -61,9 +61,9 @@ public class ChatController {
     public ResponseEntity<ApiResponse<List<ChatDto.RoomResponse>>> getMyRooms() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName(); // 이메일 또는 딜러 로그인 ID
+            String loginId = authentication.getName(); // 로그인 아이디 (loginId)
 
-            List<ChatDto.RoomResponse> rooms = chatService.getChatRooms(username, authentication.getAuthorities());
+            List<ChatDto.RoomResponse> rooms = chatService.getChatRooms(loginId, authentication.getAuthorities());
             return ResponseEntity.ok(ApiResponse.success(rooms, "참여 중인 채팅방 목록 조회가 성공적으로 처리되었습니다."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
@@ -78,9 +78,9 @@ public class ChatController {
     public ResponseEntity<ApiResponse<List<ChatDto.MessageResponse>>> getRoomMessages(@PathVariable Long roomId) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName(); // 이메일 또는 딜러 로그인 ID
+            String loginId = authentication.getName(); // 로그인 아이디 (loginId)
 
-            List<ChatDto.MessageResponse> messages = chatService.getMessagesInRoom(roomId, username);
+            List<ChatDto.MessageResponse> messages = chatService.getMessagesInRoom(roomId, loginId);
             return ResponseEntity.ok(ApiResponse.success(messages, "채팅방 대화 내역 조회가 성공적으로 처리되었습니다."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));

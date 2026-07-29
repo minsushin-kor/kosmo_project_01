@@ -41,18 +41,18 @@ public class MyPageService {
      * 현재 로그인한 계정의 권한에 의거하여 마이페이지 프로필과 연관 활동 이력을 조회합니다.
      */
     @Transactional(readOnly = true)
-    public MyPageDto.Response getProfile(String username, Collection<? extends GrantedAuthority> authorities) {
+    public MyPageDto.Response getProfile(String loginId, Collection<? extends GrantedAuthority> authorities) {
         boolean isCompanyMaster = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_COMPANY_MASTER"));
         boolean isDealer = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_DEALER"));
         boolean isMember = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_MEMBER") || a.getAuthority().equals("ROLE_ADMIN"));
 
         if (isCompanyMaster) {
-            Company company = companyRepository.findByLoginId(username)
-                    .or(() -> companyRepository.findByMasterEmail(username))
+            Company company = companyRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회사 계정입니다."));
 
             MyPageDto.ProfileInfo profile = MyPageDto.ProfileInfo.builder()
-                    .username(company.getMasterEmail())
+                    .loginId(company.getLoginId())
+                    .email(company.getMasterEmail())
                     .name(company.getName())
                     .phone(company.getPhone())
                     .profileImageUrl(company.getProfileImageUrl())
@@ -103,19 +103,20 @@ public class MyPageService {
                     .build();
 
         } else if (isDealer) {
-            Dealer dealer = dealerRepository.findByLoginId(username)
+            Dealer dealer = dealerRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
 
             MyPageDto.ProfileInfo profile = MyPageDto.ProfileInfo.builder()
-                    .username(dealer.getLoginId())
+                    .loginId(dealer.getLoginId())
+                    .email(dealer.getEmail())
                     .name(dealer.getName())
                     .phone(dealer.getPhone())
                     .profileImageUrl(dealer.getProfileImageUrl())
                     .role("DEALER")
                     .tier(dealer.getTier())
                     .riskScore(dealer.getRiskScore())
-                    .companyName(dealer.getCompany().getName())
-                    .goldenBadgeStatus(dealer.getCompany().getGoldenBadgeStatus())
+                    .companyName(dealer.getCompany() != null ? dealer.getCompany().getName() : "")
+                    .goldenBadgeStatus(dealer.getCompany() != null && Boolean.TRUE.equals(dealer.getCompany().getGoldenBadgeStatus()))
                     .build();
 
             // 본인이 등록한 차량 매물 조회
@@ -155,12 +156,12 @@ public class MyPageService {
                     .build();
 
         } else if (isMember) {
-            Member member = memberRepository.findByLoginId(username)
-                    .or(() -> memberRepository.findByEmail(username))
+            Member member = memberRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
 
             MyPageDto.ProfileInfo profile = MyPageDto.ProfileInfo.builder()
-                    .username(member.getEmail())
+                    .loginId(member.getLoginId())
+                    .email(member.getEmail())
                     .name(member.getName())
                     .phone(member.getPhone())
                     .profileImageUrl(member.getProfileImageUrl())

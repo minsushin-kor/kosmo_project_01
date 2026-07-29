@@ -60,11 +60,11 @@ public class AuctionController {
     public ResponseEntity<ApiResponse<List<AuctionDto.BidResponse>>> getBidsForSeller(
             @PathVariable Long carId) {
         try {
-            // 현재 로그인한 일반 회원의 이메일 획득
+            // 현재 로그인한 일반 회원의 아이디 획득
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String memberEmail = authentication.getName();
+            String memberLoginId = authentication.getName();
 
-            List<AuctionDto.BidResponse> response = auctionService.getBidsForSeller(carId, memberEmail);
+            List<AuctionDto.BidResponse> response = auctionService.getBidsForSeller(carId, memberLoginId);
 
             return ResponseEntity.ok(ApiResponse.success(response, "입찰 내역 조회가 성공적으로 완료되었습니다."));
         } catch (SecurityException e) {
@@ -85,15 +85,15 @@ public class AuctionController {
         try {
             // 현재 로그인한 사용자 정보 및 권한 획득
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
+            String loginId = authentication.getName();
             boolean isAdmin = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
             
-            // 관리자 계정인 경우 판매자 검증을 패스하기 위해 null 전달, 일반 회원은 본인 이메일 전달
-            String sellerEmail = isAdmin ? null : username;
+            // 관리자 계정인 경우 판매자 검증을 패스하기 위해 null 전달, 일반 회원은 본인 로그인 아이디 전달
+            String sellerLoginId = isAdmin ? null : loginId;
 
             // 경매 마감 서비스 로직 수행
-            Auction auction = auctionService.closeAuction(auctionId, sellerEmail);
+            Auction auction = auctionService.closeAuction(auctionId, sellerLoginId);
 
             // 낙찰 내역이 존재하면 응답용 DTO 빌드
             AuctionDto.BidResponse winningBidDto = null;

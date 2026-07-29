@@ -62,8 +62,8 @@ public class NotificationService {
      * 로그인한 본인의 알림 목록을 최신순으로 조회합니다.
      */
     @Transactional(readOnly = true)
-    public List<NotificationDto.Response> getMyNotifications(String username, Collection<? extends GrantedAuthority> authorities) {
-        RecipientInfo recipient = resolveRecipient(username, authorities);
+    public List<NotificationDto.Response> getMyNotifications(String loginId, Collection<? extends GrantedAuthority> authorities) {
+        RecipientInfo recipient = resolveRecipient(loginId, authorities);
         List<Notification> list = notificationRepository.findByRecipientTypeAndRecipientIdOrderByCreatedAtDesc(
                 recipient.type, recipient.id);
 
@@ -76,8 +76,8 @@ public class NotificationService {
      * 안 읽은 알림의 개수를 반환합니다.
      */
     @Transactional(readOnly = true)
-    public long getUnreadCount(String username, Collection<? extends GrantedAuthority> authorities) {
-        RecipientInfo recipient = resolveRecipient(username, authorities);
+    public long getUnreadCount(String loginId, Collection<? extends GrantedAuthority> authorities) {
+        RecipientInfo recipient = resolveRecipient(loginId, authorities);
         return notificationRepository.countByRecipientTypeAndRecipientIdAndIsReadFalse(recipient.type, recipient.id);
     }
 
@@ -85,8 +85,8 @@ public class NotificationService {
      * 특정 알림 단건을 읽음 처리합니다.
      */
     @Transactional
-    public void markAsRead(Long notificationId, String username, Collection<? extends GrantedAuthority> authorities) {
-        RecipientInfo recipient = resolveRecipient(username, authorities);
+    public void markAsRead(Long notificationId, String loginId, Collection<? extends GrantedAuthority> authorities) {
+        RecipientInfo recipient = resolveRecipient(loginId, authorities);
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림입니다."));
 
@@ -103,8 +103,8 @@ public class NotificationService {
      * 안 읽은 전체 알림을 일괄 읽음 처리합니다.
      */
     @Transactional
-    public void markAllAsRead(String username, Collection<? extends GrantedAuthority> authorities) {
-        RecipientInfo recipient = resolveRecipient(username, authorities);
+    public void markAllAsRead(String loginId, Collection<? extends GrantedAuthority> authorities) {
+        RecipientInfo recipient = resolveRecipient(loginId, authorities);
         List<Notification> unreadList = notificationRepository.findByRecipientTypeAndRecipientIdAndIsReadFalse(
                 recipient.type, recipient.id);
 
@@ -117,17 +117,16 @@ public class NotificationService {
     /**
      * 로그인 유저 정보 및 권한으로 수신자 유형(MEMBER/DEALER)과 수신자 PK를 식별합니다.
      */
-    private RecipientInfo resolveRecipient(String username, Collection<? extends GrantedAuthority> authorities) {
+    private RecipientInfo resolveRecipient(String loginId, Collection<? extends GrantedAuthority> authorities) {
         boolean isMember = authorities.stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_MEMBER"));
 
         if (isMember) {
-            Member member = memberRepository.findByLoginId(username)
-                    .or(() -> memberRepository.findByEmail(username))
+            Member member = memberRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
             return new RecipientInfo("MEMBER", member.getMemberId());
         } else {
-            Dealer dealer = dealerRepository.findByLoginId(username)
+            Dealer dealer = dealerRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
             return new RecipientInfo("DEALER", dealer.getDealerId());
         }
