@@ -28,7 +28,6 @@ public class DealerService {
     public Dealer createDealer(String masterEmail, DealerDto.CreateRequest request) {
         // 1단계: 상사 마스터 이메일 검증 및 상사 식별
         Company company = companyRepository.findByLoginId(masterEmail)
-                .or(() -> companyRepository.findByMasterEmail(masterEmail))
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
         // 2단계: 신규 딜러의 로그인 ID 중복 여부 확인
@@ -75,7 +74,6 @@ public class DealerService {
     @Transactional
     public void withdrawDealer(String masterEmail, Long dealerId) {
         Company company = companyRepository.findByLoginId(masterEmail)
-                .or(() -> companyRepository.findByMasterEmail(masterEmail))
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
         Dealer dealer = dealerRepository.findById(dealerId)
@@ -92,7 +90,6 @@ public class DealerService {
     @Transactional(readOnly = true)
     public Dealer getDealerDetail(String masterEmail, Long dealerId) {
         Company company = companyRepository.findByLoginId(masterEmail)
-                .or(() -> companyRepository.findByMasterEmail(masterEmail))
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
         Dealer dealer = dealerRepository.findById(dealerId)
@@ -108,7 +105,6 @@ public class DealerService {
     @Transactional
     public Dealer updateDealer(String masterEmail, Long dealerId, DealerDto.CreateRequest request) {
         Company company = companyRepository.findByLoginId(masterEmail)
-                .or(() -> companyRepository.findByMasterEmail(masterEmail))
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
 
         Dealer dealer = dealerRepository.findById(dealerId)

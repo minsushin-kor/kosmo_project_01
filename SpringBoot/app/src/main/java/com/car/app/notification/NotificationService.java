@@ -123,7 +123,6 @@ public class NotificationService {
 
         if (isMember) {
             Member member = memberRepository.findByLoginId(username)
-                    .or(() -> memberRepository.findByEmail(username))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
             return new RecipientInfo("MEMBER", member.getMemberId());
         } else {

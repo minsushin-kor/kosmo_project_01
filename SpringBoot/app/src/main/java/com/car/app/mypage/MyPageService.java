@@ -48,11 +48,10 @@ public class MyPageService {
 
         if (isCompanyMaster) {
             Company company = companyRepository.findByLoginId(username)
-                    .or(() -> companyRepository.findByMasterEmail(username))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회사 계정입니다."));
 
             MyPageDto.ProfileInfo profile = MyPageDto.ProfileInfo.builder()
-                    .username(company.getMasterEmail())
+                    .username(company.getLoginId())
                     .name(company.getName())
                     .phone(company.getPhone())
                     .profileImageUrl(company.getProfileImageUrl())
@@ -156,11 +155,10 @@ public class MyPageService {
 
         } else if (isMember) {
             Member member = memberRepository.findByLoginId(username)
-                    .or(() -> memberRepository.findByEmail(username))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
 
             MyPageDto.ProfileInfo profile = MyPageDto.ProfileInfo.builder()
-                    .username(member.getEmail())
+                    .username(member.getLoginId())
                     .name(member.getName())
                     .phone(member.getPhone())
                     .profileImageUrl(member.getProfileImageUrl())

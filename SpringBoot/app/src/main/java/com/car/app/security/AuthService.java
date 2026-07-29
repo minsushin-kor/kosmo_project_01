@@ -137,7 +137,6 @@ public class AuthService {
 
         if ("COMPANY_MASTER".equalsIgnoreCase(roleType)) {
             Company company = companyRepository.findByLoginId(username)
-                    .or(() -> companyRepository.findByMasterEmail(username))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상사 마스터 계정입니다."));
             dbPassword = company.getPassword();
             role = "COMPANY_MASTER";
@@ -153,7 +152,6 @@ public class AuthService {
             name = dealer.getName();
         } else if ("MEMBER".equalsIgnoreCase(roleType) || "ADMIN".equalsIgnoreCase(roleType)) {
             Member member = memberRepository.findByLoginId(username)
-                    .or(() -> memberRepository.findByEmail(username))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
             dbPassword = member.getPassword();
             role = member.getRole().toUpperCase();
