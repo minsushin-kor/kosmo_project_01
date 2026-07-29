@@ -273,6 +273,16 @@ export const PROTECTED_ROUTES = [
     ],
   },
   {
+    id: "dealer-bids",
+    path: "/dealer/bids",
+    element: (
+      <DealerAuctionBidManagePage />
+    ),
+    allowedRoles: [
+      AUTH_ROLES.DEALER,
+    ],
+  },
+  {
     id: "dealer-car-bids",
     path: "/dealer/cars/:carId/bids",
     element: (
@@ -293,8 +303,28 @@ export const PROTECTED_ROUTES = [
     ],
   },
   {
+    id: "dealer-edit-car",
+    path: "/dealer/cars/:carId/edit",
+    element: (
+      <DealerRegisterCarPage />
+    ),
+    allowedRoles: [
+      AUTH_ROLES.DEALER,
+    ],
+  },
+  {
     id: "member-register-car",
     path: "/member/register-car",
+    element: (
+      <DealerRegisterCarPage />
+    ),
+    allowedRoles: [
+      AUTH_ROLES.MEMBER,
+    ],
+  },
+  {
+    id: "member-edit-car",
+    path: "/member/cars/:carId/edit",
     element: (
       <DealerRegisterCarPage />
     ),
@@ -321,14 +351,15 @@ export const PROTECTED_ROUTES = [
     ],
   },
   {
-    id: "member-auction-trades",
+    id: "transaction-detail",
     path:
-      "/member/auction-trades/:winnerId",
+      "/transactions/:transactionId",
     element: (
       <MemberAuctionTradePage />
     ),
     allowedRoles: [
       AUTH_ROLES.MEMBER,
+      AUTH_ROLES.DEALER,
     ],
   },
   {

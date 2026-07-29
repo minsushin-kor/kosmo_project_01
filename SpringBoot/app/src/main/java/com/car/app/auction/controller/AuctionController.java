@@ -57,6 +57,27 @@ public class AuctionController {
     }
 
     /**
+     * 딜러 권한 전용: 로그인한 딜러 본인의 전체 입찰 내역을 조회합니다.
+     * 블라인드 경매 정책상 다른 딜러의 입찰 정보는 반환하지 않습니다.
+     */
+    @GetMapping("/api/dealers/me/bids")
+    @PreAuthorize("hasRole('DEALER')")
+    public ResponseEntity<ApiResponse<List<AuctionDto.DealerBidResponse>>> getMyBids() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String dealerLoginId = authentication.getName();
+
+            List<AuctionDto.DealerBidResponse> response = auctionService.getMyBids(dealerLoginId);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(response, "내 입찰 내역 조회가 완료되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
      * 차주(일반 회원) 권한 전용: 본인이 등록한 차량에 들어온 실시간 입찰 목록 전체를 조회합니다.
      * 본인 차량이 아닐 경우 403 권한 거부 에러를 반환합니다.
      */
@@ -93,7 +114,7 @@ public class AuctionController {
             String loginId = authentication.getName();
             boolean isAdmin = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-            
+
             // 관리자 계정인 경우 판매자 검증을 패스하기 위해 null 전달, 일반 회원은 본인 로그인 아이디 전달
             String sellerLoginId = isAdmin ? null : loginId;
 

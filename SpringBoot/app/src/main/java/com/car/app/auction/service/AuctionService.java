@@ -87,7 +87,7 @@ public class AuctionService {
     /**
      * 차주(일반 회원)가 등록한 본인 매물의 경매 입찰 현황 리스트를 실시간 조회하는 메서드입니다.
      *
-     * @param carId       조회할 차량 ID
+     * @param carId         조회할 차량 ID
      * @param memberLoginId 로그인한 일반 회원의 로그인 아이디 (JWT 토큰에서 추출)
      * @return 경매에 들어온 입찰 DTO 리스트
      */
@@ -125,9 +125,55 @@ public class AuctionService {
     }
 
     /**
+     * 로그인한 딜러가 참여한 모든 경매 입찰 내역을 조회합니다.
+     * 다른 딜러의 입찰 금액은 반환하지 않습니다.
+     *
+     * @param dealerLoginId 로그인한 딜러의 로그인 아이디
+     * @return 딜러 본인의 입찰 내역
+     */
+    @Transactional(readOnly = true)
+    public List<AuctionDto.DealerBidResponse> getMyBids(String dealerLoginId) {
+        Dealer dealer = dealerRepository.findByLoginId(dealerLoginId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
+
+        return bidRepository.findByDealerDealerId(dealer.getDealerId()).stream()
+                .sorted((first, second) -> second.getCreatedAt().compareTo(first.getCreatedAt()))
+                .map(bid -> {
+                    Auction auction = bid.getAuction();
+                    Car car = auction.getCar();
+                    Bid winningBid = auction.getWinningBid();
+
+                    String carName = String.join(" ",
+                            car.getYear() == null ? "" : String.valueOf(car.getYear()),
+                            car.getMake() == null ? "" : car.getMake(),
+                            car.getModel() == null ? "" : car.getModel())
+                            .trim()
+                            .replaceAll("\\s+", " ");
+
+                    boolean isWinner = winningBid != null
+                            && winningBid.getBidId().equals(bid.getBidId());
+
+                    return AuctionDto.DealerBidResponse.builder()
+                            .bidId(bid.getBidId())
+                            .auctionId(auction.getAuctionId())
+                            .carId(car.getCarId())
+                            .carName(carName.isBlank() ? "차량" : carName)
+                            .bidAmount(bid.getBidAmount())
+                            .bidCreatedAt(bid.getCreatedAt())
+                            .auctionStatus(auction.getStatus())
+                            .auctionStartTime(auction.getStartTime())
+                            .auctionEndTime(auction.getEndTime())
+                            .winner(isWinner)
+                            .winningBidAmount(winningBid == null ? null : winningBid.getBidAmount())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 특정 경매를 수동으로 마감 처리하고 낙찰자를 결정합니다. (판매자 또는 관리자 요청 시)
      *
-     * @param auctionId   경매 ID
+     * @param auctionId     경매 ID
      * @param sellerLoginId 요청자의 로그인 아이디 (null인 경우 권한 검증 패스)
      * @return 마감 및 낙찰 처리된 경매 엔티티
      */
@@ -135,10 +181,10 @@ public class AuctionService {
     public Auction closeAuction(Long auctionId, String sellerLoginId) {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 경매입니다."));
-        
+
         // 판매자 본인 소유의 차량인지 검증
-        if (sellerLoginId != null && (auction.getCar().getMember() == null || 
-            !auction.getCar().getMember().getLoginId().equalsIgnoreCase(sellerLoginId))) {
+        if (sellerLoginId != null && (auction.getCar().getMember() == null ||
+                !auction.getCar().getMember().getLoginId().equalsIgnoreCase(sellerLoginId))) {
             throw new SecurityException("본인이 등록한 차량의 경매만 종료할 수 있습니다.");
         }
 
@@ -189,7 +235,7 @@ public class AuctionService {
         // 경매 상태를 COMPLETED로 변경 및 낙찰 정보 기록
         auction.setStatus("COMPLETED");
         auction.setWinningBid(winningBid);
-        
+
         // 예정된 마감 시간 전 조기 종료 시 종료 시간을 현재 시간으로 갱신
         if (LocalDateTime.now().isBefore(auction.getEndTime())) {
             auction.setEndTime(LocalDateTime.now());
@@ -225,13 +271,15 @@ public class AuctionService {
             if (car.getMember() != null) {
                 String memberMsg = String.format("등록하신 %d년식 %s %s 매물 경매가 %,d원에 최종 낙찰되었습니다. (낙찰 딜러: %s)",
                         car.getYear(), car.getMake(), car.getModel(), dealPrice, winningBid.getDealer().getName());
-                notificationService.sendNotification("MEMBER", car.getMember().getMemberId(), "AUCTION_WON", memberMsg, car.getCarId());
+                notificationService.sendNotification("MEMBER", car.getMember().getMemberId(), "AUCTION_WON", memberMsg,
+                        car.getCarId());
             }
 
             // [알림 2] 낙찰 딜러에게 최종 낙찰 축하 알림 생성 및 푸시
             String dealerMsg = String.format("입찰에 참여하신 %d년식 %s %s 매물 경매가 %,d원에 최종 낙찰되었습니다.",
                     car.getYear(), car.getMake(), car.getModel(), dealPrice);
-            notificationService.sendNotification("DEALER", winningBid.getDealer().getDealerId(), "BID_WIN", dealerMsg, car.getCarId());
+            notificationService.sendNotification("DEALER", winningBid.getDealer().getDealerId(), "BID_WIN", dealerMsg,
+                    car.getCarId());
 
         } else {
             // 입찰자가 없어 유찰된 경우 차량 상태를 다시 REGISTERED로 세팅하여 재경매 가능하도록 처리
@@ -242,7 +290,8 @@ public class AuctionService {
             if (car.getMember() != null) {
                 String failedMsg = String.format("등록하신 %d년식 %s %s 매물 경매가 입찰자 없이 유찰되었습니다.",
                         car.getYear(), car.getMake(), car.getModel());
-                notificationService.sendNotification("MEMBER", car.getMember().getMemberId(), "AUCTION_FAILED", failedMsg, car.getCarId());
+                notificationService.sendNotification("MEMBER", car.getMember().getMemberId(), "AUCTION_FAILED",
+                        failedMsg, car.getCarId());
             }
         }
 

@@ -183,28 +183,133 @@ public class CarService {
      * 본인 등록 차량 정보 수정
      */
     @Transactional
-    public Car updateCar(Long carId, String loginId, CarDto.CreateRequest request) {
+    public Car updateCar(
+            Long carId,
+            String loginId,
+            CarDto.CreateRequest request) {
         Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "존재하지 않는 차량 매물입니다."));
 
-        boolean isOwner = (car.getMember() != null && loginId.equals(car.getMember().getLoginId())) ||
-                (car.getDealer() != null && car.getDealer().getLoginId().equals(loginId));
+        boolean isOwner = (car.getMember() != null &&
+                loginId.equals(
+                        car.getMember().getLoginId()))
+                ||
+                (car.getDealer() != null &&
+                        loginId.equals(
+                                car.getDealer().getLoginId()));
+
         if (!isOwner) {
-            throw new SecurityException("본인이 등록한 차량만 수정할 수 있습니다.");
+            throw new SecurityException(
+                    "본인이 등록한 차량만 수정할 수 있습니다.");
         }
 
-        if (request.getMake() != null)
-            car.setMake(request.getMake());
-        if (request.getModel() != null)
-            car.setModel(request.getModel());
-        if (request.getYear() != null)
+        if (request.getYear() != null) {
             car.setYear(request.getYear());
-        if (request.getOdometer() != null)
-            car.setOdometer(request.getOdometer());
-        if (request.getTransmission() != null)
-            car.setTransmission(request.getTransmission());
-        if (request.getSellingPrice() != null)
-            car.setSellingPrice(request.getSellingPrice());
+        }
+
+        if (StringUtils.hasText(request.getMake())) {
+            car.setMake(
+                    request.getMake().trim());
+        }
+
+        if (StringUtils.hasText(request.getModel())) {
+            car.setModel(
+                    request.getModel().trim());
+        }
+
+        if (request.getOption() != null) {
+            car.setOption(
+                    request.getOption().trim());
+        }
+
+        if (StringUtils.hasText(request.getBody())) {
+            car.setBody(
+                    request.getBody().trim());
+        }
+
+        if (StringUtils.hasText(
+                request.getTransmission())) {
+            car.setTransmission(
+                    request
+                            .getTransmission()
+                            .trim());
+        }
+
+        if (StringUtils.hasText(request.getState())) {
+            car.setState(
+                    request.getState().trim());
+        }
+
+        if (request.getCondition() != null) {
+            car.setCondition(
+                    request.getCondition());
+        }
+
+        if (request.getOdometer() != null) {
+            car.setOdometer(
+                    request.getOdometer());
+        }
+
+        if (request.getColor() != null) {
+            car.setColor(
+                    request.getColor().trim());
+        }
+
+        if (request.getInterior() != null) {
+            car.setInterior(
+                    request.getInterior().trim());
+        }
+
+        if (request.getSellingPrice() != null) {
+            car.setSellingPrice(
+                    request.getSellingPrice());
+        }
+
+        /*
+         * images가 전달된 경우 기존 차량 이미지를
+         * 요청 이미지 목록으로 교체합니다.
+         */
+        if (request.getImages() != null) {
+            car.getImages().clear();
+
+            for (int index = 0; index < request.getImages().size(); index += 1) {
+                CarDto.ImageDto imageRequest = request
+                        .getImages()
+                        .get(index);
+
+                if (imageRequest == null ||
+                        !StringUtils.hasText(
+                                imageRequest.getImageUrl())) {
+                    continue;
+                }
+
+                CarImage carImage = CarImage.builder()
+                        .car(car)
+                        .imageUrl(
+                                imageRequest
+                                        .getImageUrl()
+                                        .trim())
+                        .isMain(
+                                index == 0)
+                        .build();
+
+                car.getImages().add(
+                        carImage);
+            }
+
+            if (car.getImages().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "차량 이미지는 1장 이상 필요합니다.");
+            }
+
+            for (int index = 0; index < car.getImages().size(); index += 1) {
+                car.getImages()
+                        .get(index)
+                        .setIsMain(
+                                index == 0);
+            }
+        }
 
         return carRepository.save(car);
     }

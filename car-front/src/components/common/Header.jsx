@@ -87,7 +87,7 @@ function Header() {
               logoPath
             )}
           >
-            이름뭐라짓지
+            Kosmo Car
           </Link>
         </div>
 

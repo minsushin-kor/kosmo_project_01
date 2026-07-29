@@ -231,6 +231,9 @@ const ROUTE_LOADERS_BY_PATH = {
   "/dealer/register-car":
     ROUTE_LOADERS.dealerRegisterCar,
 
+  "/dealer/bids":
+    ROUTE_LOADERS.dealerAuctionBidManage,
+
   "/admin":
     ROUTE_LOADERS.adminDashboard,
 
@@ -286,7 +289,19 @@ const DYNAMIC_ROUTE_LOADERS = [
   },
   {
     pattern:
-      /^\/member\/cars\/[^/]+\/trade$/,
+      /^\/member\/cars\/[^/]+\/edit$/,
+    loader:
+      ROUTE_LOADERS.dealerRegisterCar,
+  },
+  {
+    pattern:
+      /^\/dealer\/cars\/[^/]+\/edit$/,
+    loader:
+      ROUTE_LOADERS.dealerRegisterCar,
+  },
+  {
+    pattern:
+      /^\/transactions\/[^/]+$/,
     loader:
       ROUTE_LOADERS.memberAuctionTrade,
   },

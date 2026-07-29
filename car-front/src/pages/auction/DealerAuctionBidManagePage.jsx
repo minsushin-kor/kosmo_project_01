@@ -1,161 +1,300 @@
-import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import cars from "../../data/cars";
-import { getDealerCarsFromStorage } from "../../utils/dealerCarStorage";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  Link,
+  useParams,
+} from "react-router-dom";
+import {
+  getMyAuctionBids,
+} from "../../api/auctionApi";
 import "../../css/auction/dealerAuctionBidManagePage.css";
-
-const AUCTION_WINNERS_KEY = "car_front_auction_winners";
 
 function formatDateTime(dateText) {
   if (!dateText) {
     return "-";
   }
 
-  const date = new Date(dateText);
+  const date =
+    new Date(dateText);
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return dateText;
   }
 
-  return date.toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return date.toLocaleString(
+    "ko-KR",
+    {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
 }
 
-function getCarName(car) {
-  return car.name || car.carName || `${car.year} ${car.make} ${car.model}`;
+function normalizeStatus(status) {
+  return String(
+    status || ""
+  ).toUpperCase();
 }
 
-function getStartPrice(car) {
-  return car.auction?.startPrice || car.sellingprice || car.price || 0;
+function getBidResultText(bid) {
+  if (bid.winner) {
+    return "낙찰";
+  }
+
+  const status =
+    normalizeStatus(
+      bid.auctionStatus
+    );
+
+  if (
+    [
+      "COMPLETED",
+      "ENDED",
+      "CLOSED",
+      "SOLD",
+      "FAILED",
+      "경매종료",
+      "낙찰완료",
+      "유찰",
+    ].includes(status)
+  ) {
+    return "미낙찰";
+  }
+
+  return "입찰중";
 }
 
-function getAuctionWinners() {
-  return JSON.parse(localStorage.getItem(AUCTION_WINNERS_KEY) || "[]");
-}
+function getStatusClassName(bid) {
+  const result =
+    getBidResultText(bid);
 
-function saveAuctionWinner(winner) {
-  const savedWinners = getAuctionWinners();
+  if (result === "낙찰") {
+    return "낙찰완료";
+  }
 
-  const nextWinners = [
-    winner,
-    ...savedWinners.filter((item) => item.carId !== winner.carId),
-  ];
+  if (result === "미낙찰") {
+    return "미낙찰";
+  }
 
-  localStorage.setItem(AUCTION_WINNERS_KEY, JSON.stringify(nextWinners));
-
-  window.dispatchEvent(new Event("auction-winner-change"));
+  return "입찰완료";
 }
 
 function DealerAuctionBidManagePage() {
-  const { carId } = useParams();
+  const { carId } =
+    useParams();
 
-  const allCars = [...getDealerCarsFromStorage(), ...cars];
-  const car = allCars.find((item) => item.id === Number(carId));
+  const [
+    bidList,
+    setBidList,
+  ] = useState([]);
 
-  const savedWinner = getAuctionWinners().find(
-    (winner) => winner.carId === Number(carId)
-  );
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
 
-  const [winnerBidId, setWinnerBidId] = useState(savedWinner?.bidId || null);
+  const [
+    isRefreshing,
+    setIsRefreshing,
+  ] = useState(false);
 
-  const savedBids = JSON.parse(
-    localStorage.getItem("car_front_auction_bids") || "[]"
-  );
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
-  const dummyBids = useMemo(() => {
-    if (!car) {
-      return [];
-    }
+  const loadMyBids =
+    useCallback(async ({
+      showRefreshing = false,
+    } = {}) => {
+      try {
+        if (showRefreshing) {
+          setIsRefreshing(true);
+        }
 
-    const bidCount = car.auction?.bidCount || 0;
-    const startPrice = getStartPrice(car);
+        setErrorMessage("");
 
-    return Array.from({ length: bidCount }).map((_, index) => ({
-      id: `dummy-${car.id}-${index + 1}`,
-      carId: car.id,
-      bidderType: "MEMBER",
-      bidderId: 100 + index,
-      bidderName: `입찰자${index + 1}`,
-      bidPrice: startPrice + (index + 1) * 50,
-      bidStatus: "입찰완료",
-      createdAt: new Date(
-        new Date(car.auction?.startDate || new Date()).getTime() +
-        (index + 1) * 1000 * 60 * 40
-      ).toISOString(),
-      isDummy: true,
-    }));
-  }, [car]);
+        const result =
+          await getMyAuctionBids();
 
-  const bidList = useMemo(() => {
-    if (!car) {
-      return [];
-    }
+        setBidList(
+          Array.isArray(result)
+            ? result
+            : []
+        );
+      } catch (error) {
+        console.error(
+          "딜러 입찰 내역 조회 실패:",
+          error
+        );
 
-    const realBids = savedBids.filter((bid) => bid.carId === car.id);
+        setBidList([]);
 
-    return [...realBids, ...dummyBids].sort(
-      (a, b) => Number(b.bidPrice) - Number(a.bidPrice)
-    );
-  }, [car, savedBids, dummyBids]);
+        setErrorMessage(
+          error?.message ||
+          "입찰 내역을 불러오지 못했습니다."
+        );
+      } finally {
+        if (showRefreshing) {
+          setIsRefreshing(false);
+        }
+      }
+    }, []);
 
-  const highestBid = bidList[0] || null;
+  useEffect(() => {
+    let isCancelled = false;
 
-  function handleWinnerBid(bid) {
-    const confirmWinner = window.confirm(
-      `${bid.bidderName} 입찰자를 낙찰자로 처리하시겠습니까?`
-    );
+    getMyAuctionBids()
+      .then((result) => {
+        if (isCancelled) {
+          return;
+        }
 
-    if (!confirmWinner) {
-      return;
-    }
+        setBidList(
+          Array.isArray(result)
+            ? result
+            : []
+        );
 
-    const winnerData = {
-      id: crypto.randomUUID(),
-      carId: car.id,
-      auctionId: car.auction?.auctionId || car.id,
+        setErrorMessage("");
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return;
+        }
 
-      bidId: bid.id,
-      bidPrice: Number(bid.bidPrice),
-      bidTime: bid.createdAt,
+        console.error(
+          "딜러 입찰 내역 조회 실패:",
+          error
+        );
 
-      bidderType: bid.bidderType,
-      bidderId: bid.bidderId,
-      bidderName: bid.bidderName,
+        setBidList([]);
 
-      carName: getCarName(car),
-      sellerType: car.sellerType || "딜러",
-      sellerId: car.dealerId || car.memberId || 1,
-      sellerName: car.sellerName || "판매자",
+        setErrorMessage(
+          error?.message ||
+          "입찰 내역을 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      });
 
-      status: "낙찰완료",
-      createdAt: new Date().toISOString(),
+    return () => {
+      isCancelled = true;
     };
+  }, []);
 
-    saveAuctionWinner(winnerData);
-    setWinnerBidId(bid.id);
+  const filteredBids =
+    useMemo(() => {
+      const targetCarId =
+        Number(carId);
 
-    alert("낙찰 처리되었습니다.");
+      const source =
+        Number.isFinite(
+          targetCarId
+        )
+          ? bidList.filter(
+            (bid) =>
+              Number(
+                bid.carId
+              ) ===
+              targetCarId
+          )
+          : bidList;
+
+      return [...source].sort(
+        (firstBid, secondBid) => {
+          const firstTime =
+            new Date(
+              firstBid.bidCreatedAt ||
+              0
+            ).getTime();
+
+          const secondTime =
+            new Date(
+              secondBid.bidCreatedAt ||
+              0
+            ).getTime();
+
+          return (
+            secondTime -
+            firstTime
+          );
+        }
+      );
+    }, [
+      bidList,
+      carId,
+    ]);
+
+  const summary =
+    useMemo(() => {
+      return filteredBids.reduce(
+        (result, bid) => {
+          result.total += 1;
+
+          const bidResult =
+            getBidResultText(bid);
+
+          if (
+            bidResult ===
+            "낙찰"
+          ) {
+            result.winner += 1;
+          } else if (
+            bidResult ===
+            "미낙찰"
+          ) {
+            result.failed += 1;
+          } else {
+            result.active += 1;
+          }
+
+          return result;
+        },
+        {
+          total: 0,
+          active: 0,
+          winner: 0,
+          failed: 0,
+        }
+      );
+    }, [filteredBids]);
+
+  const selectedCarName =
+    carId &&
+      filteredBids[0]?.carName
+      ? filteredBids[0]
+        .carName
+      : null;
+
+  function handleRefresh() {
+    loadMyBids({
+      showRefreshing: true,
+    });
   }
 
-  if (!car) {
+  if (isLoading) {
     return (
       <main className="auction-bid-manage-page">
         <div className="auction-bid-container">
-          <section className="auction-bid-header">
-            <div>
-              <p className="auction-page-label">AUCTION BID</p>
-              <h2>입찰 현황</h2>
-              <p>차량 정보를 찾을 수 없습니다.</p>
+          <section className="auction-bid-panel">
+            <div className="auction-empty-message">
+              내 입찰 내역을 불러오는 중입니다.
             </div>
-
-            <Link to="/dealer/cars" className="auction-primary-link">
-              경매 목록으로
-            </Link>
           </section>
         </div>
       </main>
@@ -167,136 +306,268 @@ function DealerAuctionBidManagePage() {
       <div className="auction-bid-container">
         <section className="auction-bid-header">
           <div>
-            <p className="auction-page-label">AUCTION BID</p>
-            <h2>입찰 현황</h2>
-            <p>{getCarName(car)} 차량에 들어온 비공개 입찰 목록입니다.</p>
+            <p className="auction-page-label">
+              MY AUCTION BIDS
+            </p>
+
+            <h2>
+              내 입찰 내역
+            </h2>
+
+            <p>
+              {selectedCarName
+                ? `${selectedCarName} 차량에 제출한 입찰 정보입니다.`
+                : "내가 참여한 경매와 입찰 결과를 확인합니다."}
+            </p>
           </div>
 
-          <Link to="/dealer/cars" className="auction-primary-link">
-            경매 목록으로
-          </Link>
+          <div>
+            {carId && (
+              <Link
+                to="/dealer/bids"
+                className="auction-primary-link"
+              >
+                전체 입찰 보기
+              </Link>
+            )}
+
+            {!carId && (
+              <Link
+                to="/"
+                className="auction-primary-link"
+              >
+                경매 차량 보기
+              </Link>
+            )}
+          </div>
         </section>
 
         <section className="auction-bid-summary-grid">
           <article>
-            <span>경매 시작가</span>
-            <strong>{Number(getStartPrice(car)).toLocaleString()}</strong>
-            <em>만원</em>
-          </article>
+            <span>
+              전체 입찰
+            </span>
 
-          <article>
-            <span>전체 입찰</span>
-            <strong>{bidList.length}</strong>
+            <strong>
+              {summary.total}
+            </strong>
+
             <em>건</em>
           </article>
 
           <article>
-            <span>최고 입찰가</span>
+            <span>
+              진행 중
+            </span>
+
             <strong>
-              {highestBid ? Number(highestBid.bidPrice).toLocaleString() : 0}
+              {summary.active}
             </strong>
-            <em>만원</em>
+
+            <em>건</em>
           </article>
 
           <article>
-            <span>경매 상태</span>
-            <strong className="auction-summary-status">
-              {savedWinner ? "낙찰완료" : car.auction?.status || car.status || "경매중"}
+            <span>
+              낙찰
+            </span>
+
+            <strong>
+              {summary.winner}
             </strong>
+
+            <em>건</em>
+          </article>
+
+          <article>
+            <span>
+              미낙찰
+            </span>
+
+            <strong>
+              {summary.failed}
+            </strong>
+
+            <em>건</em>
           </article>
         </section>
-
-        {savedWinner && (
-          <section className="auction-winner-box">
-            <h3>낙찰 처리 완료</h3>
-            <p>
-              낙찰자: <strong>{savedWinner.bidderName}</strong> / 낙찰가:{" "}
-              <strong>{Number(savedWinner.bidPrice).toLocaleString()}만원</strong>
-            </p>
-          </section>
-        )}
 
         <section className="auction-bid-panel">
           <div className="auction-bid-panel-header">
             <div>
-              <h3>입찰자 목록</h3>
+              <h3>
+                입찰 목록
+              </h3>
+
               <p>
-                이 화면은 판매자용입니다. 구매자 화면에는 다른 사람의 입찰
-                금액이 표시되지 않습니다.
+                다른 딜러의 입찰 금액은 표시되지 않으며,
+                본인이 제출한 입찰과 경매 결과만 조회됩니다.
               </p>
             </div>
+
+            <button
+              type="button"
+              className="auction-action-btn"
+              onClick={
+                handleRefresh
+              }
+              disabled={
+                isRefreshing
+              }
+            >
+              {isRefreshing
+                ? "새로고침 중"
+                : "새로고침"}
+            </button>
           </div>
+
+          {errorMessage && (
+            <section className="auction-guide-box">
+              <h3>
+                조회 실패
+              </h3>
+
+              <p>
+                {errorMessage}
+              </p>
+            </section>
+          )}
 
           <div className="auction-bid-table-wrap">
             <table className="auction-bid-table">
               <thead>
                 <tr>
-                  <th>순위</th>
-                  <th>입찰자</th>
-                  <th>입찰 금액</th>
-                  <th>입찰 시간</th>
-                  <th>상태</th>
-                  <th>관리</th>
+                  <th>
+                    차량
+                  </th>
+
+                  <th>
+                    내 입찰 금액
+                  </th>
+
+                  <th>
+                    입찰 시간
+                  </th>
+
+                  <th>
+                    경매 기간
+                  </th>
+
+                  <th>
+                    경매 상태
+                  </th>
+
+                  <th>
+                    결과
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {bidList.length > 0 ? (
-                  bidList.map((bid, index) => {
-                    const isHighest = index === 0;
-                    const isWinner = winnerBidId === bid.id;
+                {filteredBids.length >
+                  0 ? (
+                  filteredBids.map(
+                    (bid) => {
+                      const resultText =
+                        getBidResultText(
+                          bid
+                        );
 
-                    return (
-                      <tr key={bid.id}>
-                        <td>
-                          <strong>{index + 1}순위</strong>
-                          {isHighest && <span>현재 최고 입찰</span>}
-                        </td>
+                      return (
+                        <tr
+                          key={
+                            bid.bidId
+                          }
+                        >
+                          <td>
+                            <Link
+                              to={`/cars/${bid.carId}`}
+                            >
+                              <strong>
+                                {bid.carName ||
+                                  `차량 ${bid.carId}`}
+                              </strong>
+                            </Link>
 
-                        <td>
-                          <strong>{bid.bidderName}</strong>
-                          <span>{bid.bidderType}</span>
-                        </td>
+                            <span>
+                              경매 ID:{" "}
+                              {bid.auctionId}
+                            </span>
+                          </td>
 
-                        <td>
-                          <strong>
-                            {Number(bid.bidPrice).toLocaleString()}만원
-                          </strong>
-                          <span>
-                            {bid.isDummy ? "임시 입찰 데이터" : "저장된 입찰"}
-                          </span>
-                        </td>
+                          <td>
+                            <strong>
+                              {Number(
+                                bid.bidAmount ||
+                                0
+                              ).toLocaleString()}
+                              만원
+                            </strong>
 
-                        <td>
-                          <strong>{formatDateTime(bid.createdAt)}</strong>
-                        </td>
+                            {bid.winningBidAmount !=
+                              null && (
+                                <span>
+                                  최종 낙찰가:{" "}
+                                  {Number(
+                                    bid.winningBidAmount
+                                  ).toLocaleString()}
+                                  만원
+                                </span>
+                              )}
+                          </td>
 
-                        <td>
-                          <span
-                            className={`auction-bid-status ${isWinner ? "낙찰완료" : bid.bidStatus
-                              }`}
-                          >
-                            {isWinner ? "낙찰완료" : bid.bidStatus}
-                          </span>
-                        </td>
+                          <td>
+                            <strong>
+                              {formatDateTime(
+                                bid.bidCreatedAt
+                              )}
+                            </strong>
+                          </td>
 
-                        <td>
-                          <button
-                            type="button"
-                            className="auction-action-btn"
-                            disabled={Boolean(winnerBidId)}
-                            onClick={() => handleWinnerBid(bid)}
-                          >
-                            낙찰처리
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
+                          <td>
+                            <strong>
+                              {formatDateTime(
+                                bid.auctionStartTime
+                              )}
+                            </strong>
+
+                            <span>
+                              ~{" "}
+                              {formatDateTime(
+                                bid.auctionEndTime
+                              )}
+                            </span>
+                          </td>
+
+                          <td>
+                            <strong>
+                              {bid.auctionStatus ||
+                                "-"}
+                            </strong>
+                          </td>
+
+                          <td>
+                            <span
+                              className={`auction-bid-status ${getStatusClassName(
+                                bid
+                              )}`}
+                            >
+                              {resultText}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )
                 ) : (
                   <tr>
-                    <td colSpan="6" className="auction-empty-message">
-                      아직 입찰 내역이 없습니다.
+                    <td
+                      colSpan="6"
+                      className="auction-empty-message"
+                    >
+                      {carId
+                        ? "이 차량에 제출한 입찰 내역이 없습니다."
+                        : "아직 참여한 경매가 없습니다."}
                     </td>
                   </tr>
                 )}
@@ -306,10 +577,14 @@ function DealerAuctionBidManagePage() {
         </section>
 
         <section className="auction-guide-box">
-          <h3>백엔드 연결할 때</h3>
+          <h3>
+            입찰 결과 안내
+          </h3>
+
           <p>
-            지금은 낙찰 결과를 localStorage에 저장합니다. 나중에는
-            최종 거래 생성 API와 경매 상태 변경 API로 연결하면 됩니다.
+            경매 진행 중에는 본인의 입찰 금액만 확인할 수 있습니다.
+            경매 마감 후 최고 입찰자로 선정되면 낙찰로 표시되며,
+            그 외 입찰은 미낙찰로 표시됩니다.
           </p>
         </section>
       </div>

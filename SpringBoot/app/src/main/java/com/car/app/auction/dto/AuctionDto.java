@@ -34,6 +34,25 @@ public class AuctionDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    public static class DealerBidResponse {
+        private Long bidId;
+        private Long auctionId;
+        private Long carId;
+        private String carName;
+        private Long bidAmount;
+        private LocalDateTime bidCreatedAt;
+        private String auctionStatus;
+        private LocalDateTime auctionStartTime;
+        private LocalDateTime auctionEndTime;
+        private Boolean winner;
+        private Long winningBidAmount;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class CloseResponse {
         private Long auctionId;
         private String status;

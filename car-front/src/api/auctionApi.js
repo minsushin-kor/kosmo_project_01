@@ -64,6 +64,22 @@ export async function getSellerAuctionBids(
 }
 
 /**
+ * 딜러 본인의 전체 입찰 내역을 조회합니다.
+ *
+ * @returns {Promise<Array>} 딜러 본인의 입찰 목록
+ */
+export async function getMyAuctionBids() {
+    const result =
+        await apiClient.get(
+            "/dealers/me/bids"
+        );
+
+    return Array.isArray(result)
+        ? result
+        : [];
+}
+
+/**
  * 일반회원 또는 관리자가 경매를 마감합니다.
  *
  * @param {number|string} auctionId 경매 ID

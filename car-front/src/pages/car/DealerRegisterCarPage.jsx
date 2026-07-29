@@ -1,12 +1,16 @@
 import {
+  useEffect,
   useState,
 } from "react";
 import {
   useNavigate,
+  useParams,
 } from "react-router-dom";
 import ImageUploader from "../../components/common/ImageUploader";
 import {
+  getCarDetail,
   registerCar,
+  updateCar,
 } from "../../api/carApi";
 import {
   uploadImages,
@@ -21,6 +25,12 @@ import "../../css/car/dealerRegisterCarPage.css";
 
 function DealerRegisterCarPage() {
   const navigate = useNavigate();
+
+  const { carId } =
+    useParams();
+
+  const isEditMode =
+    Boolean(carId);
 
   const {
     loginUser,
@@ -43,6 +53,18 @@ function DealerRegisterCarPage() {
     isSubmitting,
     setIsSubmitting,
   ] = useState(false);
+
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(
+    isEditMode
+  );
+
+  const [
+    loadError,
+    setLoadError,
+  ] = useState("");
 
   const carOptions = [
     "네비게이션",
@@ -68,6 +90,155 @@ function DealerRegisterCarPage() {
     interior: "",
     price: "",
   });
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!isEditMode) {
+      return undefined;
+    }
+
+    getCarDetail(carId)
+      .then((car) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const existingImages =
+          Array.isArray(
+            car?.images
+          )
+            ? car.images
+              .filter(
+                (image) =>
+                  Boolean(
+                    image?.imageUrl
+                  )
+              )
+              .map(
+                (
+                  image,
+                  index
+                ) => ({
+                  id:
+                    image.carImageId ||
+                    image.id ||
+                    `saved-${index}`,
+
+                  previewUrl:
+                    image.imageUrl,
+
+                  imageUrl:
+                    image.imageUrl,
+
+                  isExisting:
+                    true,
+                })
+              )
+            : [];
+
+        setFormData({
+          year:
+            car?.year
+              ? String(car.year)
+              : "",
+
+          make:
+            car?.make ||
+            car?.brand ||
+            "",
+
+          model:
+            car?.model ||
+            car?.modelName ||
+            "",
+
+          option:
+            Array.isArray(
+              car?.options
+            )
+              ? car.options
+              : [],
+
+          body:
+            car?.body &&
+              car.body !== "-"
+              ? car.body
+              : "",
+
+          transmission:
+            car?.transmission &&
+              car.transmission !== "-"
+              ? car.transmission
+              : "",
+
+          state:
+            car?.state &&
+              car.state !== "-"
+              ? car.state
+              : "",
+
+          odometer:
+            car?.odometer != null
+              ? String(
+                car.odometer
+              )
+              : "",
+
+          color:
+            car?.color &&
+              car.color !== "-"
+              ? car.color
+              : "",
+
+          interior:
+            car?.interior &&
+              car.interior !== "-"
+              ? car.interior
+              : "",
+
+          price:
+            car?.sellingPrice != null
+              ? String(
+                car.sellingPrice
+              )
+              : "",
+        });
+
+        setCarImages(
+          existingImages
+        );
+
+        setLoadError("");
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error(
+          "수정할 차량 조회 실패:",
+          error
+        );
+
+        setLoadError(
+          error?.message ||
+          "수정할 차량 정보를 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    carId,
+    isEditMode,
+  ]);
 
   function handleChange(e) {
     const {
@@ -268,26 +439,57 @@ function DealerRegisterCarPage() {
     try {
       setIsSubmitting(true);
 
-      /*
-       * 1. 차량 이미지를 서버에 먼저 저장합니다.
-       */
+      const existingImages =
+        carImages
+          .filter(
+            (image) =>
+              image?.isExisting &&
+              image?.imageUrl
+          )
+          .map(
+            (image) => ({
+              imageUrl:
+                image.imageUrl,
+
+              isMain:
+                false,
+            })
+          );
+
+      const newImages =
+        carImages.filter(
+          (image) =>
+            image?.file instanceof
+            File
+        );
+
       const uploadedImages =
         await uploadImages(
-          carImages,
+          newImages,
           "car"
         );
 
+      const combinedImages = [
+        ...existingImages,
+        ...uploadedImages,
+      ].map(
+        (image, index) => ({
+          imageUrl:
+            image.imageUrl,
+
+          isMain:
+            index === 0,
+        })
+      );
+
       if (
-        uploadedImages.length === 0
+        combinedImages.length === 0
       ) {
         throw new Error(
-          "차량 이미지 업로드에 실패했습니다."
+          "차량 이미지를 1장 이상 등록해주세요."
         );
       }
 
-      /*
-       * 2. 일반회원 차량은 3시간 경매로 등록합니다.
-       */
       const now =
         new Date();
 
@@ -297,9 +499,6 @@ function DealerRegisterCarPage() {
           3 * 60 * 60 * 1000
         );
 
-      /*
-       * 3. 이미지 URL을 차량 등록 JSON에 포함합니다.
-       */
       const requestData = {
         year:
           Number(formData.year),
@@ -343,7 +542,7 @@ function DealerRegisterCarPage() {
           ),
 
         images:
-          uploadedImages,
+          combinedImages,
 
         startTime:
           isMember
@@ -360,37 +559,60 @@ function DealerRegisterCarPage() {
             : null,
       };
 
-      const registeredCar =
-        await registerCar(
-          requestData
-        );
+      const savedCar =
+        isEditMode
+          ? await updateCar(
+            carId,
+            requestData
+          )
+          : await registerCar(
+            requestData
+          );
 
       console.log(
-        "차량 등록 API 응답",
-        registeredCar
+        isEditMode
+          ? "차량 수정 API 응답"
+          : "차량 등록 API 응답",
+        savedCar
       );
 
       alert(
-        isMember
-          ? "경매 매물이 등록되었습니다."
-          : "판매 매물이 등록되었습니다."
+        isEditMode
+          ? "매물 정보가 수정되었습니다."
+          : (
+            isMember
+              ? "경매 매물이 등록되었습니다."
+              : "판매 매물이 등록되었습니다."
+          )
       );
 
-      navigate("/", {
-        replace: true,
-      });
+      navigate(
+        `/cars/${savedCar?.carId ||
+        savedCar?.id ||
+        carId
+        }`,
+        {
+          replace: true,
+        }
+      );
     } catch (error) {
       console.error(
-        "차량 등록 오류",
+        isEditMode
+          ? "차량 수정 오류"
+          : "차량 등록 오류",
         error
       );
 
       alert(
         error?.message ||
         (
-          isMember
-            ? "경매 매물 등록 중 오류가 발생했습니다."
-            : "판매 매물 등록 중 오류가 발생했습니다."
+          isEditMode
+            ? "매물 수정 중 오류가 발생했습니다."
+            : (
+              isMember
+                ? "경매 매물 등록 중 오류가 발생했습니다."
+                : "판매 매물 등록 중 오류가 발생했습니다."
+            )
         )
       );
     } finally {
@@ -398,20 +620,64 @@ function DealerRegisterCarPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="dealer-register-page">
+        <div className="dealer-register-container">
+          <div className="dealer-register-header">
+            <h2>
+              매물 정보를 불러오는 중입니다.
+            </h2>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="dealer-register-page">
+        <div className="dealer-register-container">
+          <div className="dealer-register-header">
+            <h2>
+              매물 정보를 불러오지 못했습니다.
+            </h2>
+
+            <p>
+              {loadError}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dealer-register-page">
       <div className="dealer-register-container">
         <div className="dealer-register-header">
           <h2>
-            {isMember
-              ? "일반회원 중고차 매물 등록"
-              : "딜러 판매 매물 등록"}
+            {isEditMode
+              ? (
+                isMember
+                  ? "일반회원 경매 매물 수정"
+                  : "딜러 판매 매물 수정"
+              )
+              : (
+                isMember
+                  ? "일반회원 중고차 매물 등록"
+                  : "딜러 판매 매물 등록"
+              )}
           </h2>
 
           <p>
-            {isMember
-              ? "일반회원이 등록한 차량은 회사와 딜러가 참여하는 비공개 입찰 경매로 진행됩니다."
-              : "회사에서 생성한 딜러 계정은 일반 중고거래 매물을 등록합니다."}
+            {isEditMode
+              ? "본인이 등록한 매물 정보와 차량 이미지를 수정합니다."
+              : (
+                isMember
+                  ? "일반회원이 등록한 차량은 회사와 딜러가 참여하는 비공개 입찰 경매로 진행됩니다."
+                  : "회사에서 생성한 딜러 계정은 일반 중고거래 매물을 등록합니다."
+              )}
           </p>
         </div>
 
@@ -571,7 +837,8 @@ function DealerRegisterCarPage() {
             <h3>차량 사진</h3>
 
             <p className="register-image-api-notice">
-              첫 번째 사진이 대표 이미지로 등록됩니다.
+              첫 번째 사진이 대표 이미지로 저장됩니다.
+              기존 사진을 삭제하거나 새 사진을 추가할 수 있습니다.
             </p>
 
             <ImageUploader
@@ -723,9 +990,13 @@ function DealerRegisterCarPage() {
 
           <div className="register-info-box">
             <p>
-              {isMember
-                ? "등록한 차량은 3시간 동안 비공개 입찰 경매로 진행됩니다. 회사와 회사 소속 딜러만 입찰할 수 있습니다."
-                : "회사 소속 딜러가 등록한 차량은 일반회원에게 일반 중고거래 방식으로 판매됩니다."}
+              {isEditMode
+                ? "수정된 내용은 저장 즉시 차량 상세페이지에 반영됩니다."
+                : (
+                  isMember
+                    ? "등록한 차량은 3시간 동안 비공개 입찰 경매로 진행됩니다. 회사 소속 딜러만 입찰할 수 있습니다."
+                    : "회사 소속 딜러가 등록한 차량은 일반회원에게 일반 중고거래 방식으로 판매됩니다."
+                )}
             </p>
           </div>
 
@@ -738,11 +1009,19 @@ function DealerRegisterCarPage() {
               }
             >
               {isSubmitting
-                ? "이미지 업로드 및 등록 중..."
+                ? (
+                  isEditMode
+                    ? "매물 수정 중..."
+                    : "이미지 업로드 및 등록 중..."
+                )
                 : (
-                  isMember
-                    ? "경매 매물 등록"
-                    : "판매 매물 등록"
+                  isEditMode
+                    ? "매물 수정"
+                    : (
+                      isMember
+                        ? "경매 매물 등록"
+                        : "판매 매물 등록"
+                    )
                 )}
             </button>
           </div>

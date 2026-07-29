@@ -1,4 +1,6 @@
 import {
+  useEffect,
+  useMemo,
   useState,
 } from "react";
 import {
@@ -6,103 +8,18 @@ import {
   useParams,
 } from "react-router-dom";
 import {
+  getTransactionDetail,
+  updateTransactionStatus,
+} from "../../api/transactionApi";
+import {
   useAuth,
 } from "../../hooks/useAuth";
 import {
-  getCarById,
-} from "../../utils/carViewUtils";
+  AUTH_ROLES,
+} from "../../data/authUser";
 import "../../css/member/memberAuctionTradePage.css";
 
-const AUCTION_WINNERS_KEY =
-  "car_front_auction_winners";
-
-const FINAL_DEALS_KEY =
-  "car_front_final_deals";
-
-function readStorageArray(
-  storageKey
-) {
-  try {
-    const savedValue =
-      localStorage.getItem(
-        storageKey
-      );
-
-    if (!savedValue) {
-      return [];
-    }
-
-    const parsedValue =
-      JSON.parse(savedValue);
-
-    return Array.isArray(
-      parsedValue
-    )
-      ? parsedValue
-      : [];
-  } catch (error) {
-    console.error(
-      `${storageKey} 데이터 불러오기 실패:`,
-      error
-    );
-
-    localStorage.removeItem(
-      storageKey
-    );
-
-    return [];
-  }
-}
-
-function getAuctionWinners() {
-  return readStorageArray(
-    AUCTION_WINNERS_KEY
-  );
-}
-
-function getFinalDeals() {
-  return readStorageArray(
-    FINAL_DEALS_KEY
-  );
-}
-
-function saveFinalDeal(
-  deal
-) {
-  const savedDeals =
-    getFinalDeals();
-
-  const nextDeals = [
-    deal,
-
-    ...savedDeals.filter(
-      (item) =>
-        String(
-          item.winnerId
-        ) !==
-        String(
-          deal.winnerId
-        )
-    ),
-  ];
-
-  localStorage.setItem(
-    FINAL_DEALS_KEY,
-    JSON.stringify(
-      nextDeals
-    )
-  );
-
-  window.dispatchEvent(
-    new Event(
-      "final-deal-change"
-    )
-  );
-}
-
-function formatDateTime(
-  dateText
-) {
+function formatDateTime(dateText) {
   if (!dateText) {
     return "-";
   }
@@ -130,210 +47,316 @@ function formatDateTime(
   );
 }
 
-function createDealInfo(
-  winner
-) {
-  if (!winner) {
-    return null;
-  }
+function getStatusText(status) {
+  const statusMap = {
+    PENDING_PAYMENT:
+      "결제대기",
 
-  const winningPrice =
-    Number(
-      winner.bidPrice || 0
-    );
+    PAID:
+      "결제완료",
 
-  const feeRate = 3;
+    COMPLETED:
+      "거래완료",
 
-  const feePrice =
-    Math.floor(
-      winningPrice *
-      (feeRate / 100)
-    );
-
-  const totalPrice =
-    winningPrice +
-    feePrice;
-
-  return {
-    winningPrice,
-    feeRate,
-    feePrice,
-    totalPrice,
+    CANCELLED:
+      "거래취소",
   };
+
+  return (
+    statusMap[status] ||
+    status ||
+    "-"
+  );
 }
 
-function createFinalDeal({
-  winner,
-  savedDeal,
-  dealInfo,
-  status,
-}) {
-  const now =
-    new Date().toISOString();
+function getParticipantTypeText(
+  participantType
+) {
+  const typeMap = {
+    MEMBER:
+      "일반회원",
 
-  return {
-    id:
-      savedDeal?.id ||
-      crypto.randomUUID(),
+    DEALER:
+      "딜러",
 
-    winnerId:
-      winner.id,
+    COMPANY:
+      "회사",
 
-    auctionId:
-      winner.auctionId,
-
-    carId:
-      winner.carId,
-
-    carName:
-      winner.carName,
-
-    buyerType:
-      winner.bidderType,
-
-    buyerId:
-      winner.bidderId,
-
-    buyerName:
-      winner.bidderName,
-
-    sellerType:
-      winner.sellerType,
-
-    sellerId:
-      winner.sellerId,
-
-    sellerName:
-      winner.sellerName,
-
-    winningPrice:
-      dealInfo.winningPrice,
-
-    feeRate:
-      dealInfo.feeRate,
-
-    feePrice:
-      dealInfo.feePrice,
-
-    totalPrice:
-      dealInfo.totalPrice,
-
-    status,
-
-    createdAt:
-      savedDeal?.createdAt ||
-      now,
-
-    updatedAt:
-      now,
+    ADMIN:
+      "관리자",
   };
+
+  return (
+    typeMap[participantType] ||
+    participantType ||
+    "-"
+  );
 }
 
 function MemberAuctionTradePage() {
   const {
-    winnerId,
+    transactionId,
   } = useParams();
 
   const {
     loginUser,
   } = useAuth();
 
-  const winner =
-    getAuctionWinners().find(
-      (item) =>
-        String(item.id) ===
-        String(winnerId)
-    );
-
-  const car =
-    getCarById(
-      winner?.carId
-    );
-
-  const savedDeal =
-    getFinalDeals().find(
-      (item) =>
-        String(
-          item.winnerId
-        ) ===
-        String(winnerId)
-    );
-
-  const dealInfo =
-    createDealInfo(
-      winner
-    );
+  const [
+    transaction,
+    setTransaction,
+  ] = useState(null);
 
   const [
-    dealStatus,
-    setDealStatus,
-  ] = useState(
-    savedDeal?.status ||
-    "결제대기"
-  );
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
 
-  function handleCreatePaymentWaiting() {
+  const [
+    isUpdating,
+    setIsUpdating,
+  ] = useState(false);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
+
+  const [
+    actionMessage,
+    setActionMessage,
+  ] = useState("");
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!transactionId) {
+      queueMicrotask(() => {
+        if (isCancelled) {
+          return;
+        }
+
+        setErrorMessage(
+          "거래 ID를 확인할 수 없습니다."
+        );
+
+        setIsLoading(false);
+      });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    getTransactionDetail(
+      transactionId
+    )
+      .then((result) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setTransaction(result);
+        setErrorMessage("");
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error(
+          "거래 상세 조회 실패:",
+          error
+        );
+
+        setTransaction(null);
+
+        setErrorMessage(
+          error?.message ||
+          "거래 정보를 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [transactionId]);
+
+  const dealInfo =
+    useMemo(() => {
+      if (!transaction) {
+        return null;
+      }
+
+      const dealPrice =
+        Number(
+          transaction.dealPrice ||
+          0
+        );
+
+      const commissionRate =
+        Number(
+          transaction.commissionRate ||
+          0
+        );
+
+      const commissionAmount =
+        Number(
+          transaction.commissionAmount ||
+          0
+        );
+
+      return {
+        dealPrice,
+        commissionRate,
+        commissionPercent:
+          commissionRate * 100,
+
+        commissionAmount,
+
+        totalPrice:
+          dealPrice +
+          commissionAmount,
+      };
+    }, [transaction]);
+
+  const carName =
+    [
+      transaction?.carMake,
+      transaction?.carModel,
+    ]
+      .filter(Boolean)
+      .join(" ") ||
+    "거래 차량";
+
+  const status =
+    transaction?.status ||
+    "PENDING_PAYMENT";
+
+  const isPaid =
+    status === "PAID";
+
+  const isCompleted =
+    status === "COMPLETED";
+
+  const isCancelled =
+    status === "CANCELLED";
+
+  const canMarkPaid =
+    status ===
+    "PENDING_PAYMENT";
+
+  const canComplete =
+    status === "PAID";
+
+  const canCancel =
+    !isCompleted &&
+    !isCancelled;
+
+  async function handleStatusUpdate(
+    nextStatus
+  ) {
     if (
-      !winner ||
-      !dealInfo
+      isUpdating ||
+      !transactionId
     ) {
       return;
     }
 
-    const nextDeal =
-      createFinalDeal({
-        winner,
-        savedDeal,
-        dealInfo,
-        status:
-          "결제대기",
-      });
+    let confirmMessage = "";
 
-    saveFinalDeal(
-      nextDeal
-    );
+    if (
+      nextStatus === "PAID"
+    ) {
+      confirmMessage =
+        "결제완료 상태로 변경하시겠습니까?";
+    }
 
-    setDealStatus(
-      "결제대기"
-    );
+    if (
+      nextStatus === "COMPLETED"
+    ) {
+      confirmMessage =
+        "최종 거래완료 상태로 변경하시겠습니까?";
+    }
 
-    alert(
-      "최종 거래가 결제대기 상태로 저장되었습니다."
-    );
+    if (
+      nextStatus === "CANCELLED"
+    ) {
+      confirmMessage =
+        "거래를 취소하시겠습니까?";
+    }
+
+    if (
+      confirmMessage &&
+      !window.confirm(
+        confirmMessage
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      setActionMessage(
+        "거래 상태를 변경하고 있습니다."
+      );
+
+      const updatedTransaction =
+        await updateTransactionStatus(
+          transactionId,
+          nextStatus
+        );
+
+      setTransaction(
+        updatedTransaction
+      );
+
+      setActionMessage(
+        `거래 상태가 ${getStatusText(
+          updatedTransaction.status
+        )}(으)로 변경되었습니다.`
+      );
+    } catch (error) {
+      console.error(
+        "거래 상태 변경 실패:",
+        error
+      );
+
+      setActionMessage(
+        error?.message ||
+        "거래 상태 변경 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsUpdating(false);
+    }
   }
 
-  function handlePaymentDone() {
-    if (
-      !winner ||
-      !dealInfo
-    ) {
-      return;
-    }
+  if (isLoading) {
+    return (
+      <main className="member-trade-page">
+        <div className="member-trade-container">
+          <section className="member-trade-empty">
+            <h2>
+              거래 정보를 불러오는 중입니다.
+            </h2>
 
-    const nextDeal =
-      createFinalDeal({
-        winner,
-        savedDeal,
-        dealInfo,
-        status:
-          "결제완료",
-      });
-
-    saveFinalDeal(
-      nextDeal
-    );
-
-    setDealStatus(
-      "결제완료"
-    );
-
-    alert(
-      "임시 결제완료 처리되었습니다."
+            <p>
+              잠시만 기다려주세요.
+            </p>
+          </section>
+        </div>
+      </main>
     );
   }
 
   if (
-    !winner ||
+    errorMessage ||
+    !transaction ||
     !dealInfo
   ) {
     return (
@@ -345,13 +368,19 @@ function MemberAuctionTradePage() {
             </h2>
 
             <p>
-              낙찰 결과가 없거나 삭제된 거래입니다.
+              {errorMessage ||
+                "존재하지 않거나 접근 권한이 없는 거래입니다."}
             </p>
 
             <Link
-              to={`/member/cars/${car.carId || car.id}/bids`}
+              to={
+                loginUser?.role ===
+                  AUTH_ROLES.DEALER
+                  ? "/dealer/bids"
+                  : "/member"
+              }
             >
-              입찰 내역
+              이전 화면으로
             </Link>
           </section>
         </div>
@@ -369,19 +398,24 @@ function MemberAuctionTradePage() {
             </p>
 
             <h2>
-              최종 거래 / 결제 대기
+              최종 거래 / 결제 관리
             </h2>
 
             <p>
-              낙찰된 차량 기준으로 최종 거래 정보를 확인합니다.
+              DB에 저장된 최종 거래 정보를 확인합니다.
             </p>
           </div>
 
           <Link
-            to="/member/auction-bids"
+            to={
+              loginUser?.role ===
+                AUTH_ROLES.DEALER
+                ? "/dealer/bids"
+                : "/member"
+            }
             className="member-trade-outline-link"
           >
-            내 입찰 차량
+            이전 화면
           </Link>
         </section>
 
@@ -392,17 +426,28 @@ function MemberAuctionTradePage() {
             </span>
 
             <strong
-              className={`member-trade-status ${dealStatus}`}
+              className={`member-trade-status ${getStatusText(
+                status
+              )}`}
             >
-              {dealStatus}
+              {getStatusText(
+                status
+              )}
             </strong>
           </div>
 
           <p>
-            지금은 localStorage 기준 임시 처리입니다. 나중에 백엔드 연결 시
-            최종 거래 생성 API, 결제 상태 변경 API로 교체하면 됩니다.
+            거래 상태는 서버와 DB에 실시간으로 반영됩니다.
           </p>
         </section>
+
+        {actionMessage && (
+          <section className="member-trade-status-box">
+            <p>
+              {actionMessage}
+            </p>
+          </section>
+        )}
 
         <section className="member-trade-grid">
           <article className="member-trade-card">
@@ -412,33 +457,33 @@ function MemberAuctionTradePage() {
 
             <div className="member-trade-car-box">
               <div className="member-trade-car-image">
-                {car?.imageText ||
-                  "CAR"}
+                {transaction.carImageUrl ? (
+                  <img
+                    src={
+                      transaction.carImageUrl
+                    }
+                    alt={`${carName} 차량`}
+                  />
+                ) : (
+                  "CAR"
+                )}
               </div>
 
               <div>
                 <strong>
-                  {
-                    winner.carName
-                  }
+                  {carName}
                 </strong>
 
                 <span>
-                  {car
-                    ? `${car.year}년식 · ${car.region} · ${Number(
-                      car.mileage ||
-                      0
-                    ).toLocaleString()}km`
-                    : "차량 상세정보 없음"}
+                  차량 ID:{" "}
+                  {transaction.carId}
                 </span>
 
-                {car && (
-                  <Link
-                    to={`/cars/${car.id}`}
-                  >
-                    차량 상세보기
-                  </Link>
-                )}
+                <Link
+                  to={`/cars/${transaction.carId}`}
+                >
+                  차량 상세보기
+                </Link>
               </div>
             </div>
           </article>
@@ -451,37 +496,23 @@ function MemberAuctionTradePage() {
             <dl className="member-trade-info-list">
               <div>
                 <dt>
-                  구매자
-                </dt>
-
-                <dd>
-                  {
-                    winner.bidderName
-                  }
-                </dd>
-              </div>
-
-              <div>
-                <dt>
                   구매자 유형
                 </dt>
 
                 <dd>
-                  {
-                    winner.bidderType
-                  }
+                  {getParticipantTypeText(
+                    transaction.buyerType
+                  )}
                 </dd>
               </div>
 
               <div>
                 <dt>
-                  판매자
+                  구매자 ID
                 </dt>
 
                 <dd>
-                  {
-                    winner.sellerName
-                  }
+                  {transaction.buyerId}
                 </dd>
               </div>
 
@@ -491,9 +522,19 @@ function MemberAuctionTradePage() {
                 </dt>
 
                 <dd>
-                  {
-                    winner.sellerType
-                  }
+                  {getParticipantTypeText(
+                    transaction.sellerType
+                  )}
+                </dd>
+              </div>
+
+              <div>
+                <dt>
+                  판매자 ID
+                </dt>
+
+                <dd>
+                  {transaction.sellerId}
                 </dd>
               </div>
             </dl>
@@ -508,7 +549,7 @@ function MemberAuctionTradePage() {
               </h3>
 
               <p>
-                낙찰가와 임시 수수료를 기준으로 계산합니다.
+                낙찰가와 서버에 저장된 수수료를 기준으로 계산합니다.
               </p>
             </div>
           </div>
@@ -520,7 +561,7 @@ function MemberAuctionTradePage() {
               </dt>
 
               <dd>
-                {dealInfo.winningPrice.toLocaleString()}
+                {dealInfo.dealPrice.toLocaleString()}
                 만원
               </dd>
             </div>
@@ -531,9 +572,7 @@ function MemberAuctionTradePage() {
               </dt>
 
               <dd>
-                {
-                  dealInfo.feeRate
-                }
+                {dealInfo.commissionPercent.toLocaleString()}
                 %
               </dd>
             </div>
@@ -544,7 +583,7 @@ function MemberAuctionTradePage() {
               </dt>
 
               <dd>
-                {dealInfo.feePrice.toLocaleString()}
+                {dealInfo.commissionAmount.toLocaleString()}
                 만원
               </dd>
             </div>
@@ -564,29 +603,56 @@ function MemberAuctionTradePage() {
           <div className="member-trade-actions">
             <button
               type="button"
-              className="member-trade-outline-btn"
-              onClick={
-                handleCreatePaymentWaiting
+              className="member-trade-primary-btn"
+              onClick={() =>
+                handleStatusUpdate(
+                  "PAID"
+                )
+              }
+              disabled={
+                isUpdating ||
+                !canMarkPaid
               }
             >
-              결제대기 저장
+              {isPaid
+                ? "결제완료됨"
+                : "결제완료 처리"}
             </button>
 
             <button
               type="button"
               className="member-trade-primary-btn"
-              onClick={
-                handlePaymentDone
+              onClick={() =>
+                handleStatusUpdate(
+                  "COMPLETED"
+                )
               }
               disabled={
-                dealStatus ===
-                "결제완료"
+                isUpdating ||
+                !canComplete
               }
             >
-              {dealStatus ===
-                "결제완료"
-                ? "결제완료됨"
-                : "임시 결제완료 처리"}
+              {isCompleted
+                ? "거래완료됨"
+                : "거래완료 처리"}
+            </button>
+
+            <button
+              type="button"
+              className="member-trade-outline-btn"
+              onClick={() =>
+                handleStatusUpdate(
+                  "CANCELLED"
+                )
+              }
+              disabled={
+                isUpdating ||
+                !canCancel
+              }
+            >
+              {isCancelled
+                ? "거래취소됨"
+                : "거래취소"}
             </button>
           </div>
         </section>
@@ -599,24 +665,58 @@ function MemberAuctionTradePage() {
           <dl className="member-trade-info-list">
             <div>
               <dt>
-                낙찰 처리 시간
+                거래 ID
+              </dt>
+
+              <dd>
+                {transaction.transactionId}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                거래 생성일
               </dt>
 
               <dd>
                 {formatDateTime(
-                  winner.createdAt
+                  transaction.createdAt
                 )}
               </dd>
             </div>
 
             <div>
               <dt>
-                입찰 시간
+                결제 완료일
               </dt>
 
               <dd>
                 {formatDateTime(
-                  winner.bidTime
+                  transaction.paidAt
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                거래 완료일
+              </dt>
+
+              <dd>
+                {formatDateTime(
+                  transaction.completedAt
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                거래 취소일
+              </dt>
+
+              <dd>
+                {formatDateTime(
+                  transaction.cancelledAt
                 )}
               </dd>
             </div>
@@ -628,19 +728,9 @@ function MemberAuctionTradePage() {
 
               <dd>
                 {loginUser?.name ||
+                  loginUser?.dealerName ||
+                  loginUser?.memberName ||
                   "로그인 사용자"}
-              </dd>
-            </div>
-
-            <div>
-              <dt>
-                최종 거래 저장 여부
-              </dt>
-
-              <dd>
-                {savedDeal
-                  ? "저장됨"
-                  : "아직 저장 안됨"}
               </dd>
             </div>
           </dl>

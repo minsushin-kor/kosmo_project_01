@@ -9,6 +9,7 @@ import {
   useParams,
 } from "react-router-dom";
 import {
+  deleteCar,
   getCarDetail,
 } from "../../api/carApi";
 import {
@@ -255,6 +256,16 @@ function CarDetailPage() {
   ] = useState(false);
 
   const [
+    isDeleting,
+    setIsDeleting,
+  ] = useState(false);
+
+  const [
+    ownerActionMessage,
+    setOwnerActionMessage,
+  ] = useState("");
+
+  const [
     tradeMessage,
     setTradeMessage,
   ] = useState("");
@@ -264,12 +275,19 @@ function CarDetailPage() {
     setBidList,
   ] = useState([]);
 
+  const normalizedLoginRole =
+    String(
+      loginUser?.role ||
+      loginUser?.serverRole ||
+      ""
+    ).toUpperCase();
+
   const canUseWishlist =
     [
       AUTH_ROLES.MEMBER,
       AUTH_ROLES.DEALER,
     ].includes(
-      loginUser?.role
+      normalizedLoginRole
     );
 
   useEffect(() => {
@@ -573,6 +591,38 @@ function CarDetailPage() {
     "NORMAL" ||
     isDealerCar;
 
+  const loginMemberId =
+    Number(
+      loginUser?.memberId
+    );
+
+  const loginDealerId =
+    Number(
+      loginUser?.dealerId
+    );
+
+  const isOwner =
+    (
+      isMemberCar &&
+      normalizedLoginRole ===
+      AUTH_ROLES.MEMBER &&
+      Number.isFinite(
+        loginMemberId
+      ) &&
+      loginMemberId ===
+      Number(memberId)
+    ) ||
+    (
+      isDealerCar &&
+      normalizedLoginRole ===
+      AUTH_ROLES.DEALER &&
+      Number.isFinite(
+        loginDealerId
+      ) &&
+      loginDealerId ===
+      Number(dealerId)
+    );
+
   const carName =
     car.carName ||
     `${car.brand || car.make || ""} ${car.modelName ||
@@ -733,6 +783,24 @@ function CarDetailPage() {
       remainText ===
       "경매 종료"
     );
+
+  const canPlaceBid =
+    isAuctionCar &&
+    !isOwner &&
+    normalizedLoginRole ===
+    AUTH_ROLES.DEALER &&
+    !isAuctionDone &&
+    !myBid;
+
+  const ownerEditPath =
+    isMemberCar
+      ? `/member/cars/${carId}/edit`
+      : `/dealer/cars/${carId}/edit`;
+
+  const ownerManagePath =
+    isAuctionCar
+      ? `/member/cars/${carId}/bids`
+      : "/dealer/cars";
 
   const sellerType =
     isDealerCar
@@ -915,8 +983,16 @@ function CarDetailPage() {
       return;
     }
 
+    if (isOwner) {
+      setBidMessage(
+        "본인이 등록한 차량에는 입찰할 수 없습니다."
+      );
+
+      return;
+    }
+
     if (
-      loginUser.role !==
+      normalizedLoginRole !==
       AUTH_ROLES.DEALER
     ) {
       setBidMessage(
@@ -1095,8 +1171,16 @@ function CarDetailPage() {
       return;
     }
 
+    if (isOwner) {
+      setTradeMessage(
+        "본인이 등록한 차량은 구매할 수 없습니다."
+      );
+
+      return;
+    }
+
     if (
-      loginUser.role !==
+      normalizedLoginRole !==
       AUTH_ROLES.MEMBER
     ) {
       setTradeMessage(
@@ -1155,6 +1239,60 @@ function CarDetailPage() {
     );
   }
 
+  async function handleDeleteCar() {
+    if (
+      !isOwner ||
+      isDeleting
+    ) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "이 매물을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다."
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setOwnerActionMessage(
+        "매물을 삭제하고 있습니다."
+      );
+
+      await deleteCar(carId);
+
+      window.alert(
+        "매물이 삭제되었습니다."
+      );
+
+      navigate(
+        isMemberCar
+          ? "/member"
+          : "/dealer/cars",
+        {
+          replace: true,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "차량 삭제 실패:",
+        error
+      );
+
+      setOwnerActionMessage(
+        error?.response?.data
+          ?.message ||
+        error?.message ||
+        "매물 삭제 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   function handleMessageClick() {
     if (!loginUser) {
       setBidMessage(
@@ -1163,6 +1301,18 @@ function CarDetailPage() {
 
       setTradeMessage(
         "로그인 후 판매자에게 문의할 수 있습니다."
+      );
+
+      return;
+    }
+
+    if (isOwner) {
+      setBidMessage(
+        "본인이 등록한 차량에는 문의할 수 없습니다."
+      );
+
+      setTradeMessage(
+        "본인이 등록한 차량에는 문의할 수 없습니다."
       );
 
       return;
@@ -1632,7 +1782,47 @@ function CarDetailPage() {
             </div>
           )}
 
-          {isAuctionCar ? (
+          {isOwner ? (
+            <div className="bid-form">
+              <p className="bid-message">
+                본인이 등록한 매물입니다.
+              </p>
+
+              {ownerActionMessage && (
+                <p className="bid-message">
+                  {ownerActionMessage}
+                </p>
+              )}
+
+              <div className="detail-action-buttons">
+                {isAuctionCar && (
+                  <Link
+                    to={ownerManagePath}
+                    className="outline-button"
+                  >
+                    입찰 내역 관리
+                  </Link>
+                )}
+
+                <Link
+                  to={ownerEditPath}
+                  className="outline-button"
+                >
+                  매물 수정
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleDeleteCar}
+                  disabled={isDeleting}
+                >
+                  {isDeleting
+                    ? "삭제 중..."
+                    : "매물 삭제"}
+                </button>
+              </div>
+            </div>
+          ) : isAuctionCar ? (
             <form
               className="bid-form"
               onSubmit={
@@ -1669,13 +1859,8 @@ function CarDetailPage() {
                     0
                   ).toLocaleString()}만원 이상`}
                   disabled={
-                    isBidSubmitting ||
-                    isAuctionDone ||
-                    Boolean(
-                      myBid
-                    ) ||
-                    loginUser?.role !==
-                    AUTH_ROLES.DEALER
+                    !canPlaceBid ||
+                    isBidSubmitting
                   }
                 />
 
@@ -1713,13 +1898,8 @@ function CarDetailPage() {
                 <button
                   type="submit"
                   disabled={
-                    isBidSubmitting ||
-                    isAuctionDone ||
-                    Boolean(
-                      myBid
-                    ) ||
-                    loginUser?.role !==
-                    AUTH_ROLES.DEALER
+                    !canPlaceBid ||
+                    isBidSubmitting
                   }
                 >
                   {isBidSubmitting
@@ -1757,8 +1937,9 @@ function CarDetailPage() {
                     handlePurchaseComplete
                   }
                   disabled={
-                    loginUser?.role !==
+                    normalizedLoginRole !==
                     AUTH_ROLES.MEMBER ||
+                    isOwner ||
                     car.status ===
                     "판매완료"
                   }
@@ -1920,14 +2101,25 @@ function CarDetailPage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={
-              handleMessageClick
-            }
-          >
-            판매자에게 문의
-          </button>
+          {!isOwner && (
+            <button
+              type="button"
+              onClick={
+                handleMessageClick
+              }
+            >
+              판매자에게 문의
+            </button>
+          )}
+
+          {isOwner && (
+            <Link
+              to={ownerManagePath}
+              className="seller-info-link"
+            >
+              내 매물 관리
+            </Link>
+          )}
         </aside>
       </div>
     </main>
