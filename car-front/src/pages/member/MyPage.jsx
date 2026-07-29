@@ -6,7 +6,6 @@ import {
 import {
   Link,
 } from "react-router-dom";
-import cars from "../../data/cars";
 import {
   AUTH_ROLES,
   getRoleName,
@@ -16,9 +15,6 @@ import {
   getMyPageMenusByRole,
 } from "../../data/myPageMenuData";
 import {
-  getDealerCarsFromStorage,
-} from "../../utils/dealerCarStorage";
-import {
   useAuth,
 } from "../../hooks/useAuth";
 import {
@@ -27,65 +23,11 @@ import {
 import {
   getMyCars,
 } from "../../api/carApi";
+import {
+  getMyWishlists,
+  WISHLIST_CHANGE_EVENT,
+} from "../../api/wishlistApi";
 import "../../css/member/myPage.css";
-
-const FAVORITE_STORAGE_KEYS = [
-  "car_front_favorite_car_ids",
-  "favoriteCarIds",
-  "carFavorites",
-];
-
-function readFavoriteCarIds() {
-  for (
-    const storageKey of
-    FAVORITE_STORAGE_KEYS
-  ) {
-    try {
-      const savedValue =
-        JSON.parse(
-          localStorage.getItem(
-            storageKey
-          ) || "[]"
-        );
-
-      if (
-        !Array.isArray(
-          savedValue
-        )
-      ) {
-        continue;
-      }
-
-      return savedValue
-        .map((item) => {
-          if (
-            typeof item ===
-            "number" ||
-            typeof item ===
-            "string"
-          ) {
-            return Number(item);
-          }
-
-          return Number(
-            item.carId ||
-            item.listingId ||
-            item.id
-          );
-        })
-        .filter((id) =>
-          Number.isFinite(id)
-        );
-    } catch (error) {
-      console.error(
-        `${storageKey} 찜 목록 조회 오류`,
-        error
-      );
-    }
-  }
-
-  return [];
-}
 
 function resolveCarImage(car) {
   const images =
@@ -304,9 +246,19 @@ function MyPage() {
   ] = useState("");
 
   const [
-    favoriteVersion,
-    setFavoriteVersion,
-  ] = useState(0);
+    favoriteCars,
+    setFavoriteCars,
+  ] = useState([]);
+
+  const [
+    isFavoriteCarsLoading,
+    setIsFavoriteCarsLoading,
+  ] = useState(true);
+
+  const [
+    favoriteCarsError,
+    setFavoriteCarsError,
+  ] = useState("");
 
   const isMember =
     loginUser?.role ===
@@ -333,72 +285,6 @@ function MyPage() {
   const firstOwnedCar =
     ownedCars[0] || null;
 
-  const allCars =
-    useMemo(() => {
-      const storageCars =
-        getDealerCarsFromStorage();
-
-      const carMap =
-        new Map();
-
-      [
-        ...storageCars,
-        ...cars,
-      ].forEach((car) => {
-        const carId =
-          getCarId(car);
-
-        if (!carId) {
-          return;
-        }
-
-        carMap.set(
-          Number(carId),
-          car
-        );
-      });
-
-      return Array.from(
-        carMap.values()
-      );
-    }, []);
-
-  const favoriteCars =
-    useMemo(() => {
-      /*
-       * favoriteVersion이 변경되면 localStorage에서
-       * 찜 목록을 다시 읽습니다.
-       */
-      void favoriteVersion;
-
-      const favoriteIds =
-        readFavoriteCarIds();
-
-      const favoriteIdSet =
-        new Set(
-          favoriteIds.map(
-            (id) =>
-              String(id)
-          )
-        );
-
-      return allCars.filter(
-        (car) => {
-          const carId =
-            getCarId(car);
-
-          return (
-            carId &&
-            favoriteIdSet.has(
-              String(carId)
-            )
-          );
-        }
-      );
-    }, [
-      allCars,
-      favoriteVersion,
-    ]);
 
   const inquiryList =
     useMemo(
@@ -855,50 +741,72 @@ function MyPage() {
   }, [isMember]);
 
   useEffect(() => {
-    function refreshFavoriteCars() {
-      setFavoriteVersion(
-        (prev) =>
-          prev + 1
-      );
+    if (!isMember) {
+      return undefined;
     }
 
-    function handleStorageChange(
-      event
-    ) {
-      if (
-        event.key &&
-        !FAVORITE_STORAGE_KEYS.includes(
-          event.key
-        )
-      ) {
-        return;
-      }
+    let isMounted = true;
 
-      refreshFavoriteCars();
+    function loadFavoriteCars() {
+      getMyWishlists()
+        .then((result) => {
+          if (!isMounted) {
+            return;
+          }
+
+          setFavoriteCars(
+            Array.isArray(result)
+              ? result
+              : []
+          );
+
+          setFavoriteCarsError(
+            ""
+          );
+        })
+        .catch((error) => {
+          if (!isMounted) {
+            return;
+          }
+
+          console.error(
+            "관심 차량 조회 실패:",
+            error
+          );
+
+          setFavoriteCars([]);
+          setFavoriteCarsError(
+            error?.message ||
+            "관심 차량을 불러오지 못했습니다."
+          );
+        })
+        .finally(() => {
+          if (!isMounted) {
+            return;
+          }
+
+          setIsFavoriteCarsLoading(
+            false
+          );
+        });
     }
 
-    window.addEventListener(
-      "favorite-change",
-      refreshFavoriteCars
-    );
+    loadFavoriteCars();
 
     window.addEventListener(
-      "storage",
-      handleStorageChange
+      WISHLIST_CHANGE_EVENT,
+      loadFavoriteCars
     );
 
     return () => {
-      window.removeEventListener(
-        "favorite-change",
-        refreshFavoriteCars
-      );
+      isMounted = false;
 
       window.removeEventListener(
-        "storage",
-        handleStorageChange
+        WISHLIST_CHANGE_EVENT,
+        loadFavoriteCars
       );
     };
-  }, []);
+  }, [isMember]);
 
   useEffect(() => {
     if (!selectedOwnedCar) {
@@ -1129,7 +1037,19 @@ function MyPage() {
                 </div>
               </div>
 
-              {favoriteCars.length ===
+              {isFavoriteCarsLoading ? (
+                <div className="mypage-list-empty">
+                  <strong>
+                    관심 차량을 불러오는 중입니다.
+                  </strong>
+                </div>
+              ) : favoriteCarsError ? (
+                <div className="mypage-list-empty">
+                  <strong>
+                    {favoriteCarsError}
+                  </strong>
+                </div>
+              ) : favoriteCars.length ===
                 0 ? (
                 <div className="mypage-list-empty">
                   <strong>

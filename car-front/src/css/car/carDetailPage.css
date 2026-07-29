@@ -790,3 +790,78 @@
     grid-template-columns: 1fr;
   }
 }
+
+.car-detail-wishlist-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  width: 100%;
+  min-height: 50px;
+  margin-top: 12px;
+  padding: 0 18px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+
+  background-color: #ffffff;
+  color: #334155;
+
+  font: inherit;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.car-detail-wishlist-button svg {
+  width: 23px;
+  height: 23px;
+
+  fill: #ffffff;
+  stroke: #64748b;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+
+  transition:
+    fill 0.16s ease,
+    stroke 0.16s ease,
+    transform 0.16s ease;
+}
+
+.car-detail-wishlist-button:hover:not(:disabled) {
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.car-detail-wishlist-button:hover:not(:disabled) svg {
+  stroke: #dc2626;
+  transform: scale(1.05);
+}
+
+.car-detail-wishlist-button.is-active {
+  border-color: #fecaca;
+  background-color: #fff1f2;
+  color: #dc2626;
+}
+
+.car-detail-wishlist-button.is-active svg {
+  fill: #dc2626;
+  stroke: #dc2626;
+}
+
+.car-detail-wishlist-button:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.3);
+  outline-offset: 2px;
+}
+
+.car-detail-wishlist-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}

@@ -1,14 +1,28 @@
 import {
+  useEffect,
+  useState,
+} from "react";
+import {
   Link,
+  useNavigate,
 } from "react-router-dom";
 import {
   normalizeCar,
 } from "../../utils/carViewUtils";
+import {
+  useAuth,
+} from "../../hooks/useAuth";
+import {
+  AUTH_ROLES,
+} from "../../data/authUser";
+import {
+  getWishlistCarIds,
+  toggleWishlist,
+  WISHLIST_CHANGE_EVENT,
+} from "../../api/wishlistApi";
 import "../../css/car/carCard.css";
 
-function getAuctionRemainText(
-  endDate
-) {
+function getAuctionRemainText(endDate) {
   if (!endDate) {
     return "마감일 미정";
   }
@@ -21,28 +35,26 @@ function getAuctionRemainText(
     return "경매 종료";
   }
 
-  const day =
-    Math.floor(
+  const day = Math.floor(
+    diff /
+    (
+      1000 *
+      60 *
+      60 *
+      24
+    )
+  );
+
+  const hour = Math.floor(
+    (
       diff /
       (
         1000 *
         60 *
-        60 *
-        24
+        60
       )
-    );
-
-  const hour =
-    Math.floor(
-      (
-        diff /
-        (
-          1000 *
-          60 *
-          60
-        )
-      ) % 24
-    );
+    ) % 24
+  );
 
   return day > 0
     ? `${day}일 ${hour}시간 남음`
@@ -52,6 +64,17 @@ function getAuctionRemainText(
 function CarCard({
   car,
 }) {
+  const navigate = useNavigate();
+  const { loginUser } = useAuth();
+
+  const [isWished, setIsWished] =
+    useState(false);
+
+  const [
+    isWishlistLoading,
+    setIsWishlistLoading,
+  ] = useState(false);
+
   const viewCar =
     normalizeCar(car);
 
@@ -88,8 +111,173 @@ function CarCard({
       ?.imageUrl ||
     "";
 
+  const canUseWishlist =
+    [
+      AUTH_ROLES.MEMBER,
+      AUTH_ROLES.DEALER,
+    ].includes(
+      loginUser?.role
+    );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadWishlistStatus() {
+      if (!canUseWishlist) {
+        setIsWished(false);
+        return;
+      }
+
+      try {
+        const carIds =
+          await getWishlistCarIds();
+
+        if (isMounted) {
+          setIsWished(
+            carIds.includes(
+              Number(viewCar.id)
+            )
+          );
+        }
+      } catch (error) {
+        console.error(
+          "찜 상태 조회 실패:",
+          error
+        );
+      }
+    }
+
+    function handleWishlistChange(
+      event
+    ) {
+      if (
+        Number(
+          event.detail?.carId
+        ) ===
+        Number(viewCar.id)
+      ) {
+        setIsWished(
+          Boolean(
+            event.detail
+              ?.isWished
+          )
+        );
+      }
+    }
+
+    loadWishlistStatus();
+
+    window.addEventListener(
+      WISHLIST_CHANGE_EVENT,
+      handleWishlistChange
+    );
+
+    return () => {
+      isMounted = false;
+
+      window.removeEventListener(
+        WISHLIST_CHANGE_EVENT,
+        handleWishlistChange
+      );
+    };
+  }, [
+    canUseWishlist,
+    viewCar.id,
+  ]);
+
+  async function handleWishlistClick(
+    event
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!loginUser) {
+      navigate(
+        `/login?from=${encodeURIComponent(
+          `/cars/${viewCar.id}`
+        )}`
+      );
+
+      return;
+    }
+
+    if (
+      !canUseWishlist ||
+      isWishlistLoading
+    ) {
+      return;
+    }
+
+    try {
+      setIsWishlistLoading(
+        true
+      );
+
+      const result =
+        await toggleWishlist(
+          viewCar.id
+        );
+
+      setIsWished(
+        Boolean(
+          result?.isWished
+        )
+      );
+    } catch (error) {
+      console.error(
+        "찜 변경 실패:",
+        error
+      );
+
+      window.alert(
+        error?.message ||
+        "찜 처리 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsWishlistLoading(
+        false
+      );
+    }
+  }
+
   return (
     <article className="car-card">
+      <button
+        type="button"
+        className={`car-card-wishlist-button ${isWished
+            ? "is-active"
+            : ""
+          }`}
+        onClick={
+          handleWishlistClick
+        }
+        disabled={
+          isWishlistLoading
+        }
+        aria-label={
+          isWished
+            ? "찜 해제"
+            : "찜 등록"
+        }
+        aria-pressed={
+          isWished
+        }
+        title={
+          isWished
+            ? "찜 해제"
+            : "찜 등록"
+        }
+      >
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 21s-7.2-4.35-9.55-8.37C.45 9.2 1.43 5.1 5.08 3.75c2.22-.82 4.65-.08 5.92 1.67 1.27-1.75 3.7-2.49 5.92-1.67 3.65 1.35 4.63 5.45 2.63 8.88C19.2 16.65 12 21 12 21Z"
+          />
+        </svg>
+      </button>
+
       <Link
         to={`/cars/${viewCar.id}`}
         className="car-card-link"
@@ -103,12 +291,15 @@ function CarCard({
                 "차량 이미지"
               }
               loading="lazy"
-              onError={(e) => {
-                e.currentTarget.style.display =
+              onError={(
+                event
+              ) => {
+                event.currentTarget.style.display =
                   "none";
 
                 const fallback =
-                  e.currentTarget
+                  event
+                    .currentTarget
                     .nextElementSibling;
 
                 if (fallback) {
@@ -141,8 +332,8 @@ function CarCard({
 
             <span
               className={`status-badge ${isDone
-                ? "done"
-                : ""
+                  ? "done"
+                  : ""
                 }`}
             >
               {status}
@@ -167,7 +358,9 @@ function CarCard({
             </li>
 
             <li>
-              {viewCar.transmission}
+              {
+                viewCar.transmission
+              }
             </li>
           </ul>
 
@@ -177,7 +370,9 @@ function CarCard({
             </span>
 
             <span>
-              {viewCar.sellerType}
+              {
+                viewCar.sellerType
+              }
             </span>
           </div>
 
@@ -192,7 +387,8 @@ function CarCard({
               <strong>
                 {Number(
                   isAuction
-                    ? auction?.startPrice
+                    ? auction
+                      ?.startPrice
                     : viewCar.price
                 ).toLocaleString()}
                 만원
@@ -208,7 +404,10 @@ function CarCard({
 
               <strong>
                 {isAuction
-                  ? `${auction?.bidCount || 0}건`
+                  ? `${auction
+                    ?.bidCount ||
+                  0
+                  }건`
                   : "일반거래"}
               </strong>
             </div>

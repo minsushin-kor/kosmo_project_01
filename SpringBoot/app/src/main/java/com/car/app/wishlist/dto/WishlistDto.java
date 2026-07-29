@@ -6,7 +6,21 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.car.app.car.dto.CarDto;
+
+import java.util.List;
+
 public class WishlistDto {
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ListResponse {
+        private List<CarDto.Response> cars;
+        private long count;
+    }
 
     @Getter
     @Setter

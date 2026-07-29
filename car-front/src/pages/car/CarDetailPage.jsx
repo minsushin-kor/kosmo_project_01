@@ -5,6 +5,7 @@ import {
 } from "react";
 import {
   Link,
+  useNavigate,
   useParams,
 } from "react-router-dom";
 import {
@@ -23,6 +24,12 @@ import {
   saveNormalTrade,
 } from "../../utils/normalTradeStorage";
 import "../../css/car/carDetailPage.css";
+
+import {
+  getWishlistCarIds,
+  toggleWishlist,
+  WISHLIST_CHANGE_EVENT,
+} from "../../api/wishlistApi";
 
 const AUCTION_WINNERS_KEY =
   "car_front_auction_winners";
@@ -212,8 +219,24 @@ function CarDetailPage() {
   const { id } =
     useParams();
 
+  const navigate =
+    useNavigate();
+
   const { loginUser } =
     useAuth();
+
+  const wishlistCarId =
+    Number(id);
+
+  const [
+    isWished,
+    setIsWished,
+  ] = useState(false);
+
+  const [
+    isWishlistLoading,
+    setIsWishlistLoading,
+  ] = useState(false);
 
   const [car, setCar] =
     useState(null);
@@ -258,6 +281,14 @@ function CarDetailPage() {
         Number(id)
     );
   });
+
+  const canUseWishlist =
+    [
+      AUTH_ROLES.MEMBER,
+      AUTH_ROLES.DEALER,
+    ].includes(
+      loginUser?.role
+    );
 
   useEffect(() => {
     let isMounted = true;
@@ -328,6 +359,81 @@ function CarDetailPage() {
       isMounted = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadWishlistStatus() {
+      if (
+        !canUseWishlist ||
+        !Number.isFinite(
+          wishlistCarId
+        )
+      ) {
+        if (isMounted) {
+          setIsWished(false);
+        }
+
+        return;
+      }
+
+      try {
+        const carIds =
+          await getWishlistCarIds();
+
+        if (isMounted) {
+          setIsWished(
+            carIds.includes(
+              wishlistCarId
+            )
+          );
+        }
+      } catch (error) {
+        console.error(
+          "상세 페이지 찜 상태 조회 실패:",
+          error
+        );
+      }
+    }
+
+    function handleWishlistChange(
+      event
+    ) {
+      if (
+        Number(
+          event.detail?.carId
+        ) !== wishlistCarId
+      ) {
+        return;
+      }
+
+      setIsWished(
+        Boolean(
+          event.detail
+            ?.isWished
+        )
+      );
+    }
+
+    loadWishlistStatus();
+
+    window.addEventListener(
+      WISHLIST_CHANGE_EVENT,
+      handleWishlistChange
+    );
+
+    return () => {
+      isMounted = false;
+
+      window.removeEventListener(
+        WISHLIST_CHANGE_EVENT,
+        handleWishlistChange
+      );
+    };
+  }, [
+    canUseWishlist,
+    wishlistCarId,
+  ]);
 
   useEffect(() => {
     const timeoutId =
@@ -762,6 +868,66 @@ function CarDetailPage() {
         ),
     },
   ];
+
+  async function handleWishlistClick() {
+    if (!loginUser) {
+      navigate(
+        `/login?from=${encodeURIComponent(
+          `/cars/${wishlistCarId}`
+        )}`
+      );
+
+      return;
+    }
+
+    if (!canUseWishlist) {
+      window.alert(
+        "일반회원 또는 딜러만 찜할 수 있습니다."
+      );
+
+      return;
+    }
+
+    if (
+      isWishlistLoading ||
+      !Number.isFinite(
+        wishlistCarId
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsWishlistLoading(
+        true
+      );
+
+      const result =
+        await toggleWishlist(
+          wishlistCarId
+        );
+
+      setIsWished(
+        Boolean(
+          result.isWished
+        )
+      );
+    } catch (error) {
+      console.error(
+        "상세 페이지 찜 변경 실패:",
+        error
+      );
+
+      window.alert(
+        error?.message ||
+        "찜 처리 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsWishlistLoading(
+        false
+      );
+    }
+  }
 
   function handleBidSubmit(
     event
@@ -1355,6 +1521,45 @@ function CarDetailPage() {
               </p>
             </div>
           )}
+
+          <button
+            type="button"
+            className={`car-detail-wishlist-button ${isWished
+                ? "is-active"
+                : ""
+              }`}
+            onClick={
+              handleWishlistClick
+            }
+            disabled={
+              isWishlistLoading
+            }
+            aria-label={
+              isWished
+                ? "찜 해제"
+                : "찜 등록"
+            }
+            aria-pressed={
+              isWished
+            }
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 21s-7.2-4.35-9.55-8.37C.45 9.2 1.43 5.1 5.08 3.75c2.22-.82 4.65-.08 5.92 1.67 1.27-1.75 3.7-2.49 5.92-1.67 3.65 1.35 4.63 5.45 2.63 8.88C19.2 16.65 12 21 12 21Z"
+              />
+            </svg>
+
+            <span>
+              {isWishlistLoading
+                ? "처리 중"
+                : isWished
+                  ? "찜한 차량"
+                  : "찜하기"}
+            </span>
+          </button>
 
           {isAuctionCar &&
             auctionWinner && (
