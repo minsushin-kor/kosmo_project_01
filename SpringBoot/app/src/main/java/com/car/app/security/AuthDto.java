@@ -10,6 +10,7 @@ public class AuthDto {
     @AllArgsConstructor
     @Builder
     public static class MemberSignupRequest {
+        private String loginId;
         private String email;
         private String password;
         private String name;
@@ -29,6 +30,7 @@ public class AuthDto {
     @AllArgsConstructor
     @Builder
     public static class CompanySignupRequest {
+        private String loginId;
         private String businessNumber;
         private String name;
         private String masterEmail;
@@ -58,5 +60,6 @@ public class AuthDto {
         private String token;
         private String role;
         private String name;
+        private String username;
     }
 }

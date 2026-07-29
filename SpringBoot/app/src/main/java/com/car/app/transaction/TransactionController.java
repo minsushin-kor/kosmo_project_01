@@ -112,7 +112,7 @@ public class TransactionController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        Optional<Member> memberOpt = memberRepository.findByEmail(username);
+        Optional<Member> memberOpt = memberRepository.findByLoginId(username).or(() -> memberRepository.findByEmail(username));
         Optional<Dealer> dealerOpt = dealerRepository.findByLoginId(username);
 
         List<Transaction> myTransactions;
@@ -139,7 +139,7 @@ public class TransactionController {
         }
 
         String username = auth.getName();
-        Optional<Member> memberOpt = memberRepository.findByEmail(username);
+        Optional<Member> memberOpt = memberRepository.findByLoginId(username).or(() -> memberRepository.findByEmail(username));
         Optional<Dealer> dealerOpt = dealerRepository.findByLoginId(username);
 
         boolean isBuyer = (memberOpt.isPresent() && "MEMBER".equalsIgnoreCase(transaction.getBuyerType()) && transaction.getBuyerId().equals(memberOpt.get().getMemberId())) ||

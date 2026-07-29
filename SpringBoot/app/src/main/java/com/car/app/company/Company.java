@@ -27,6 +27,9 @@ public class Company {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
+    @Column(name = "login_id", unique = true, length = 100)
+    private String loginId;
+    
     @Column(name = "master_email", unique = true, nullable = false, length = 100)
     private String masterEmail;
 

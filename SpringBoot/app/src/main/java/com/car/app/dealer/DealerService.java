@@ -42,6 +42,7 @@ public class DealerService {
                 .loginId(request.getLoginId())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
+                .email(request.getEmail())
                 .phone(request.getPhone())
                 .profileImageUrl(request.getProfileImageUrl())
                 .status("ACTIVE")     // 가입 즉시 활동 가능 활성 상태

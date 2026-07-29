@@ -35,6 +35,9 @@ public class Dealer {
     @Column(name = "name", nullable = false, length = 50)
     private String name;
 
+    @Column(name = "email", unique = true, length = 50)
+    private String email;
+
     @Column(name = "phone", nullable = false, length = 20)
     private String phone;
 

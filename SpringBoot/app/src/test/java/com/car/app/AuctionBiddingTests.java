@@ -41,6 +41,7 @@ class AuctionBiddingTests {
     void testAutoAuctionCreationWhenMemberRegistersCar() {
         // 1. Create a general member
         Member member = Member.builder()
+                .loginId("seller@test.com")
                 .email("seller@test.com")
                 .password("password123")
                 .name("차주")
@@ -93,6 +94,7 @@ class AuctionBiddingTests {
     void testPlaceBidSuccessAndConstraintFailures() {
         // 1. Setup company and dealer
         Company company = Company.builder()
+                .loginId("masterA@company.com")
                 .businessNumber("123-45-67890")
                 .name("상사A")
                 .masterEmail("master@company.com")
@@ -114,6 +116,7 @@ class AuctionBiddingTests {
 
         // 2. Setup member and car
         Member member = Member.builder()
+                .loginId("seller@test.com")
                 .email("seller@test.com")
                 .password("password123")
                 .name("차주")
@@ -168,6 +171,7 @@ class AuctionBiddingTests {
     void testCloseAuctionSuccessAndTransactionCreation() {
         // 1. Setup company, dealer, member and car
         Company company = Company.builder()
+                .loginId("masterB@company.com")
                 .businessNumber("111-22-33333")
                 .name("상사B")
                 .masterEmail("masterB@company.com")
@@ -199,6 +203,7 @@ class AuctionBiddingTests {
         dealerRepository.save(dealer2);
 
         Member member = Member.builder()
+                .loginId("seller2@test.com")
                 .email("seller2@test.com")
                 .password("password123")
                 .name("차주2")
