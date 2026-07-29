@@ -91,7 +91,28 @@ function MyPage() {
 
       <section className="company-dashboard-profile">
         <div className="company-profile-card">
-          <div className="company-profile-icon">회</div>
+          {loginUser.profileImageUrl ? (
+            <img
+              src={loginUser.profileImageUrl}
+              alt={`${loginUser.companyName || loginUser.name} 프로필`}
+              className="company-profile-image"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+                event.currentTarget.nextElementSibling.style.display = "flex";
+              }}
+            />
+          ) : null}
+
+          <div
+            className="company-profile-icon"
+            style={{
+              display: loginUser.profileImageUrl
+                ? "none"
+                : "flex",
+            }}
+          >
+            회
+          </div>
 
           <div className="company-profile-info">
             <span>{getRoleName(loginUser.role)}</span>

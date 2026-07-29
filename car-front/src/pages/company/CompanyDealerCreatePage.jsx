@@ -2,14 +2,19 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageTitle from "../../components/common/PageTitle";
 import ImageUploader from "../../components/common/ImageUploader";
+import { createCompanyDealer } from "../../api/dealerApi";
 import { saveCompanyDealerToStorage } from "../../utils/companyDealerStorage";
-import { readImageFileAsDataUrl } from "../../utils/imageFileReader";
 import "../../css/common/page.css";
 import "../../css/company/companyDealerCreatePage.css";
+import {
+  uploadImage,
+} from "../../api/imageApi";
 
 function CompanyDealerCreatePage() {
   const navigate = useNavigate();
+
   const [dealerImages, setDealerImages] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -33,6 +38,10 @@ function CompanyDealerCreatePage() {
   const handleSubmitDealer = async (e) => {
     e.preventDefault();
 
+    if (isSubmitting) {
+      return;
+    }
+
     if (!formData.name.trim()) {
       alert("딜러명을 입력해주세요.");
       return;
@@ -48,8 +57,13 @@ function CompanyDealerCreatePage() {
       return;
     }
 
-    if (formData.password !== formData.passwordCheck) {
-      alert("비밀번호가 일치하지 않습니다.");
+    if (
+      formData.password !==
+      formData.passwordCheck
+    ) {
+      alert(
+        "비밀번호가 일치하지 않습니다."
+      );
       return;
     }
 
@@ -63,29 +77,133 @@ function CompanyDealerCreatePage() {
       return;
     }
 
-    const dealerImageFile = dealerImages[0]?.file;
-    const dealerImageUrl = await readImageFileAsDataUrl(dealerImageFile);
+    try {
+      setIsSubmitting(true);
 
-    const newDealer = {
-      id: Date.now(),
-      name: formData.name,
-      loginId: formData.loginId,
-      phone: formData.phone,
-      email: formData.email,
-      memo: formData.memo,
-      carCount: 0,
-      soldCount: 0,
-      status: "정상",
-      joinDate: new Date().toISOString().slice(0, 10),
-      imageName: dealerImageFile?.name || "",
-      imagePreviewUrl: dealerImageUrl,
-    };
+      let profileImageUrl = "";
 
-    saveCompanyDealerToStorage(newDealer);
+      /*
+       * 이미지가 선택된 경우
+       * 딜러 계정 생성 전에 업로드합니다.
+       */
+      if (dealerImages[0]?.file) {
+        const uploadedImage =
+          await uploadImage(
+            dealerImages[0].file,
+            "dealer"
+          );
 
-    alert("딜러 계정이 생성되었습니다.");
+        profileImageUrl =
+          uploadedImage?.imageUrl ||
+          "";
 
-    navigate("/company/dealers");
+        if (!profileImageUrl) {
+          throw new Error(
+            "딜러 프로필 이미지 주소를 받지 못했습니다."
+          );
+        }
+      }
+
+      const requestData = {
+        loginId:
+          formData.loginId.trim(),
+
+        password:
+          formData.password,
+
+        name:
+          formData.name.trim(),
+
+        email:
+          formData.email.trim(),
+
+        phone:
+          formData.phone.trim(),
+
+        profileImageUrl,
+      };
+
+      const createdDealer =
+        await createCompanyDealer(
+          requestData
+        );
+
+      /*
+       * 현재 딜러 관리 목록 일부가
+       * localStorage를 사용하므로
+       * API 응답도 함께 저장합니다.
+       */
+      saveCompanyDealerToStorage({
+        id:
+          createdDealer.dealerId,
+
+        dealerId:
+          createdDealer.dealerId,
+
+        name:
+          createdDealer.name,
+
+        loginId:
+          createdDealer.loginId,
+
+        phone:
+          createdDealer.phone,
+
+        email:
+          createdDealer.email ||
+          formData.email.trim(),
+
+        memo:
+          formData.memo.trim(),
+
+        carCount: 0,
+
+        soldCount: 0,
+
+        status:
+          createdDealer.status ===
+            "ACTIVE"
+            ? "정상"
+            : createdDealer.status,
+
+        joinDate:
+          new Date()
+            .toISOString()
+            .slice(0, 10),
+
+        profileImageUrl:
+          createdDealer.profileImageUrl ||
+          profileImageUrl,
+
+        imageName:
+          dealerImages[0]?.file
+            ?.name || "",
+
+        imagePreviewUrl:
+          createdDealer.profileImageUrl ||
+          profileImageUrl,
+      });
+
+      alert(
+        "딜러 계정이 생성되었습니다."
+      );
+
+      navigate(
+        "/company/dealers"
+      );
+    } catch (error) {
+      console.error(
+        "딜러 계정 생성 실패:",
+        error
+      );
+
+      alert(
+        error.message ||
+        "딜러 계정 생성 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -100,13 +218,19 @@ function CompanyDealerCreatePage() {
       />
 
       <section className="dealer-create-panel">
-        <form className="dealer-create-form" onSubmit={handleSubmitDealer}>
+        <form
+          className="dealer-create-form"
+          onSubmit={handleSubmitDealer}
+        >
           <div className="dealer-create-section">
             <h3>기본 정보</h3>
 
             <div className="dealer-form-grid">
               <div className="dealer-form-group">
-                <label htmlFor="name">딜러명</label>
+                <label htmlFor="name">
+                  딜러명
+                </label>
+
                 <input
                   id="name"
                   name="name"
@@ -118,7 +242,10 @@ function CompanyDealerCreatePage() {
               </div>
 
               <div className="dealer-form-group">
-                <label htmlFor="loginId">아이디</label>
+                <label htmlFor="loginId">
+                  아이디
+                </label>
+
                 <input
                   id="loginId"
                   name="loginId"
@@ -130,7 +257,10 @@ function CompanyDealerCreatePage() {
               </div>
 
               <div className="dealer-form-group">
-                <label htmlFor="password">비밀번호</label>
+                <label htmlFor="password">
+                  비밀번호
+                </label>
+
                 <input
                   id="password"
                   name="password"
@@ -142,7 +272,10 @@ function CompanyDealerCreatePage() {
               </div>
 
               <div className="dealer-form-group">
-                <label htmlFor="passwordCheck">비밀번호 확인</label>
+                <label htmlFor="passwordCheck">
+                  비밀번호 확인
+                </label>
+
                 <input
                   id="passwordCheck"
                   name="passwordCheck"
@@ -154,7 +287,10 @@ function CompanyDealerCreatePage() {
               </div>
 
               <div className="dealer-form-group">
-                <label htmlFor="phone">연락처</label>
+                <label htmlFor="phone">
+                  연락처
+                </label>
+
                 <input
                   id="phone"
                   name="phone"
@@ -166,7 +302,10 @@ function CompanyDealerCreatePage() {
               </div>
 
               <div className="dealer-form-group">
-                <label htmlFor="email">이메일</label>
+                <label htmlFor="email">
+                  이메일
+                </label>
+
                 <input
                   id="email"
                   name="email"
@@ -195,7 +334,10 @@ function CompanyDealerCreatePage() {
             <h3>메모</h3>
 
             <div className="dealer-form-group">
-              <label htmlFor="memo">관리 메모</label>
+              <label htmlFor="memo">
+                관리 메모
+              </label>
+
               <textarea
                 id="memo"
                 name="memo"
@@ -208,9 +350,11 @@ function CompanyDealerCreatePage() {
 
           <div className="dealer-create-guide">
             <strong>안내</strong>
+
             <p>
-              현재는 프론트 화면 확인용입니다. 나중에 백엔드 연결 시 회사 번호,
-              딜러 권한, 초기 상태값, 프로필 이미지를 같이 전송하면 됩니다.
+              생성한 딜러 계정은 현재 로그인한 회사에 자동으로
+              소속됩니다. 선택한 프로필 이미지는 계정 생성 전에
+              이미지 서버에 업로드됩니다.
             </p>
           </div>
 
@@ -219,12 +363,19 @@ function CompanyDealerCreatePage() {
               type="button"
               className="dealer-cancel-btn"
               onClick={handleCancel}
+              disabled={isSubmitting}
             >
               취소
             </button>
 
-            <button type="submit" className="dealer-submit-btn">
-              딜러 계정 생성
+            <button
+              type="submit"
+              className="dealer-submit-btn"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? "생성 중..."
+                : "딜러 계정 생성"}
             </button>
           </div>
         </form>

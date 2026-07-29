@@ -98,16 +98,25 @@
   background-color: #f8fbff;
 }
 
-.company-dealers-public-card img,
-.company-dealers-public-profile-empty {
+.company-dealers-public-profile {
   width: 70px;
   height: 70px;
   margin-bottom: 14px;
+}
+
+.company-dealers-public-profile img,
+.company-dealers-public-profile-empty {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
 }
 
-.company-dealers-public-card img {
+.company-dealers-public-profile img {
+  display: block;
+  border: 1px solid #dbeafe;
   object-fit: cover;
+  background-color: #ffffff;
+  box-sizing: border-box;
 }
 
 .company-dealers-public-profile-empty {

@@ -20,14 +20,73 @@ import "../../css/common/page.css";
 import "../../css/admin/adminManagePage.css";
 import "../../css/admin/adminModal.css";
 
+function normalizeDealer(
+  dealer
+) {
+  const dealerId =
+    dealer.dealerId ||
+    dealer.id;
+
+  const profileImageUrl =
+    dealer.profileImageUrl ||
+    dealer.imagePreviewUrl ||
+    dealer.profileImage ||
+    "";
+
+  return {
+    ...dealer,
+
+    id: dealerId,
+    dealerId,
+
+    profileImageUrl,
+
+    imagePreviewUrl:
+      profileImageUrl,
+
+    status:
+      dealer.status === "ACTIVE"
+        ? "정상"
+        : dealer.status ||
+        "정상",
+
+    carCount:
+      Number(
+        dealer.carCount || 0
+      ),
+
+    soldCount:
+      Number(
+        dealer.soldCount || 0
+      ),
+  };
+}
+
 function getInitialDealers() {
   const storageDealers =
     getCompanyDealersFromStorage();
 
-  return [
+  const dealerMap =
+    new Map();
+
+  [
     ...storageDealers,
     ...companyDealers,
-  ];
+  ].forEach((dealer) => {
+    const normalizedDealer =
+      normalizeDealer(dealer);
+
+    dealerMap.set(
+      String(
+        normalizedDealer.id
+      ),
+      normalizedDealer
+    );
+  });
+
+  return Array.from(
+    dealerMap.values()
+  );
 }
 
 function CompanyDealerManagePage() {
@@ -87,11 +146,11 @@ function CompanyDealerManagePage() {
       prevDealers.map(
         (dealer) =>
           String(dealer.id) ===
-          String(selectedDealerId)
+            String(selectedDealerId)
             ? {
-                ...dealer,
-                status,
-              }
+              ...dealer,
+              status,
+            }
             : dealer
       )
     );
@@ -155,9 +214,9 @@ function CompanyDealerManagePage() {
 
           const statusMatch =
             statusFilter ===
-              "전체" ||
+            "전체" ||
             dealer.status ===
-              statusFilter;
+            statusFilter;
 
           return (
             keywordMatch &&
@@ -178,20 +237,41 @@ function CompanyDealerManagePage() {
 
       render: (dealer) => (
         <div className="dealer-list-profile">
-          {dealer.imagePreviewUrl ? (
+          {dealer.profileImageUrl ? (
             <img
               src={
-                dealer.imagePreviewUrl
+                dealer.profileImageUrl
               }
-              alt="딜러 이미지"
+              alt={`${dealer.name} 딜러 프로필`}
+              onError={(event) => {
+                event.currentTarget.style.display =
+                  "none";
+
+                const fallback =
+                  event.currentTarget
+                    .nextElementSibling;
+
+                if (fallback) {
+                  fallback.style.display =
+                    "flex";
+                }
+              }}
             />
-          ) : (
-            <div className="dealer-list-profile-empty">
-              {String(
-                dealer.name || "딜"
-              ).slice(0, 1)}
-            </div>
-          )}
+          ) : null}
+
+          <div
+            className="dealer-list-profile-empty"
+            style={{
+              display:
+                dealer.profileImageUrl
+                  ? "none"
+                  : "flex",
+            }}
+          >
+            {String(
+              dealer.name || "딜"
+            ).slice(0, 1)}
+          </div>
 
           <span>
             {dealer.name}
@@ -344,21 +424,42 @@ function CompanyDealerManagePage() {
           }
         >
           <div className="admin-detail-image-box">
-            {selectedDealer.imagePreviewUrl ? (
+            {selectedDealer.profileImageUrl ? (
               <img
                 src={
-                  selectedDealer.imagePreviewUrl
+                  selectedDealer.profileImageUrl
                 }
-                alt="딜러 이미지"
+                alt={`${selectedDealer.name} 딜러 프로필`}
+                onError={(event) => {
+                  event.currentTarget.style.display =
+                    "none";
+
+                  const fallback =
+                    event.currentTarget
+                      .nextElementSibling;
+
+                  if (fallback) {
+                    fallback.style.display =
+                      "flex";
+                  }
+                }}
               />
-            ) : (
-              <div className="admin-detail-image-empty">
-                {String(
-                  selectedDealer.name ||
-                    "딜"
-                ).slice(0, 1)}
-              </div>
-            )}
+            ) : null}
+
+            <div
+              className="admin-detail-image-empty"
+              style={{
+                display:
+                  selectedDealer.profileImageUrl
+                    ? "none"
+                    : "flex",
+              }}
+            >
+              {String(
+                selectedDealer.name ||
+                "딜"
+              ).slice(0, 1)}
+            </div>
           </div>
 
           <div className="admin-detail-list">
@@ -418,7 +519,7 @@ function CompanyDealerManagePage() {
               <strong>
                 {Number(
                   selectedDealer.carCount ||
-                    0
+                  0
                 )}
                 대
               </strong>
@@ -432,7 +533,7 @@ function CompanyDealerManagePage() {
               <strong>
                 {Number(
                   selectedDealer.soldCount ||
-                    0
+                  0
                 )}
                 대
               </strong>

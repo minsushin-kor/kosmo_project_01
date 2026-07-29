@@ -1,11 +1,18 @@
 .car-detail-page {
   min-height: calc(100vh - 68px);
   padding: 34px 34px 54px;
-  background:
-    radial-gradient(circle at 10% 15%, rgba(207, 231, 255, 0.75), transparent 26%),
-    radial-gradient(circle at 90% 85%, rgba(220, 240, 255, 0.9), transparent 30%),
-    linear-gradient(180deg, #f8fbff 0%, #eef7ff 100%);
   box-sizing: border-box;
+
+  background:
+    radial-gradient(circle at 10% 15%,
+      rgba(207, 231, 255, 0.75),
+      transparent 26%),
+    radial-gradient(circle at 90% 85%,
+      rgba(220, 240, 255, 0.9),
+      transparent 30%),
+    linear-gradient(180deg,
+      #f8fbff 0%,
+      #eef7ff 100%);
 }
 
 .car-detail-top-menu,
@@ -13,8 +20,8 @@
 .car-detail-content,
 .car-detail-empty {
   max-width: 1180px;
-  margin-left: auto;
   margin-right: auto;
+  margin-left: auto;
 }
 
 .car-detail-top-menu {
@@ -31,49 +38,156 @@
 
   border: 1px solid #cfe3fb;
   border-radius: 13px;
-  background-color: rgba(255, 255, 255, 0.94);
+
+  background-color: rgba(255,
+      255,
+      255,
+      0.94);
+
   color: var(--main-blue);
 
   font-size: 14px;
   font-weight: 900;
   text-decoration: none;
 
-  box-shadow: 0 8px 18px rgba(30, 87, 153, 0.06);
+  box-shadow:
+    0 8px 18px rgba(30, 87, 153, 0.06);
 }
 
 .back-link:hover {
   background-color: #f0f7ff;
 }
 
+/* 상단 상세 영역 */
+
 .car-detail-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+  grid-template-columns:
+    minmax(0, 1.2fr) minmax(360px, 0.8fr);
   gap: 24px;
+
   margin-bottom: 24px;
+}
+
+.car-detail-gallery {
+  min-width: 0;
+
+  display: grid;
+  align-content: start;
+  gap: 12px;
 }
 
 .car-detail-image {
   min-height: 430px;
-  border: 1px solid var(--line);
-  border-radius: 26px;
-  background:
-    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.9), transparent 24%),
-    linear-gradient(135deg, #eaf4ff, #cfe7ff);
-  box-shadow: var(--shadow-card);
 
   display: flex;
   align-items: center;
   justify-content: center;
 
   overflow: hidden;
+
+  border: 1px solid var(--line);
+  border-radius: 26px;
+
+  background:
+    radial-gradient(circle at 32% 26%,
+      rgba(255, 255, 255, 0.9),
+      transparent 24%),
+    linear-gradient(135deg,
+      #eaf4ff,
+      #cfe7ff);
+
+  box-shadow: var(--shadow-card);
+}
+
+.car-detail-image img {
+  display: block;
+
+  width: 100%;
+  height: 430px;
+
+  object-fit: contain;
+
+  background-color: #ffffff;
 }
 
 .car-detail-image span {
+  padding: 24px;
+
   color: var(--main-blue);
-  font-size: 54px;
+
+  font-size: 24px;
   font-weight: 900;
-  letter-spacing: 4px;
+  line-height: 1.5;
+  text-align: center;
 }
+
+/* 상세 이미지 썸네일 */
+
+.car-detail-thumbnail-list {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill,
+      minmax(92px, 1fr));
+  gap: 10px;
+}
+
+.car-detail-thumbnail {
+  position: relative;
+
+  min-width: 0;
+  height: 82px;
+  padding: 0;
+
+  overflow: hidden;
+
+  border: 2px solid transparent;
+  border-radius: 12px;
+
+  background-color: #ffffff;
+
+  cursor: pointer;
+}
+
+.car-detail-thumbnail:hover {
+  border-color: #93c5fd;
+}
+
+.car-detail-thumbnail.active {
+  border-color: var(--main-blue);
+
+  box-shadow:
+    0 0 0 2px rgba(20, 115, 230, 0.12);
+}
+
+.car-detail-thumbnail img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.detail-main-image-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+
+  padding: 3px 7px;
+
+  border-radius: 999px;
+
+  background-color: var(--main-blue);
+  color: #ffffff;
+
+  font-size: 11px;
+  font-weight: 900;
+
+  pointer-events: none;
+}
+
+/* 상세 요약 */
 
 .car-detail-summary,
 .detail-panel,
@@ -81,7 +195,12 @@
 .car-detail-empty {
   border: 1px solid var(--line);
   border-radius: 24px;
-  background-color: rgba(255, 255, 255, 0.94);
+
+  background-color: rgba(255,
+      255,
+      255,
+      0.94);
+
   box-shadow: var(--shadow-card);
 }
 
@@ -93,110 +212,311 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+
   margin-bottom: 20px;
 }
 
-.status-badge {
+.car-detail-page .status-badge {
   display: inline-block;
+
   height: 26px;
   padding: 0 10px;
+
   border-radius: 999px;
+
   background-color: var(--main-blue);
   color: #ffffff;
+
   font-size: 12px;
-  line-height: 26px;
   font-weight: 900;
+  line-height: 26px;
 }
 
-.status-badge.done {
+.car-detail-page .status-badge.done {
   background-color: #94a3b8;
 }
 
 .seller-type-badge {
   height: 26px;
   padding: 0 10px;
+
   border-radius: 999px;
-  background-color: var(--main-blue-light);
+
+  background-color:
+    var(--main-blue-light);
   color: var(--main-blue);
+
   font-size: 12px;
-  line-height: 26px;
   font-weight: 900;
+  line-height: 26px;
 }
 
 .car-detail-summary h1 {
   margin: 0;
+
   color: var(--text-main);
+
   font-size: 32px;
-  line-height: 1.25;
   font-weight: 900;
+  line-height: 1.25;
 }
 
 .detail-sub-info {
   margin: 14px 0 24px;
+
   color: var(--text-sub);
+
   font-size: 15px;
   line-height: 1.6;
 }
 
+/* 가격 정보 */
+
 .detail-price-box {
   padding: 22px;
+
   border: 1px solid #dbeafe;
   border-radius: 20px;
+
   background-color: #f4f9ff;
 }
 
 .detail-price-box span {
   display: block;
+
   margin-bottom: 8px;
+
   color: var(--text-sub);
+
   font-size: 14px;
   font-weight: 800;
 }
 
 .detail-price-box strong {
   color: var(--text-main);
+
   font-size: 34px;
   font-weight: 900;
 }
+
+.auction-price-box p {
+  margin: 10px 0 0;
+
+  color: var(--text-sub);
+
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+/* 낙찰 완료 영역 */
+
+.detail-auction-winner-box {
+  margin-top: 14px;
+  padding: 16px 18px;
+
+  border: 1px solid #cfe3fb;
+  border-radius: 18px;
+
+  background-color: #f0f7ff;
+}
+
+.detail-auction-winner-box h3 {
+  margin: 0 0 8px;
+
+  color: var(--main-blue);
+
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.detail-auction-winner-box p {
+  margin: 0;
+
+  color: var(--text-main);
+
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.detail-auction-winner-box strong {
+  color: var(--main-blue);
+  font-weight: 900;
+}
+
+/* 경매 요약 */
+
+.auction-summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  margin-top: 14px;
+}
+
+.auction-summary-grid div {
+  padding: 14px;
+
+  border: 1px solid #edf3fa;
+  border-radius: 16px;
+
+  background-color: #f8fbff;
+}
+
+.auction-summary-grid span {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: var(--text-sub);
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auction-summary-grid strong {
+  color: var(--text-main);
+
+  font-size: 15px;
+  font-weight: 900;
+}
+
+/* 입찰 영역 */
+
+.bid-form {
+  margin-top: 20px;
+}
+
+.bid-form label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: var(--text-main);
+
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.bid-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bid-input-row input {
+  width: 100%;
+  height: 44px;
+  padding: 0 13px;
+  box-sizing: border-box;
+
+  border: 1px solid #cfe3fb;
+  border-radius: 13px;
+
+  background-color: #ffffff;
+  color: var(--text-main);
+
+  font-size: 14px;
+  font-weight: 800;
+
+  outline: none;
+}
+
+.bid-input-row input:focus {
+  border-color: var(--main-blue);
+}
+
+.bid-input-row input:disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+}
+
+.bid-input-row span {
+  flex-shrink: 0;
+
+  color: var(--text-sub);
+
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.my-bid-text,
+.bid-message {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+
+  border-radius: 12px;
+
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.my-bid-text {
+  background-color: #f0f7ff;
+  color: var(--main-blue);
+}
+
+.bid-message {
+  background-color: #f8fbff;
+  color: #475569;
+}
+
+/* 버튼 */
 
 .detail-action-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+
   margin-top: 22px;
 }
 
 .detail-action-buttons button,
 .seller-panel button {
   min-height: 46px;
+
   border: 1px solid var(--main-blue);
   border-radius: 13px;
+
   background-color: var(--main-blue);
   color: #ffffff;
+
   font-size: 14px;
   font-weight: 900;
+
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(20, 115, 230, 0.2);
+
+  box-shadow:
+    0 8px 18px rgba(20, 115, 230, 0.2);
 }
 
 .detail-action-buttons button:hover,
 .seller-panel button:hover {
-  background-color: var(--main-blue-dark);
+  background-color:
+    var(--main-blue-dark);
 }
 
 .detail-action-buttons button:disabled,
 .seller-panel button:disabled {
   border-color: #cbd5e1;
+
   background-color: #94a3b8;
   color: #ffffff;
+
   cursor: not-allowed;
+
   box-shadow: none;
 }
 
 .detail-action-buttons .outline-button {
+  border-color: #cfe3fb;
+
   background-color: #ffffff;
   color: var(--main-blue);
-  border-color: #cfe3fb;
+
   box-shadow: none;
 }
 
@@ -204,64 +524,89 @@
   background-color: #f0f7ff;
 }
 
+/* 하단 상세 콘텐츠 */
+
 .car-detail-content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns:
+    minmax(0, 1fr) 320px;
   gap: 24px;
   align-items: start;
 }
 
 .detail-panel {
   grid-column: 1;
+
   padding: 26px;
 }
 
-.detail-panel + .detail-panel {
+.detail-panel+.detail-panel {
   margin-top: 0;
 }
 
 .detail-panel h2,
 .seller-panel h2 {
   margin: 0 0 18px;
+
   color: var(--text-main);
+
   font-size: 21px;
   font-weight: 900;
 }
 
+/* 기본 정보 */
+
 .detail-info-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
 .detail-info-item {
   min-height: 82px;
   padding: 16px;
+
   border: 1px solid #edf3fa;
   border-radius: 16px;
+
   background-color: #f8fbff;
 }
 
 .detail-info-item span {
   display: block;
+
   margin-bottom: 8px;
+
   color: var(--text-sub);
+
   font-size: 13px;
   font-weight: 800;
 }
 
 .detail-info-item strong {
   color: var(--text-main);
+
   font-size: 16px;
   font-weight: 900;
+  overflow-wrap: anywhere;
 }
+
+/* 설명 */
 
 .detail-description {
   margin: 0;
+
   color: #475569;
+
   font-size: 15px;
   line-height: 1.8;
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
+
+/* 옵션 */
 
 .option-list {
   display: flex;
@@ -271,99 +616,158 @@
 
 .option-list span {
   padding: 9px 12px;
+
   border: 1px solid #dbeafe;
   border-radius: 999px;
+
   background-color: #f0f7ff;
   color: var(--main-blue);
+
   font-size: 14px;
   font-weight: 900;
 }
 
+/* 판매자 정보 */
+
 .seller-panel {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  padding: 24px;
   position: sticky;
   top: 88px;
+
+  grid-column: 2;
+  grid-row: 1 / span 3;
+
+  padding: 24px;
 }
 
 .seller-info-list {
   display: grid;
   gap: 12px;
+
   margin-bottom: 22px;
 }
 
 .seller-info-list div {
   padding: 14px;
+
   border: 1px solid #edf3fa;
   border-radius: 16px;
+
   background-color: #f8fbff;
 }
 
 .seller-info-list span {
   display: block;
+
   margin-bottom: 6px;
+
   color: var(--text-sub);
+
   font-size: 13px;
   font-weight: 800;
 }
 
 .seller-info-list strong {
   color: var(--text-main);
+
   font-size: 16px;
   font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.seller-info-link {
+  color: var(--text-main);
+
+  font-size: 16px;
+  font-weight: 900;
+  text-decoration: none;
+
+  overflow-wrap: anywhere;
+}
+
+.seller-info-link:hover {
+  color: var(--main-blue);
+  text-decoration: underline;
 }
 
 .seller-panel button {
   width: 100%;
 }
 
+/* 로딩 및 오류 */
+
 .car-detail-empty {
   padding: 60px 24px;
+
   text-align: center;
 }
 
 .car-detail-empty h2 {
   margin: 0 0 10px;
+
   color: var(--text-main);
+
   font-size: 26px;
   font-weight: 900;
 }
 
 .car-detail-empty p {
   margin: 0 0 24px;
+
   color: var(--text-sub);
+
   font-size: 15px;
+  line-height: 1.6;
 }
 
+/* 태블릿 */
+
 @media (max-width: 1000px) {
+
   .car-detail-hero,
   .car-detail-content {
     grid-template-columns: 1fr;
   }
 
   .seller-panel {
+    position: static;
+
     grid-column: 1;
     grid-row: auto;
-    position: static;
   }
 
   .detail-info-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 }
 
+/* 모바일 */
+
 @media (max-width: 640px) {
   .car-detail-page {
-    padding: 24px 14px 40px;
+    padding:
+      24px 14px 40px;
   }
 
   .car-detail-image {
     min-height: 260px;
   }
 
+  .car-detail-image img {
+    height: 320px;
+  }
+
   .car-detail-image span {
-    font-size: 36px;
+    font-size: 18px;
+  }
+
+  .car-detail-thumbnail-list {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .car-detail-thumbnail {
+    height: 72px;
   }
 
   .car-detail-summary,
@@ -380,283 +784,9 @@
     font-size: 28px;
   }
 
+  .auction-summary-grid,
   .detail-action-buttons,
   .detail-info-grid {
     grid-template-columns: 1fr;
   }
-}
-
-.car-detail-page .status-badge {
-  display: inline-block;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background-color: var(--main-blue);
-  color: #ffffff;
-  font-size: 12px;
-  line-height: 26px;
-  font-weight: 900;
-}
-
-.car-detail-page .status-badge.done {
-  background-color: #94a3b8;
-}
-
-.seller-info-link {
-  color: var(--text-main);
-  font-size: 16px;
-  font-weight: 900;
-  text-decoration: none;
-}
-
-.seller-info-link:hover {
-  color: var(--main-blue);
-  text-decoration: underline;
-}
-
-.auction-price-box p {
-  margin: 10px 0 0;
-  color: var(--text-sub);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.auction-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.auction-summary-grid div {
-  padding: 14px;
-  border: 1px solid #edf3fa;
-  border-radius: 16px;
-  background-color: #f8fbff;
-}
-
-.auction-summary-grid span {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--text-sub);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.auction-summary-grid strong {
-  color: var(--text-main);
-  font-size: 15px;
-  font-weight: 900;
-}
-
-.bid-form {
-  margin-top: 20px;
-}
-
-.bid-form label {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.bid-input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bid-input-row input {
-  width: 100%;
-  height: 44px;
-  padding: 0 13px;
-  border: 1px solid #cfe3fb;
-  border-radius: 13px;
-  background-color: #ffffff;
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 800;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.bid-input-row input:focus {
-  border-color: var(--main-blue);
-}
-
-.bid-input-row input:disabled {
-  background-color: #f1f5f9;
-  color: #94a3b8;
-}
-
-.bid-input-row span {
-  flex-shrink: 0;
-  color: var(--text-sub);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.my-bid-text,
-.bid-message {
-  margin: 10px 0 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.5;
-}
-
-.my-bid-text {
-  background-color: #f0f7ff;
-  color: var(--main-blue);
-}
-
-.bid-message {
-  background-color: #f8fbff;
-  color: #475569;
-}
-
-@media (max-width: 640px) {
-  .auction-summary-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.auction-price-box p {
-  margin: 10px 0 0;
-  color: var(--text-sub);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.5;
-}
-
-.auction-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.auction-summary-grid div {
-  padding: 14px;
-  border: 1px solid #edf3fa;
-  border-radius: 16px;
-  background-color: #f8fbff;
-}
-
-.auction-summary-grid span {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--text-sub);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.auction-summary-grid strong {
-  color: var(--text-main);
-  font-size: 15px;
-  font-weight: 900;
-}
-
-.bid-form {
-  margin-top: 20px;
-}
-
-.bid-form label {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.bid-input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bid-input-row input {
-  width: 100%;
-  height: 44px;
-  padding: 0 13px;
-  border: 1px solid #cfe3fb;
-  border-radius: 13px;
-  background-color: #ffffff;
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 800;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.bid-input-row input:focus {
-  border-color: var(--main-blue);
-}
-
-.bid-input-row input:disabled {
-  background-color: #f1f5f9;
-  color: #94a3b8;
-}
-
-.bid-input-row span {
-  flex-shrink: 0;
-  color: var(--text-sub);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.my-bid-text,
-.bid-message {
-  margin: 10px 0 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.5;
-}
-
-.my-bid-text {
-  background-color: #f0f7ff;
-  color: var(--main-blue);
-}
-
-.bid-message {
-  background-color: #f8fbff;
-  color: #475569;
-}
-
-@media (max-width: 640px) {
-  .auction-summary-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.detail-auction-winner-box {
-  margin-top: 14px;
-  padding: 16px 18px;
-  border: 1px solid #cfe3fb;
-  border-radius: 18px;
-  background-color: #f0f7ff;
-}
-
-.detail-auction-winner-box h3 {
-  margin: 0 0 8px;
-  color: var(--main-blue);
-  font-size: 17px;
-  font-weight: 900;
-}
-
-.detail-auction-winner-box p {
-  margin: 0;
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.6;
-}
-
-.detail-auction-winner-box strong {
-  color: var(--main-blue);
-  font-weight: 900;
 }

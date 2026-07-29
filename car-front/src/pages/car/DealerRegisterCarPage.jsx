@@ -1,22 +1,48 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  useState,
+} from "react";
+import {
+  useNavigate,
+} from "react-router-dom";
 import ImageUploader from "../../components/common/ImageUploader";
+import {
+  registerCar,
+} from "../../api/carApi";
+import {
+  uploadImages,
+} from "../../api/imageApi";
+import {
+  AUTH_ROLES,
+} from "../../data/authUser";
+import {
+  useAuth,
+} from "../../hooks/useAuth";
 import "../../css/car/dealerRegisterCarPage.css";
-import { saveDealerCarToStorage } from "../../utils/dealerCarStorage";
-import { AUTH_ROLES } from "../../data/authUser";
-import { useAuth } from "../../hooks/useAuth";
 
 function DealerRegisterCarPage() {
   const navigate = useNavigate();
-  const { loginUser } = useAuth();
+
+  const {
+    loginUser,
+  } = useAuth();
 
   const isMember =
-    loginUser?.role === AUTH_ROLES.MEMBER;
+    loginUser?.role ===
+    AUTH_ROLES.MEMBER;
 
   const isDealer =
-    loginUser?.role === AUTH_ROLES.DEALER;
+    loginUser?.role ===
+    AUTH_ROLES.DEALER;
 
-  const [carImages, setCarImages] = useState([]);
+  const [
+    carImages,
+    setCarImages,
+  ] = useState([]);
+
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
 
   const carOptions = [
     "네비게이션",
@@ -26,7 +52,10 @@ function DealerRegisterCarPage() {
     "썬루프",
   ];
 
-  const [formData, setFormData] = useState({
+  const [
+    formData,
+    setFormData,
+  ] = useState({
     year: "",
     make: "",
     model: "",
@@ -41,7 +70,10 @@ function DealerRegisterCarPage() {
   });
 
   function handleChange(e) {
-    const { name, value } = e.target;
+    const {
+      name,
+      value,
+    } = e.target;
 
     setFormData((prev) => ({
       ...prev,
@@ -50,15 +82,23 @@ function DealerRegisterCarPage() {
   }
 
   function handleOptionChange(e) {
-    const { value, checked } = e.target;
+    const {
+      value,
+      checked,
+    } = e.target;
 
     setFormData((prev) => ({
       ...prev,
+
       option: checked
-        ? [...prev.option, value]
+        ? [
+          ...prev.option,
+          value,
+        ]
         : prev.option.filter(
-            (item) => item !== value
-          ),
+          (item) =>
+            item !== value
+        ),
     }));
   }
 
@@ -68,8 +108,13 @@ function DealerRegisterCarPage() {
       return false;
     }
 
-    if (!isMember && !isDealer) {
-      alert("매물 등록 권한이 없습니다.");
+    if (
+      !isMember &&
+      !isDealer
+    ) {
+      alert(
+        "매물 등록 권한이 없습니다."
+      );
       return false;
     }
 
@@ -80,34 +125,42 @@ function DealerRegisterCarPage() {
       return false;
     }
 
-    if (
-      !formData.year ||
-      !formData.make ||
-      !formData.model
-    ) {
-      alert(
-        "연식, 제조사, 모델명을 입력해주세요."
-      );
+    if (!formData.year) {
+      alert("연식을 입력해주세요.");
       return false;
     }
 
-    if (!formData.body) {
+    if (!formData.make.trim()) {
+      alert("제조사를 입력해주세요.");
+      return false;
+    }
+
+    if (!formData.model.trim()) {
+      alert("모델명을 입력해주세요.");
+      return false;
+    }
+
+    if (!formData.body.trim()) {
       alert("차종을 입력해주세요.");
       return false;
     }
 
     if (!formData.transmission) {
-      alert("변속기를 선택해주세요.");
+      alert(
+        "변속기를 선택해주세요."
+      );
       return false;
     }
 
-    if (!formData.state) {
+    if (!formData.state.trim()) {
       alert("지역을 입력해주세요.");
       return false;
     }
 
     if (!formData.odometer) {
-      alert("주행거리를 입력해주세요.");
+      alert(
+        "주행거리를 입력해주세요."
+      );
       return false;
     }
 
@@ -120,7 +173,43 @@ function DealerRegisterCarPage() {
       return false;
     }
 
-    if (Number(formData.price) <= 0) {
+    const year =
+      Number(formData.year);
+
+    const odometer =
+      Number(formData.odometer);
+
+    const price =
+      Number(formData.price);
+
+    const currentYear =
+      new Date().getFullYear();
+
+    if (
+      Number.isNaN(year) ||
+      year < 1900 ||
+      year > currentYear + 1
+    ) {
+      alert(
+        "연식을 올바르게 입력해주세요."
+      );
+      return false;
+    }
+
+    if (
+      Number.isNaN(odometer) ||
+      odometer < 0
+    ) {
+      alert(
+        "주행거리를 올바르게 입력해주세요."
+      );
+      return false;
+    }
+
+    if (
+      Number.isNaN(price) ||
+      price <= 0
+    ) {
       alert(
         isMember
           ? "경매 시작가는 0보다 커야 합니다."
@@ -132,228 +221,154 @@ function DealerRegisterCarPage() {
     return true;
   }
 
+  function formatLocalDateTime(
+    date
+  ) {
+    const pad = (value) =>
+      String(value).padStart(
+        2,
+        "0"
+      );
+
+    return [
+      date.getFullYear(),
+      "-",
+      pad(
+        date.getMonth() + 1
+      ),
+      "-",
+      pad(
+        date.getDate()
+      ),
+      "T",
+      pad(
+        date.getHours()
+      ),
+      ":",
+      pad(
+        date.getMinutes()
+      ),
+      ":",
+      pad(
+        date.getSeconds()
+      ),
+    ].join("");
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (
+      isSubmitting ||
+      !validateForm()
+    ) {
       return;
     }
 
-    const now = new Date();
-    const endDate = new Date(
-      now.getTime() +
-        7 * 24 * 60 * 60 * 1000
-    );
-
-    const requestData = new FormData();
-
-    requestData.append(
-      "year",
-      Number(formData.year)
-    );
-    requestData.append(
-      "make",
-      formData.make
-    );
-    requestData.append(
-      "model",
-      formData.model
-    );
-    requestData.append(
-      "option",
-      formData.option.join(", ")
-    );
-    requestData.append(
-      "body",
-      formData.body
-    );
-    requestData.append(
-      "transmission",
-      formData.transmission
-    );
-    requestData.append(
-      "state",
-      formData.state
-    );
-    requestData.append(
-      "odometer",
-      Number(formData.odometer)
-    );
-    requestData.append(
-      "color",
-      formData.color
-    );
-    requestData.append(
-      "interior",
-      formData.interior
-    );
-    requestData.append(
-      "price",
-      Number(formData.price)
-    );
-    requestData.append(
-      "saleType",
-      isMember ? "AUCTION" : "NORMAL"
-    );
-
-    carImages.forEach((image) => {
-      requestData.append(
-        "carImages",
-        image.file
-      );
-    });
-
-    const newCarId = Date.now();
-
-    const newCar = {
-      id: newCarId,
-
-      year: Number(formData.year),
-      make: formData.make,
-      model: formData.model,
-      name: `${formData.year} ${formData.make} ${formData.model}`,
-
-      brand: formData.make,
-      modelName: formData.model,
-      carName: `${formData.make} ${formData.model}`,
-
-      option: formData.option.join(", "),
-      options: formData.option,
-
-      body: formData.body,
-      transmission: formData.transmission,
-
-      state: formData.state,
-      region: formData.state,
-
-      odometer: Number(
-        formData.odometer
-      ),
-      mileage: Number(
-        formData.odometer
-      ),
-
-      color:
-        formData.color || "-",
-      interior:
-        formData.interior || "-",
-
-      sellingprice: Number(
-        formData.price
-      ),
-      price: Number(formData.price),
-
-      status: isMember
-        ? "경매중"
-        : "판매중",
-
-      sellerType: isMember
-        ? "일반회원"
-        : "회사딜러",
-
-      saleType: isMember
-        ? "AUCTION"
-        : "NORMAL",
-
-      dealerId: isMember
-        ? null
-        : loginUser?.id || 1,
-
-      memberId: isMember
-        ? loginUser?.id || 1
-        : null,
-
-      companyId: isMember
-        ? null
-        : loginUser?.companyId || 1,
-
-      sellerName:
-        loginUser?.name ||
-        (isMember
-          ? "일반회원"
-          : "김딜러"),
-
-      sellerPhone:
-        loginUser?.phone ||
-        "010-1234-5678",
-
-      companyName: isMember
-        ? "개인 판매"
-        : loginUser?.companyName ||
-          "Kosmo 인증모터스",
-
-      imageName:
-        carImages[0]?.file?.name || "",
-
-      imageText:
-        formData.model || "CAR",
-
-      images: carImages.map(
-        (image, index) => ({
-          id: `${newCarId}-${index}`,
-          name:
-            image.file?.name ||
-            `car-image-${index + 1}`,
-          previewUrl:
-            image.previewUrl ||
-            image.url ||
-            "",
-        })
-      ),
-
-      fuel: "-",
-      displacement: "-",
-      accident: "-",
-      carNumber: "-",
-
-      registeredDate: now
-        .toISOString()
-        .slice(0, 10),
-
-      createdAt: now.toISOString(),
-
-      description: isMember
-        ? "일반회원이 등록한 비공개 입찰 경매 차량입니다."
-        : "회사 소속 딜러가 등록한 일반 판매 차량입니다.",
-
-      auction: isMember
-        ? {
-            auctionId: newCarId,
-            startPrice: Number(
-              formData.price
-            ),
-            bidCount: 0,
-            startDate:
-              now.toISOString(),
-            endDate:
-              endDate.toISOString(),
-            status: "경매중",
-            winningBidPrice: null,
-            winningBidderName: null,
-          }
-        : null,
-    };
-
     try {
-      console.log(
-        isMember
-          ? "일반회원 경매 매물 등록 FormData 확인"
-          : "딜러 일반 판매 매물 등록 FormData 확인"
-      );
+      setIsSubmitting(true);
 
-      for (
-        const pair of requestData.entries()
+      /*
+       * 1. 차량 이미지를 서버에 먼저 저장합니다.
+       */
+      const uploadedImages =
+        await uploadImages(
+          carImages,
+          "car"
+        );
+
+      if (
+        uploadedImages.length === 0
       ) {
-        console.log(
-          pair[0],
-          pair[1]
+        throw new Error(
+          "차량 이미지 업로드에 실패했습니다."
         );
       }
 
-      saveDealerCarToStorage(newCar);
+      /*
+       * 2. 일반회원 차량은 3시간 경매로 등록합니다.
+       */
+      const now =
+        new Date();
 
-      // 백엔드 연결 전이라 일단 주석 처리
-      // await registerCar(requestData);
+      const endDate =
+        new Date(
+          now.getTime() +
+          3 * 60 * 60 * 1000
+        );
+
+      /*
+       * 3. 이미지 URL을 차량 등록 JSON에 포함합니다.
+       */
+      const requestData = {
+        year:
+          Number(formData.year),
+
+        make:
+          formData.make.trim(),
+
+        model:
+          formData.model.trim(),
+
+        option:
+          formData.option.join(
+            ", "
+          ),
+
+        body:
+          formData.body.trim(),
+
+        transmission:
+          formData.transmission,
+
+        state:
+          formData.state.trim(),
+
+        condition: null,
+
+        odometer:
+          Number(
+            formData.odometer
+          ),
+
+        color:
+          formData.color.trim(),
+
+        interior:
+          formData.interior.trim(),
+
+        sellingPrice:
+          Number(
+            formData.price
+          ),
+
+        images:
+          uploadedImages,
+
+        startTime:
+          isMember
+            ? formatLocalDateTime(
+              now
+            )
+            : null,
+
+        endTime:
+          isMember
+            ? formatLocalDateTime(
+              endDate
+            )
+            : null,
+      };
+
+      const registeredCar =
+        await registerCar(
+          requestData
+        );
+
+      console.log(
+        "차량 등록 API 응답",
+        registeredCar
+      );
 
       alert(
         isMember
@@ -361,15 +376,25 @@ function DealerRegisterCarPage() {
           : "판매 매물이 등록되었습니다."
       );
 
-      navigate("/");
+      navigate("/", {
+        replace: true,
+      });
     } catch (error) {
-      console.error(error);
+      console.error(
+        "차량 등록 오류",
+        error
+      );
 
       alert(
-        isMember
-          ? "경매 매물 등록 중 오류가 발생했습니다."
-          : "판매 매물 등록 중 오류가 발생했습니다."
+        error?.message ||
+        (
+          isMember
+            ? "경매 매물 등록 중 오류가 발생했습니다."
+            : "판매 매물 등록 중 오류가 발생했습니다."
+        )
       );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -399,69 +424,119 @@ function DealerRegisterCarPage() {
 
             <div className="form-grid">
               <div className="form-group">
-                <label>연식</label>
+                <label htmlFor="car-year">
+                  연식
+                </label>
 
                 <input
+                  id="car-year"
                   type="number"
                   name="year"
-                  value={formData.year}
-                  onChange={handleChange}
+                  value={
+                    formData.year
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
                   placeholder="예: 2021"
                 />
               </div>
 
               <div className="form-group">
-                <label>제조사</label>
+                <label htmlFor="car-make">
+                  제조사
+                </label>
 
                 <input
+                  id="car-make"
                   type="text"
                   name="make"
-                  value={formData.make}
-                  onChange={handleChange}
+                  value={
+                    formData.make
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
                   placeholder="예: 현대"
                 />
               </div>
 
               <div className="form-group">
-                <label>모델명</label>
+                <label htmlFor="car-model">
+                  모델명
+                </label>
 
                 <input
+                  id="car-model"
                   type="text"
                   name="model"
-                  value={formData.model}
-                  onChange={handleChange}
-                  placeholder="예: 아반떼 CN7"
+                  value={
+                    formData.model
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
+                  placeholder="예: 캐스퍼"
                 />
               </div>
 
               <div className="form-group">
-                <label>차종</label>
+                <label htmlFor="car-body">
+                  차종
+                </label>
 
                 <input
+                  id="car-body"
                   type="text"
                   name="body"
-                  value={formData.body}
-                  onChange={handleChange}
-                  placeholder="예: 세단"
+                  value={
+                    formData.body
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
+                  placeholder="예: 경차"
                 />
               </div>
 
               <div className="form-group">
-                <label>변속기</label>
+                <label htmlFor="car-transmission">
+                  변속기
+                </label>
 
                 <select
+                  id="car-transmission"
                   name="transmission"
                   value={
                     formData.transmission
                   }
-                  onChange={handleChange}
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
                 >
                   <option value="">
                     선택
                   </option>
+
                   <option value="자동">
                     자동
                   </option>
+
                   <option value="수동">
                     수동
                   </option>
@@ -469,14 +544,24 @@ function DealerRegisterCarPage() {
               </div>
 
               <div className="form-group">
-                <label>지역</label>
+                <label htmlFor="car-state">
+                  지역
+                </label>
 
                 <input
+                  id="car-state"
                   type="text"
                   name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="예: 서울특별시"
+                  value={
+                    formData.state
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
+                  placeholder="예: 경기도"
                 />
               </div>
             </div>
@@ -485,12 +570,17 @@ function DealerRegisterCarPage() {
           <div className="form-section">
             <h3>차량 사진</h3>
 
+            <p className="register-image-api-notice">
+              첫 번째 사진이 대표 이미지로 등록됩니다.
+            </p>
+
             <ImageUploader
               label="차량 사진 첨부"
               images={carImages}
               setImages={setCarImages}
               multiple={true}
               maxCount={10}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -507,15 +597,22 @@ function DealerRegisterCarPage() {
                     <input
                       type="checkbox"
                       value={option}
-                      checked={formData.option.includes(
-                        option
-                      )}
+                      checked={
+                        formData.option.includes(
+                          option
+                        )
+                      }
                       onChange={
                         handleOptionChange
                       }
+                      disabled={
+                        isSubmitting
+                      }
                     />
 
-                    <span>{option}</span>
+                    <span>
+                      {option}
+                    </span>
                   </label>
                 )
               )}
@@ -527,57 +624,93 @@ function DealerRegisterCarPage() {
 
             <div className="form-grid">
               <div className="form-group">
-                <label>주행거리</label>
+                <label htmlFor="car-odometer">
+                  주행거리
+                </label>
 
                 <input
+                  id="car-odometer"
                   type="number"
                   name="odometer"
+                  min="0"
                   value={
                     formData.odometer
                   }
-                  onChange={handleChange}
-                  placeholder="예: 35000"
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
+                  placeholder="예: 12000"
                 />
               </div>
 
               <div className="form-group">
-                <label>외장 색상</label>
+                <label htmlFor="car-color">
+                  외장 색상
+                </label>
 
                 <input
+                  id="car-color"
                   type="text"
                   name="color"
-                  value={formData.color}
-                  onChange={handleChange}
+                  value={
+                    formData.color
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
                   placeholder="예: 화이트"
                 />
               </div>
 
               <div className="form-group">
-                <label>내장 색상</label>
+                <label htmlFor="car-interior">
+                  내장 색상
+                </label>
 
                 <input
+                  id="car-interior"
                   type="text"
                   name="interior"
                   value={
                     formData.interior
                   }
-                  onChange={handleChange}
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
                   placeholder="예: 블랙"
                 />
               </div>
 
               <div className="form-group">
-                <label>
+                <label htmlFor="car-price">
                   {isMember
                     ? "경매 시작가"
                     : "판매 가격"}
                 </label>
 
                 <input
+                  id="car-price"
                   type="number"
                   name="price"
-                  value={formData.price}
-                  onChange={handleChange}
+                  min="1"
+                  value={
+                    formData.price
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    isSubmitting
+                  }
                   placeholder={
                     isMember
                       ? "예: 1500"
@@ -591,7 +724,7 @@ function DealerRegisterCarPage() {
           <div className="register-info-box">
             <p>
               {isMember
-                ? "등록한 차량은 7일 동안 비공개 입찰 경매로 진행됩니다. 회사와 회사 소속 딜러만 입찰할 수 있습니다."
+                ? "등록한 차량은 3시간 동안 비공개 입찰 경매로 진행됩니다. 회사와 회사 소속 딜러만 입찰할 수 있습니다."
                 : "회사 소속 딜러가 등록한 차량은 일반회원에게 일반 중고거래 방식으로 판매됩니다."}
             </p>
           </div>
@@ -600,10 +733,17 @@ function DealerRegisterCarPage() {
             <button
               type="submit"
               className="submit-button"
+              disabled={
+                isSubmitting
+              }
             >
-              {isMember
-                ? "경매 매물 등록"
-                : "판매 매물 등록"}
+              {isSubmitting
+                ? "이미지 업로드 및 등록 중..."
+                : (
+                  isMember
+                    ? "경매 매물 등록"
+                    : "판매 매물 등록"
+                )}
             </button>
           </div>
         </form>

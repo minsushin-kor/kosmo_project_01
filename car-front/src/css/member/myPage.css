@@ -5,31 +5,21 @@
   box-sizing: border-box;
 
   background:
-    radial-gradient(
-      circle at 10% 15%,
-      rgba(
-        207,
+    radial-gradient(circle at 10% 15%,
+      rgba(207,
         231,
         255,
-        0.75
-      ),
-      transparent 26%
-    ),
-    radial-gradient(
-      circle at 90% 85%,
-      rgba(
-        220,
+        0.75),
+      transparent 26%),
+    radial-gradient(circle at 90% 85%,
+      rgba(220,
         240,
         255,
-        0.9
-      ),
-      transparent 30%
-    ),
-    linear-gradient(
-      180deg,
+        0.9),
+      transparent 30%),
+    linear-gradient(180deg,
       #f8fbff 0%,
-      #eef7ff 100%
-    );
+      #eef7ff 100%);
 }
 
 .mypage-header {
@@ -46,12 +36,10 @@
     1px solid var(--line);
   border-radius: 24px;
   background-color:
-    rgba(
+    rgba(255,
       255,
       255,
-      255,
-      0.92
-    );
+      0.92);
   box-shadow:
     var(--shadow-card);
 }
@@ -74,8 +62,7 @@
   justify-content: center;
 
   border:
-    1px solid
-    var(--main-blue);
+    1px solid var(--main-blue);
   border-radius: 13px;
   background-color:
     var(--main-blue);
@@ -87,13 +74,10 @@
   white-space: nowrap;
 
   box-shadow:
-    0 8px 18px
-    rgba(
-      20,
+    0 8px 18px rgba(20,
       115,
       230,
-      0.22
-    );
+      0.22);
 }
 
 .mypage-home-btn:hover {
@@ -119,12 +103,10 @@
     1px solid var(--line);
   border-radius: 24px;
   background-color:
-    rgba(
+    rgba(255,
       255,
       255,
-      255,
-      0.94
-    );
+      0.94);
   box-shadow:
     var(--shadow-card);
 }
@@ -149,11 +131,9 @@
   border-radius: 50%;
 
   background:
-    linear-gradient(
-      135deg,
+    linear-gradient(135deg,
       var(--main-blue),
-      #4da3ff
-    );
+      #4da3ff);
 
   color: #ffffff;
 
@@ -161,13 +141,10 @@
   font-weight: 900;
 
   box-shadow:
-    0 10px 20px
-    rgba(
-      20,
+    0 10px 20px rgba(20,
       115,
       230,
-      0.25
-    );
+      0.25);
 }
 
 .profile-info h2 {
@@ -206,8 +183,8 @@
   font-weight: 900;
 }
 
-.info-card > h3,
-.mypage-menu-card > h3 {
+.info-card>h3,
+.mypage-menu-card>h3 {
   margin-bottom: 18px;
 }
 
@@ -282,10 +259,8 @@
 .mypage-menu-list {
   display: grid;
   grid-template-columns:
-    repeat(
-      4,
-      minmax(0, 1fr)
-    );
+    repeat(4,
+      minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -295,10 +270,8 @@
 
 .dealer-mypage-menu-list {
   grid-template-columns:
-    repeat(
-      3,
-      minmax(0, 1fr)
-    );
+    repeat(3,
+      minmax(0, 1fr));
 }
 
 .mypage-menu-list a {
@@ -338,13 +311,10 @@
   color: #ffffff;
 
   box-shadow:
-    0 8px 18px
-    rgba(
-      20,
+    0 8px 18px rgba(20,
       115,
       230,
-      0.2
-    );
+      0.2);
 }
 
 .mypage-menu-empty {
@@ -403,8 +373,7 @@
   justify-content: center;
 
   border:
-    1px solid
-    var(--main-blue);
+    1px solid var(--main-blue);
   border-radius: 13px;
   background-color: #ffffff;
   color: var(--main-blue);
@@ -424,10 +393,8 @@
 .favorite-car-list {
   display: grid;
   grid-template-columns:
-    repeat(
-      2,
-      minmax(0, 1fr)
-    );
+    repeat(2,
+      minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -457,13 +424,10 @@
   border-color: #b9d8fa;
 
   box-shadow:
-    0 10px 22px
-    rgba(
-      15,
+    0 10px 22px rgba(15,
       23,
       42,
-      0.08
-    );
+      0.08);
 }
 
 .favorite-car-image {
@@ -475,11 +439,9 @@
   justify-content: center;
 
   background:
-    linear-gradient(
-      135deg,
+    linear-gradient(135deg,
       #dceeff,
-      #f8fbff
-    );
+      #f8fbff);
 
   color: var(--main-blue);
 
@@ -520,7 +482,7 @@
   white-space: nowrap;
 }
 
-.favorite-car-title-row > span {
+.favorite-car-title-row>span {
   flex-shrink: 0;
   padding: 4px 7px;
 
@@ -548,9 +510,7 @@
   font-size: 12px;
 }
 
-.favorite-car-info li:not(
-  :last-child
-)::after {
+.favorite-car-info li:not( :last-child)::after {
   margin-left: 6px;
   content: "·";
 }
@@ -614,10 +574,8 @@
 
   display: grid;
   grid-template-columns:
-    repeat(
-      4,
-      minmax(0, 1fr)
-    );
+    repeat(4,
+      minmax(0, 1fr));
 }
 
 .mypage-simple-table-head {
@@ -660,8 +618,7 @@
   background-color: #f0f7ff;
 }
 
-.mypage-clickable-row:hover
-  span:first-child {
+.mypage-clickable-row:hover span:first-child {
   color: var(--main-blue);
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -669,8 +626,7 @@
 
 .mypage-clickable-row:focus-visible {
   outline:
-    2px solid
-    var(--main-blue);
+    2px solid var(--main-blue);
   outline-offset: -2px;
 }
 
@@ -698,12 +654,10 @@
   justify-content: center;
 
   background-color:
-    rgba(
-      15,
+    rgba(15,
       23,
       42,
-      0.66
-    );
+      0.66);
 
   backdrop-filter: blur(5px);
 }
@@ -720,13 +674,10 @@
   background-color: #ffffff;
 
   box-shadow:
-    0 24px 70px
-    rgba(
-      15,
+    0 24px 70px rgba(15,
       23,
       42,
-      0.28
-    );
+      0.28);
 }
 
 .owned-car-modal-header {
@@ -780,11 +731,9 @@
   overflow: hidden;
 
   background:
-    linear-gradient(
-      135deg,
+    linear-gradient(135deg,
       #dceeff,
-      #f8fbff
-    );
+      #f8fbff);
 }
 
 .owned-car-modal-image img {
@@ -819,14 +768,12 @@
 
   display: grid;
   grid-template-columns:
-    repeat(
-      2,
-      minmax(0, 1fr)
-    );
+    repeat(2,
+      minmax(0, 1fr));
   gap: 12px;
 }
 
-.owned-car-modal-spec > div {
+.owned-car-modal-spec>div {
   padding: 14px;
 
   border: 1px solid #e5edf7;
@@ -872,10 +819,8 @@
   .mypage-menu-list,
   .favorite-car-list {
     grid-template-columns:
-      repeat(
-        2,
-        minmax(0, 1fr)
-      );
+      repeat(2,
+        minmax(0, 1fr));
   }
 }
 
@@ -937,5 +882,256 @@
 
   .owned-car-modal-spec {
     grid-template-columns: 1fr;
+  }
+}
+
+.mypage-info-title-row {
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.mypage-info-title-row h3 {
+  margin: 0;
+}
+
+.mypage-member-edit-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--main-blue);
+  border-radius: 11px;
+  background-color: #ffffff;
+  color: var(--main-blue);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.mypage-member-edit-btn:hover {
+  background-color: #f4f9ff;
+}
+
+.member-edit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  padding: 24px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background-color: rgba(15, 23, 42, 0.58);
+}
+
+.member-edit-modal {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border: 1px solid #dbeafe;
+  border-radius: 22px;
+  background-color: #ffffff;
+  box-shadow:
+    0 26px 70px rgba(15, 23, 42, 0.28);
+}
+
+.member-edit-modal-header {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.member-edit-modal-header span {
+  color: var(--main-blue);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.member-edit-modal-header h2 {
+  margin: 6px 0 0;
+  color: #0f172a;
+  font-size: 23px;
+}
+
+.member-edit-modal-header>button {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  color: #475569;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.member-edit-form {
+  padding: 24px;
+}
+
+.member-edit-form-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.member-edit-form label {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.member-edit-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 11px;
+  outline: none;
+  background-color: #ffffff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.member-edit-form input:focus {
+  border-color: var(--main-blue);
+  box-shadow:
+    0 0 0 3px rgba(20, 115, 230, 0.1);
+}
+
+.member-edit-full-field {
+  grid-column: 1 / -1;
+}
+
+.member-edit-car-section {
+  margin-top: 22px;
+  padding: 20px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background-color: #f8fbff;
+}
+
+.member-edit-car-toggle {
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.member-edit-car-toggle strong {
+  display: block;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.member-edit-car-toggle p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.member-edit-switch {
+  display: flex !important;
+  align-items: center;
+  gap: 9px !important;
+  cursor: pointer;
+}
+
+.member-edit-switch input {
+  width: 18px;
+  height: 18px;
+  min-height: auto;
+}
+
+.member-edit-switch span {
+  min-width: 44px;
+  color: var(--main-blue);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.member-edit-message {
+  margin: 16px 0 0;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.member-edit-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.member-edit-actions button {
+  min-width: 100px;
+  height: 42px;
+  padding: 0 17px;
+  border-radius: 11px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.member-edit-cancel-btn {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #475569;
+}
+
+.member-edit-save-btn {
+  border: 1px solid var(--main-blue);
+  background-color: var(--main-blue);
+  color: #ffffff;
+}
+
+.member-edit-save-btn:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.member-edit-actions button:disabled,
+.member-edit-modal-header button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+
+  .mypage-info-title-row,
+  .member-edit-car-toggle {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mypage-member-edit-btn {
+    width: 100%;
+  }
+
+  .member-edit-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .member-edit-full-field {
+    grid-column: auto;
+  }
+
+  .member-edit-actions {
+    flex-direction: column-reverse;
+  }
+
+  .member-edit-actions button {
+    width: 100%;
   }
 }

@@ -234,3 +234,23 @@
     width: 100%;
   }
 }
+
+.signup-error-message {
+  margin: 16px 0;
+  padding: 12px 14px;
+
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+
+  background-color: #fef2f2;
+
+  color: #b91c1c;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.signup-form button:disabled,
+.signup-type-group button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

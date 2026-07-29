@@ -342,15 +342,25 @@ function DealerPage() {
           ) ||
           "차량 상태를 정확하게 안내하고 안전한 거래를 진행하겠습니다.",
 
-        profileImage:
+        profileImageUrl:
+          savedProfile
+            .profileImageUrl ||
           savedProfile
             .profileImage ||
+          savedDealer
+            ?.profileImageUrl ||
+          savedDealer
+            ?.imagePreviewUrl ||
           savedDealer
             ?.profileImage ||
           (
             isOwnPage
-              ? loginUser
-                ?.profileImage
+              ? (
+                loginUser
+                  ?.profileImageUrl ||
+                loginUser
+                  ?.profileImage
+              )
               : ""
           ) ||
           "",
@@ -866,17 +876,44 @@ function DealerPage() {
       <section className="page-section dealer-profile-section">
         <div className="dealer-profile-top">
           <div className="dealer-profile-avatar">
-            {dealer.profileImage ? (
-              <img
-                src={
-                  dealer.profileImage
-                }
-                alt={`${dealer.name} 프로필`}
-              />
+            {dealer.profileImageUrl ? (
+              <>
+                <img
+                  src={
+                    dealer.profileImageUrl
+                  }
+                  alt={`${dealer.name} 딜러 프로필`}
+                  onError={(event) => {
+                    event.currentTarget.style.display =
+                      "none";
+
+                    const fallback =
+                      event.currentTarget
+                        .nextElementSibling;
+
+                    if (fallback) {
+                      fallback.style.display =
+                        "grid";
+                    }
+                  }}
+                />
+
+                <span
+                  className="dealer-profile-avatar-fallback"
+                  style={{
+                    display: "none",
+                  }}
+                >
+                  {String(
+                    dealer.name || "딜"
+                  ).slice(0, 1)}
+                </span>
+              </>
             ) : (
-              <span>
-                {dealer.name
-                  .slice(0, 1)}
+              <span className="dealer-profile-avatar-fallback">
+                {String(
+                  dealer.name || "딜"
+                ).slice(0, 1)}
               </span>
             )}
           </div>

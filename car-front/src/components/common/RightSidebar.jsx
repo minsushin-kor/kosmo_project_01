@@ -140,10 +140,17 @@ function RightSidebar({
   }, []);
 
   const recentCars = useMemo(
-    () =>
-      getRecentCars(
+    () => {
+      /*
+       * 최근 본 차량 변경 이벤트가 발생하면
+       * localStorage 데이터를 다시 읽습니다.
+       */
+      void recentVersion;
+
+      return getRecentCars(
         allCars
-      ).slice(0, 3),
+      ).slice(0, 3);
+    },
     [
       allCars,
       recentVersion,
@@ -151,13 +158,20 @@ function RightSidebar({
   );
 
   const recommendedCars = useMemo(
-    () =>
-      getRecommendedCars({
+    () => {
+      /*
+       * 최근 본 차량 목록도 추천 결과에 영향을 주므로
+       * 변경 시 추천 차량을 다시 계산합니다.
+       */
+      void recentVersion;
+
+      return getRecommendedCars({
         candidateCars,
         allCars,
         loginUser,
         limit: 4,
-      }),
+      });
+    },
     [
       allCars,
       candidateCars,
@@ -171,7 +185,7 @@ function RightSidebar({
       (type) => {
         const condition =
           POPULAR_SEARCH_CONDITIONS[
-            type
+          type
           ];
 
         if (!condition) {

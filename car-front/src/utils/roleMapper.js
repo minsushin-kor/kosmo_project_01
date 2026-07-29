@@ -9,12 +9,18 @@ export const SERVER_AUTH_ROLES = {
     MEMBER: "MEMBER",
 };
 
+function normalizeServerRole(serverRole) {
+    return String(serverRole || "")
+        .trim()
+        .toUpperCase()
+        .replace(/^ROLE_/, "");
+}
+
 export function mapServerRoleToClientRole(
     serverRole
 ) {
-    const normalizedRole = String(
-        serverRole || ""
-    ).toUpperCase();
+    const normalizedRole =
+        normalizeServerRole(serverRole);
 
     if (
         normalizedRole ===
@@ -24,11 +30,24 @@ export function mapServerRoleToClientRole(
     }
 
     if (
-        Object.values(AUTH_ROLES).includes(
-            normalizedRole
-        )
+        normalizedRole ===
+        SERVER_AUTH_ROLES.ADMIN
     ) {
-        return normalizedRole;
+        return AUTH_ROLES.ADMIN;
+    }
+
+    if (
+        normalizedRole ===
+        SERVER_AUTH_ROLES.DEALER
+    ) {
+        return AUTH_ROLES.DEALER;
+    }
+
+    if (
+        normalizedRole ===
+        SERVER_AUTH_ROLES.MEMBER
+    ) {
+        return AUTH_ROLES.MEMBER;
     }
 
     return "";
@@ -37,18 +56,38 @@ export function mapServerRoleToClientRole(
 export function mapClientRoleToServerRole(
     clientRole
 ) {
+    const normalizedRole = String(
+        clientRole || ""
+    )
+        .trim()
+        .toUpperCase();
+
     if (
-        clientRole === AUTH_ROLES.COMPANY
+        normalizedRole ===
+        AUTH_ROLES.COMPANY
     ) {
         return SERVER_AUTH_ROLES.COMPANY_MASTER;
     }
 
     if (
-        Object.values(
-            SERVER_AUTH_ROLES
-        ).includes(clientRole)
+        normalizedRole ===
+        AUTH_ROLES.ADMIN
     ) {
-        return clientRole;
+        return SERVER_AUTH_ROLES.ADMIN;
+    }
+
+    if (
+        normalizedRole ===
+        AUTH_ROLES.DEALER
+    ) {
+        return SERVER_AUTH_ROLES.DEALER;
+    }
+
+    if (
+        normalizedRole ===
+        AUTH_ROLES.MEMBER
+    ) {
+        return SERVER_AUTH_ROLES.MEMBER;
     }
 
     return "";

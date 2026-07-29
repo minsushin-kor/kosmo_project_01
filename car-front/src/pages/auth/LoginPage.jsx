@@ -99,7 +99,7 @@ function LoginPage() {
 
       const loginResult =
         await login({
-          username: trimmedLoginId,
+          loginId: trimmedLoginId,
           password,
           role: loginType,
         });
@@ -298,12 +298,7 @@ function LoginPage() {
                   setErrorMessage("");
                 }
               }}
-              placeholder={
-                loginType ===
-                  AUTH_ROLES.DEALER
-                  ? "딜러 아이디를 입력하세요"
-                  : "이메일을 입력하세요"
-              }
+              placeholder="로그인 아이디를 입력하세요"
             />
           </div>
 
@@ -353,13 +348,11 @@ function LoginPage() {
 
         <div className="login-guide">
           <p>
-            일반회원과 관리자는 이메일로
-            로그인
+            회원가입 또는 계정 생성 시 등록한 로그인 아이디로 로그인
           </p>
 
           <p>
-            회사는 대표 이메일, 딜러는
-            발급받은 아이디로 로그인
+            계정 유형을 정확하게 선택한 뒤 로그인하세요.
           </p>
         </div>
       </section>

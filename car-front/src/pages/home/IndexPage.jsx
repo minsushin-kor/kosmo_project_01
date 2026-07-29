@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -10,8 +11,8 @@ import {
 import CarCard from "../../components/car/CarCard";
 import RightSidebar from "../../components/common/RightSidebar";
 import {
-  getAllCars,
-} from "../../utils/carViewUtils";
+  getCarList,
+} from "../../api/carApi";
 import {
   useAuth,
 } from "../../hooks/useAuth";
@@ -46,19 +47,88 @@ const PAGE_GUIDES = {
 };
 
 function getRegisteredTime(car) {
-  const timestamp = new Date(
-    car.registeredDate
-  ).getTime();
+  const timestamp =
+    new Date(
+      car.registeredDate ||
+      car.createdAt ||
+      ""
+    ).getTime();
 
-  return Number.isNaN(timestamp)
+  return Number.isNaN(
+    timestamp
+  )
     ? 0
     : timestamp;
+}
+
+function getCarPrice(car) {
+  const price =
+    Number(
+      car.price ??
+      car.sellingPrice ??
+      car.sellingprice ??
+      car.auction?.startPrice ??
+      car.startPrice ??
+      0
+    );
+
+  return Number.isFinite(
+    price
+  )
+    ? price
+    : 0;
+}
+
+function getCarMileage(car) {
+  const mileage =
+    Number(
+      car.mileage ??
+      car.odometer ??
+      0
+    );
+
+  return Number.isFinite(
+    mileage
+  )
+    ? mileage
+    : 0;
+}
+
+async function requestCarList() {
+  const result =
+    await getCarList({
+      page: 0,
+      size: 1000,
+      sortBy: "createdAt",
+      direction: "desc",
+    });
+
+  return Array.isArray(
+    result?.cars
+  )
+    ? result.cars
+    : [];
 }
 
 function IndexPage() {
   const {
     loginUser,
   } = useAuth();
+
+  const [
+    allCars,
+    setAllCars,
+  ] = useState([]);
+
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
   const [
     searchCondition,
@@ -86,148 +156,300 @@ function IndexPage() {
     setCurrentPage,
   ] = useState(1);
 
-  const allCars = useMemo(
-    () => getAllCars(),
-    []
-  );
-
   const role =
     loginUser?.role;
 
-  const roleCars = useMemo(() => {
-    if (
-      role === AUTH_ROLES.MEMBER
-    ) {
-      return allCars.filter(
-        (car) =>
-          car.saleType ===
+  useEffect(() => {
+    let isMounted = true;
+
+    requestCarList()
+      .then((carList) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setAllCars(
+          carList
+        );
+
+        setErrorMessage("");
+      })
+      .catch((error) => {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error(
+          "차량 목록 조회 실패:",
+          error
+        );
+
+        setAllCars([]);
+
+        setErrorMessage(
+          error?.message ||
+          "차량 목록을 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        if (!isMounted) {
+          return;
+        }
+
+        setIsLoading(
+          false
+        );
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const loadCars =
+    useCallback(async () => {
+      if (isLoading) {
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const carList =
+          await requestCarList();
+
+        setAllCars(
+          carList
+        );
+      } catch (error) {
+        console.error(
+          "차량 목록 새로고침 실패:",
+          error
+        );
+
+        setAllCars([]);
+
+        setErrorMessage(
+          error?.message ||
+          "차량 목록을 불러오지 못했습니다."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }, [isLoading]);
+
+  const roleCars =
+    useMemo(() => {
+      if (
+        role ===
+        AUTH_ROLES.MEMBER
+      ) {
+        return allCars.filter(
+          (car) =>
+            car.saleType ===
             "NORMAL" &&
-          car.sellerType ===
-            "회사딜러"
-      );
-    }
+            (
+              car.ownerType ===
+              "DEALER" ||
+              car.sellerType ===
+              "회사딜러" ||
+              (
+                Boolean(
+                  car.dealerId
+                ) &&
+                !car.memberId
+              )
+            )
+        );
+      }
 
-    if (
-      role === AUTH_ROLES.COMPANY ||
-      role === AUTH_ROLES.DEALER
-    ) {
-      return allCars.filter(
-        (car) =>
-          car.saleType ===
+      if (
+        role ===
+        AUTH_ROLES.COMPANY ||
+        role ===
+        AUTH_ROLES.DEALER
+      ) {
+        return allCars.filter(
+          (car) =>
+            car.saleType ===
             "AUCTION" &&
-          car.sellerType ===
-            "일반회원"
-      );
-    }
+            (
+              car.ownerType ===
+              "MEMBER" ||
+              car.sellerType ===
+              "일반회원" ||
+              (
+                Boolean(
+                  car.memberId
+                ) &&
+                !car.dealerId
+              )
+            )
+        );
+      }
 
-    return allCars;
-  }, [allCars, role]);
+      return allCars;
+    }, [
+      allCars,
+      role,
+    ]);
 
-  const pageGuide = useMemo(() => {
-    if (
-      role === AUTH_ROLES.MEMBER
-    ) {
-      return PAGE_GUIDES.member;
-    }
+  const pageGuide =
+    useMemo(() => {
+      if (
+        role ===
+        AUTH_ROLES.MEMBER
+      ) {
+        return PAGE_GUIDES.member;
+      }
 
-    if (
-      role === AUTH_ROLES.COMPANY ||
-      role === AUTH_ROLES.DEALER
-    ) {
-      return PAGE_GUIDES.auction;
-    }
+      if (
+        role ===
+        AUTH_ROLES.COMPANY ||
+        role ===
+        AUTH_ROLES.DEALER
+      ) {
+        return PAGE_GUIDES.auction;
+      }
 
-    return PAGE_GUIDES.default;
-  }, [role]);
+      return PAGE_GUIDES.default;
+    }, [role]);
 
   const filteredCars =
     useMemo(() => {
       const modelKeyword =
-        searchCondition.modelName
+        String(
+          searchCondition
+            .modelName ||
+          ""
+        )
           .trim()
           .toLowerCase();
 
-      const minPrice = Number(
-        searchCondition.minPrice
-      );
+      const minPrice =
+        Number(
+          searchCondition
+            .minPrice ||
+          0
+        );
 
-      const maxPrice = Number(
-        searchCondition.maxPrice
-      );
+      const maxPrice =
+        Number(
+          searchCondition
+            .maxPrice ||
+          Number.MAX_SAFE_INTEGER
+        );
 
       const minYear =
-        searchCondition.year === ""
+        searchCondition.year ===
+          ""
           ? null
           : Number(
-              searchCondition.year
-            );
+            searchCondition
+              .year
+          );
 
       const maxMileage =
-        searchCondition.mileage === ""
+        searchCondition
+          .mileage === ""
           ? null
           : Number(
-              searchCondition.mileage
-            );
+            searchCondition
+              .mileage
+          );
 
       const filtered =
-        roleCars.filter((car) => {
-          const matchBrand =
-            searchCondition.brand ===
+        roleCars.filter(
+          (car) => {
+            const carBrand =
+              String(
+                car.brand ||
+                car.make ||
+                ""
+              );
+
+            const matchBrand =
+              searchCondition
+                .brand === "" ||
+              carBrand ===
+              searchCondition
+                .brand;
+
+            const carModelName =
+              String(
+                car.modelName ||
+                car.model ||
+                ""
+              ).toLowerCase();
+
+            const carName =
+              String(
+                car.carName ||
+                car.name ||
+                ""
+              ).toLowerCase();
+
+            const matchModelName =
+              modelKeyword ===
               "" ||
-            car.brand ===
-              searchCondition.brand;
+              carModelName.includes(
+                modelKeyword
+              ) ||
+              carName.includes(
+                modelKeyword
+              );
 
-          const carModelName =
-            String(
-              car.modelName || ""
-            ).toLowerCase();
+            const carRegion =
+              String(
+                car.region ||
+                car.state ||
+                ""
+              );
 
-          const carName =
-            String(
-              car.carName || ""
-            ).toLowerCase();
+            const matchRegion =
+              searchCondition
+                .region === "" ||
+              carRegion ===
+              searchCondition
+                .region;
 
-          const matchModelName =
-            modelKeyword === "" ||
-            carModelName.includes(
-              modelKeyword
-            ) ||
-            carName.includes(
-              modelKeyword
-            );
+            const carPrice =
+              getCarPrice(
+                car
+              );
 
-          const matchRegion =
-            searchCondition.region ===
-              "" ||
-            car.region ===
-              searchCondition.region;
+            const matchPrice =
+              carPrice >=
+              minPrice &&
+              carPrice <=
+              maxPrice;
 
-          const carPrice = Number(
-            car.price
-          );
+            const matchYear =
+              minYear ===
+              null ||
+              Number(
+                car.year
+              ) >= minYear;
 
-          const matchPrice =
-            carPrice >= minPrice &&
-            carPrice <= maxPrice;
-
-          const matchYear =
-            minYear === null ||
-            Number(car.year) >= minYear;
-
-          const matchMileage =
-            maxMileage === null ||
-            Number(car.mileage) <=
+            const matchMileage =
+              maxMileage ===
+              null ||
+              getCarMileage(
+                car
+              ) <=
               maxMileage;
 
-          return (
-            matchBrand &&
-            matchModelName &&
-            matchRegion &&
-            matchPrice &&
-            matchYear &&
-            matchMileage
-          );
-        });
+            return (
+              matchBrand &&
+              matchModelName &&
+              matchRegion &&
+              matchPrice &&
+              matchYear &&
+              matchMileage
+            );
+          }
+        );
 
       const result = [
         ...filtered,
@@ -237,17 +459,19 @@ function IndexPage() {
         case "priceLow":
           result.sort(
             (a, b) =>
-              Number(a.price) -
-              Number(b.price)
+              getCarPrice(a) -
+              getCarPrice(b)
           );
+
           break;
 
         case "priceHigh":
           result.sort(
             (a, b) =>
-              Number(b.price) -
-              Number(a.price)
+              getCarPrice(b) -
+              getCarPrice(a)
           );
+
           break;
 
         case "yearHigh":
@@ -256,23 +480,30 @@ function IndexPage() {
               Number(b.year) -
               Number(a.year)
           );
+
           break;
 
         case "mileageLow":
           result.sort(
             (a, b) =>
-              Number(a.mileage) -
-              Number(b.mileage)
+              getCarMileage(a) -
+              getCarMileage(b)
           );
+
           break;
 
         case "latest":
         default:
           result.sort(
             (a, b) =>
-              getRegisteredTime(b) -
-              getRegisteredTime(a)
+              getRegisteredTime(
+                b
+              ) -
+              getRegisteredTime(
+                a
+              )
           );
+
           break;
       }
 
@@ -283,79 +514,103 @@ function IndexPage() {
       sortType,
     ]);
 
-  const totalPage = Math.ceil(
-    filteredCars.length /
+  const totalPage =
+    Math.ceil(
+      filteredCars.length /
       viewCount
-  );
+    );
 
   const safeCurrentPage =
     totalPage === 0
       ? 1
       : Math.min(
-          currentPage,
-          totalPage
-        );
+        currentPage,
+        totalPage
+      );
 
-  const visibleCars = useMemo(() => {
-    const startIndex =
-      (safeCurrentPage - 1) *
-      viewCount;
+  const visibleCars =
+    useMemo(() => {
+      const startIndex =
+        (
+          safeCurrentPage -
+          1
+        ) *
+        viewCount;
 
-    return filteredCars.slice(
-      startIndex,
-      startIndex + viewCount
+      return filteredCars.slice(
+        startIndex,
+        startIndex +
+        viewCount
+      );
+    }, [
+      filteredCars,
+      safeCurrentPage,
+      viewCount,
+    ]);
+
+  const pageNumbers =
+    useMemo(
+      () =>
+        Array.from(
+          {
+            length:
+              totalPage,
+          },
+          (
+            _,
+            index
+          ) =>
+            index + 1
+        ),
+      [totalPage]
     );
-  }, [
-    filteredCars,
-    safeCurrentPage,
-    viewCount,
-  ]);
-
-  const pageNumbers = useMemo(
-    () =>
-      Array.from(
-        {
-          length: totalPage,
-        },
-        (_, index) => index + 1
-      ),
-    [totalPage]
-  );
 
   const handleSearchConditionChange =
-    useCallback((condition) => {
-      setSearchCondition(
-        condition
-      );
+    useCallback(
+      (condition) => {
+        setSearchCondition(
+          condition
+        );
 
-      setCurrentPage(1);
-    }, []);
+        setCurrentPage(1);
+      },
+      []
+    );
 
   const handleSortChange =
-    useCallback((event) => {
-      setSortType(
-        event.target.value
-      );
+    useCallback(
+      (event) => {
+        setSortType(
+          event.target.value
+        );
 
-      setCurrentPage(1);
-    }, []);
+        setCurrentPage(1);
+      },
+      []
+    );
 
   const handleViewCountChange =
-    useCallback((event) => {
-      setViewCount(
-        Number(
-          event.target.value
-        )
-      );
+    useCallback(
+      (event) => {
+        setViewCount(
+          Number(
+            event.target.value
+          )
+        );
 
-      setCurrentPage(1);
-    }, []);
+        setCurrentPage(1);
+      },
+      []
+    );
 
   const handlePrevPage =
     useCallback(() => {
       setCurrentPage(
         (prev) =>
-          Math.max(1, prev - 1)
+          Math.max(
+            1,
+            prev - 1
+          )
       );
     }, []);
 
@@ -388,14 +643,18 @@ function IndexPage() {
           <div className="car-list-header">
             <div>
               <h2>
-                {pageGuide.title}
+                {
+                  pageGuide.title
+                }
               </h2>
 
               <p className="car-list-summary">
                 {
                   pageGuide.description
                 }
+
                 <br />
+
                 총{" "}
                 <strong>
                   {
@@ -408,11 +667,31 @@ function IndexPage() {
             </div>
 
             <div className="car-list-control">
+              <button
+                type="button"
+                className="car-reload-button"
+                onClick={
+                  loadCars
+                }
+                disabled={
+                  isLoading
+                }
+              >
+                {isLoading
+                  ? "불러오는 중..."
+                  : "새로고침"}
+              </button>
+
               <select
                 className="car-sort-select"
-                value={sortType}
+                value={
+                  sortType
+                }
                 onChange={
                   handleSortChange
+                }
+                disabled={
+                  isLoading
                 }
               >
                 <option value="latest">
@@ -438,9 +717,14 @@ function IndexPage() {
 
               <select
                 className="car-sort-select"
-                value={viewCount}
+                value={
+                  viewCount
+                }
                 onChange={
                   handleViewCountChange
+                }
+                disabled={
+                  isLoading
                 }
               >
                 <option value={10}>
@@ -458,79 +742,126 @@ function IndexPage() {
             </div>
           </div>
 
-          {visibleCars.length > 0 ? (
-            <>
-              <div className="car-card-list">
-                {visibleCars.map(
-                  (car) => (
-                    <CarCard
-                      key={car.id}
-                      car={car}
-                    />
-                  )
-                )}
-              </div>
-
-              {totalPage > 1 && (
-                <div className="pagination">
-                  <button
-                    type="button"
-                    className="page-button"
-                    onClick={
-                      handlePrevPage
-                    }
-                    disabled={
-                      safeCurrentPage ===
-                      1
-                    }
-                  >
-                    이전
-                  </button>
-
-                  {pageNumbers.map(
-                    (page) => (
-                      <button
-                        key={page}
-                        type="button"
-                        className={`page-button ${
-                          safeCurrentPage ===
-                          page
-                            ? "active"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          setCurrentPage(
-                            page
-                          )
-                        }
-                      >
-                        {page}
-                      </button>
-                    )
-                  )}
-
-                  <button
-                    type="button"
-                    className="page-button"
-                    onClick={
-                      handleNextPage
-                    }
-                    disabled={
-                      safeCurrentPage ===
-                      totalPage
-                    }
-                  >
-                    다음
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="empty-result">
-              조건에 맞는 차량이
-              없습니다.
+          {isLoading && (
+            <div className="car-list-message">
+              차량 목록을
+              불러오는 중입니다.
             </div>
           )}
+
+          {!isLoading &&
+            errorMessage && (
+              <div className="car-list-error">
+                <p>
+                  {
+                    errorMessage
+                  }
+                </p>
+
+                <button
+                  type="button"
+                  onClick={
+                    loadCars
+                  }
+                >
+                  다시 시도
+                </button>
+              </div>
+            )}
+
+          {!isLoading &&
+            !errorMessage &&
+            visibleCars.length >
+            0 && (
+              <>
+                <div className="car-card-list">
+                  {visibleCars.map(
+                    (
+                      car,
+                      index
+                    ) => (
+                      <CarCard
+                        key={
+                          car.id ??
+                          car.carId ??
+                          `car-${index}`
+                        }
+                        car={
+                          car
+                        }
+                      />
+                    )
+                  )}
+                </div>
+
+                {totalPage >
+                  1 && (
+                    <div className="pagination">
+                      <button
+                        type="button"
+                        className="page-button"
+                        onClick={
+                          handlePrevPage
+                        }
+                        disabled={
+                          safeCurrentPage ===
+                          1
+                        }
+                      >
+                        이전
+                      </button>
+
+                      {pageNumbers.map(
+                        (page) => (
+                          <button
+                            key={
+                              page
+                            }
+                            type="button"
+                            className={`page-button ${safeCurrentPage ===
+                                page
+                                ? "active"
+                                : ""
+                              }`}
+                            onClick={() =>
+                              setCurrentPage(
+                                page
+                              )
+                            }
+                          >
+                            {page}
+                          </button>
+                        )
+                      )}
+
+                      <button
+                        type="button"
+                        className="page-button"
+                        onClick={
+                          handleNextPage
+                        }
+                        disabled={
+                          safeCurrentPage ===
+                          totalPage
+                        }
+                      >
+                        다음
+                      </button>
+                    </div>
+                  )}
+              </>
+            )}
+
+          {!isLoading &&
+            !errorMessage &&
+            visibleCars.length ===
+            0 && (
+              <div className="empty-result">
+                현재 등록된 차량이
+                없거나 조건에 맞는
+                차량이 없습니다.
+              </div>
+            )}
         </section>
 
         <aside className="right-info-sidebar">
@@ -541,7 +872,9 @@ function IndexPage() {
             setCurrentPage={
               setCurrentPage
             }
-            allCars={allCars}
+            allCars={
+              allCars
+            }
             candidateCars={
               roleCars
             }

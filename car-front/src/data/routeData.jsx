@@ -189,6 +189,11 @@ export const PUBLIC_ROUTES = [
     element: <CompanyPage />,
   },
   {
+    id: "company-public-detail",
+    path: "/companies/:companyId",
+    element: <CompanyPage />,
+  },
+  {
     id: "company-cars",
     path: "/company/cars",
     element: <CompanyCarsPage />,

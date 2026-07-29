@@ -5,7 +5,7 @@ import {
 } from "../utils/roleMapper";
 
 export async function login({
-    username,
+    loginId,
     password,
     role,
 }) {
@@ -21,7 +21,7 @@ export async function login({
     const response = await apiClient.post(
         "/auth/login",
         {
-            username,
+            loginId,
             password,
             roleType,
         }
@@ -35,6 +35,7 @@ export async function login({
             ),
         serverRole: response.role,
         name: response.name,
+        loginId: response.loginId,
     };
 }
 

@@ -105,6 +105,17 @@
   gap: 18px;
 }
 
+.company-profile-image {
+  width: 74px;
+  height: 74px;
+  border: 1px solid #c7ddff;
+  border-radius: 22px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  box-shadow: 0 10px 20px rgba(20, 115, 230, 0.18);
+}
+
 .company-profile-icon {
   width: 74px;
   height: 74px;
@@ -442,6 +453,7 @@
 }
 
 @media (max-width: 1100px) {
+
   .company-dashboard-profile,
   .company-stat-grid,
   .company-table-grid {
