@@ -1,192 +1,412 @@
 export const ROUTE_LOADERS = {
   home: () =>
-    import("../components/common/HomeRedirect"),
+    import(
+      "../components/common/HomeRedirect"
+    ),
 
   siteNotice: () =>
-    import("../pages/common/SiteNoticePage"),
+    import(
+      "../pages/common/SiteNoticePage"
+    ),
 
   login: () =>
-    import("../pages/auth/LoginPage"),
+    import(
+      "../pages/auth/LoginPage"
+    ),
 
   signup: () =>
-    import("../pages/auth/SignUpPage"),
+    import(
+      "../pages/auth/SignUpPage"
+    ),
 
   forbidden: () =>
-    import("../pages/auth/ForbiddenPage"),
+    import(
+      "../pages/auth/ForbiddenPage"
+    ),
 
   notFound: () =>
-    import("../pages/auth/NotFoundPage"),
+    import(
+      "../pages/auth/NotFoundPage"
+    ),
 
   memberMyPage: () =>
-    import("../pages/member/MyPage"),
+    import(
+      "../pages/member/MyPage"
+    ),
 
   memberCars: () =>
-    import("../pages/member/MemberCarsPage"),
+    import(
+      "../pages/member/MemberCarsPage"
+    ),
 
   memberAuctionBids: () =>
-    import("../pages/member/MemberAuctionBidsPage"),
+    import(
+      "../pages/member/MemberAuctionBidsPage"
+    ),
 
   memberAuctionTrade: () =>
-    import("../pages/member/MemberAuctionTradePage"),
+    import(
+      "../pages/member/MemberAuctionTradePage"
+    ),
 
   companyMyPage: () =>
-    import("../pages/company/MyPage"),
+    import(
+      "../pages/company/MyPage"
+    ),
 
   companyPage: () =>
-    import("../pages/company/CompanyPage"),
+    import(
+      "../pages/company/CompanyPage"
+    ),
 
   companyCars: () =>
-    import("../pages/company/CompanyCarsPage"),
+    import(
+      "../pages/company/CompanyCarsPage"
+    ),
 
   companyNotices: () =>
-    import("../pages/company/CompanyNoticesPage"),
+    import(
+      "../pages/company/CompanyNoticesPage"
+    ),
 
   companyCoupon: () =>
-    import("../pages/company/CompanyCouponPage"),
+    import(
+      "../pages/company/CompanyCouponPage"
+    ),
 
   companyDealerManage: () =>
-    import("../pages/company/CompanyDealerManagePage"),
+    import(
+      "../pages/company/CompanyDealerManagePage"
+    ),
 
   companyDealerCreate: () =>
-    import("../pages/company/CompanyDealerCreatePage"),
+    import(
+      "../pages/company/CompanyDealerCreatePage"
+    ),
 
   companyDealersPublic: () =>
-    import("../pages/company/CompanyDealersPublicPage"),
+    import(
+      "../pages/company/CompanyDealersPublicPage"
+    ),
 
   companyDealerCars: () =>
-    import("../pages/company/CompanyDealerCarsPage"),
+    import(
+      "../pages/company/CompanyDealerCarsPage"
+    ),
 
   dealerPage: () =>
-    import("../pages/company/DealerPage"),
+    import(
+      "../pages/company/DealerPage"
+    ),
 
   carDetail: () =>
-    import("../pages/car/CarDetailPage"),
+    import(
+      "../pages/car/CarDetailPage"
+    ),
 
   dealerRegisterCar: () =>
-    import("../pages/car/DealerRegisterCarPage"),
+    import(
+      "../pages/car/DealerRegisterCarPage"
+    ),
 
   dealerCarManage: () =>
-    import("../pages/car/DealerCarManagePage"),
+    import(
+      "../pages/car/DealerCarManagePage"
+    ),
 
   dealerAuctionBidManage: () =>
-    import("../pages/auction/DealerAuctionBidManagePage"),
+    import(
+      "../pages/auction/DealerAuctionBidManagePage"
+    ),
 
   adminDashboard: () =>
-    import("../pages/admin/AdminDashboardPage"),
+    import(
+      "../pages/admin/AdminDashboardPage"
+    ),
 
   adminMemberManage: () =>
-    import("../pages/admin/AdminMemberManagePage"),
+    import(
+      "../pages/admin/AdminMemberManagePage"
+    ),
 
   adminCompanyManage: () =>
-    import("../pages/admin/AdminCompanyManagePage"),
+    import(
+      "../pages/admin/AdminCompanyManagePage"
+    ),
 
   adminDealerManage: () =>
-    import("../pages/admin/AdminDealerManagePage"),
+    import(
+      "../pages/admin/AdminDealerManagePage"
+    ),
 
   adminNoticeManage: () =>
-    import("../pages/admin/AdminNoticeManagePage"),
+    import(
+      "../pages/admin/AdminNoticeManagePage"
+    ),
 
   adminCarManage: () =>
-    import("../pages/admin/AdminCarManagePage"),
+    import(
+      "../pages/admin/AdminCarManagePage"
+    ),
 
   adminReportManage: () =>
-    import("../pages/admin/AdminReportManagePage"),
+    import(
+      "../pages/admin/AdminReportManagePage"
+    ),
 
   adminChurnManage: () =>
-    import("../pages/admin/AdminChurnManagePage"),
+    import(
+      "../pages/admin/AdminChurnManagePage"
+    ),
 
   adminFinalDealManage: () =>
-    import("../pages/admin/AdminFinalDealManagePage"),
+    import(
+      "../pages/admin/AdminFinalDealManagePage"
+    ),
 
   test: () =>
-    import("../pages/test/TestPage"),
+    import(
+      "../pages/test/TestPage"
+    ),
 };
 
 const ROUTE_LOADERS_BY_PATH = {
-  "/": ROUTE_LOADERS.home,
+  "/":
+    ROUTE_LOADERS.home,
 
-  "/login": ROUTE_LOADERS.login,
-  "/signup": ROUTE_LOADERS.signup,
-  "/forbidden": ROUTE_LOADERS.forbidden,
-  "/notices": ROUTE_LOADERS.siteNotice,
+  "/login":
+    ROUTE_LOADERS.login,
 
-  "/mypage": ROUTE_LOADERS.memberMyPage,
-  "/member": ROUTE_LOADERS.memberMyPage,
+  "/signup":
+    ROUTE_LOADERS.signup,
+
+  "/forbidden":
+    ROUTE_LOADERS.forbidden,
+
+  "/notices":
+    ROUTE_LOADERS.siteNotice,
+
+  "/mypage":
+    ROUTE_LOADERS.memberMyPage,
+
+  "/member":
+    ROUTE_LOADERS.memberMyPage,
+
+  "/member/cars":
+    ROUTE_LOADERS.memberCars,
+
   "/member/register-car":
     ROUTE_LOADERS.dealerRegisterCar,
-  "/member/auction-bids":
-    ROUTE_LOADERS.memberAuctionBids,
 
-  "/company": ROUTE_LOADERS.companyPage,
+  "/company":
+    ROUTE_LOADERS.companyPage,
+
   "/company/cars":
     ROUTE_LOADERS.companyCars,
+
   "/company/mypage":
     ROUTE_LOADERS.companyMyPage,
+
   "/company/notices":
     ROUTE_LOADERS.companyNotices,
+
   "/company/coupons":
     ROUTE_LOADERS.companyCoupon,
+
   "/company/dealers":
     ROUTE_LOADERS.companyDealerManage,
+
   "/company/dealers/create":
     ROUTE_LOADERS.companyDealerCreate,
+
   "/company/dealers/public":
     ROUTE_LOADERS.companyDealersPublic,
 
-  "/dealer": ROUTE_LOADERS.dealerPage,
+  "/dealer":
+    ROUTE_LOADERS.dealerPage,
+
   "/dealer/cars":
     ROUTE_LOADERS.dealerCarManage,
+
   "/dealer/register-car":
     ROUTE_LOADERS.dealerRegisterCar,
 
   "/admin":
     ROUTE_LOADERS.adminDashboard,
+
   "/admin/dashboard":
     ROUTE_LOADERS.adminDashboard,
+
   "/admin/members":
     ROUTE_LOADERS.adminMemberManage,
+
   "/admin/companies":
     ROUTE_LOADERS.adminCompanyManage,
+
   "/admin/dealers":
     ROUTE_LOADERS.adminDealerManage,
+
   "/admin/notices":
     ROUTE_LOADERS.adminNoticeManage,
+
   "/admin/cars":
     ROUTE_LOADERS.adminCarManage,
+
   "/admin/final-deals":
     ROUTE_LOADERS.adminFinalDealManage,
+
   "/admin/reports":
     ROUTE_LOADERS.adminReportManage,
+
   "/admin/churn":
     ROUTE_LOADERS.adminChurnManage,
+
   "/admin/churn/company":
     ROUTE_LOADERS.adminChurnManage,
+
   "/admin/churn/dealer":
     ROUTE_LOADERS.adminChurnManage,
 
-  "/test": ROUTE_LOADERS.test,
+  "/test":
+    ROUTE_LOADERS.test,
 };
 
-const prefetchedPaths = new Set();
+const DYNAMIC_ROUTE_LOADERS = [
+  {
+    pattern:
+      /^\/cars\/[^/]+$/,
+    loader:
+      ROUTE_LOADERS.carDetail,
+  },
+  {
+    pattern:
+      /^\/member\/cars\/[^/]+\/bids$/,
+    loader:
+      ROUTE_LOADERS.memberAuctionBids,
+  },
+  {
+    pattern:
+      /^\/member\/cars\/[^/]+\/trade$/,
+    loader:
+      ROUTE_LOADERS.memberAuctionTrade,
+  },
+  {
+    pattern:
+      /^\/company\/[^/]+$/,
+    loader:
+      ROUTE_LOADERS.companyPage,
+  },
+  {
+    pattern:
+      /^\/company\/dealers\/[^/]+$/,
+    loader:
+      ROUTE_LOADERS.dealerPage,
+  },
+  {
+    pattern:
+      /^\/company\/dealers\/[^/]+\/cars$/,
+    loader:
+      ROUTE_LOADERS.companyDealerCars,
+  },
+  {
+    pattern:
+      /^\/dealer\/cars\/[^/]+\/bids$/,
+    loader:
+      ROUTE_LOADERS.dealerAuctionBidManage,
+  },
+];
+
+const prefetchedPaths =
+  new Set();
+
+function normalizePath(path) {
+  if (
+    typeof path !==
+    "string"
+  ) {
+    return "";
+  }
+
+  const pathWithoutQuery =
+    path.split("?")[0];
+
+  const pathWithoutHash =
+    pathWithoutQuery.split(
+      "#"
+    )[0];
+
+  if (
+    pathWithoutHash.length >
+    1 &&
+    pathWithoutHash.endsWith(
+      "/"
+    )
+  ) {
+    return pathWithoutHash.slice(
+      0,
+      -1
+    );
+  }
+
+  return pathWithoutHash;
+}
+
+function findRouteLoader(path) {
+  const normalizedPath =
+    normalizePath(path);
+
+  const exactLoader =
+    ROUTE_LOADERS_BY_PATH[
+    normalizedPath
+    ];
+
+  if (exactLoader) {
+    return exactLoader;
+  }
+
+  const dynamicRoute =
+    DYNAMIC_ROUTE_LOADERS.find(
+      (route) =>
+        route.pattern.test(
+          normalizedPath
+        )
+    );
+
+  return (
+    dynamicRoute?.loader ||
+    null
+  );
+}
 
 export function prefetchRoute(path) {
+  const normalizedPath =
+    normalizePath(path);
+
   const loader =
-    ROUTE_LOADERS_BY_PATH[path];
+    findRouteLoader(
+      normalizedPath
+    );
 
   if (
     !loader ||
-    prefetchedPaths.has(path)
+    prefetchedPaths.has(
+      normalizedPath
+    )
   ) {
     return;
   }
 
-  prefetchedPaths.add(path);
+  prefetchedPaths.add(
+    normalizedPath
+  );
 
   loader().catch((error) => {
-    prefetchedPaths.delete(path);
+    prefetchedPaths.delete(
+      normalizedPath
+    );
 
     console.error(
-      `라우트 미리 불러오기 실패: ${path}`,
+      `라우트 미리 불러오기 실패: ${normalizedPath}`,
       error
     );
   });

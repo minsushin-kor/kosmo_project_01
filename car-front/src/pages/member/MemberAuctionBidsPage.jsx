@@ -1,303 +1,770 @@
-import { Link } from "react-router-dom";
-import { getCarById } from "../../utils/carViewUtils";
-import { useAuth } from "../../hooks/useAuth";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  Link,
+  useParams,
+} from "react-router-dom";
+import {
+  getCarDetail,
+} from "../../api/carApi";
+import {
+  closeAuction,
+  getSellerAuctionBids,
+} from "../../api/auctionApi";
 import "../../css/member/memberAuctionBidsPage.css";
 
-const AUCTION_BIDS_KEY = "car_front_auction_bids";
-const AUCTION_WINNERS_KEY = "car_front_auction_winners";
-
 function formatDateTime(dateText) {
-    if (!dateText) {
-        return "-";
+  if (!dateText) {
+    return "-";
+  }
+
+  const date =
+    new Date(dateText);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return dateText;
+  }
+
+  return date.toLocaleString(
+    "ko-KR",
+    {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     }
-
-    const date = new Date(dateText);
-
-    if (Number.isNaN(date.getTime())) {
-        return dateText;
-    }
-
-    return date.toLocaleString("ko-KR", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+  );
 }
 
-function getRemainText(endDate) {
-    if (!endDate) {
-        return "마감일 미정";
-    }
-
-    const now = new Date();
-    const end = new Date(endDate);
-    const diff = end - now;
-
-    if (diff <= 0) {
-        return "경매 종료";
-    }
-
-    const day = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hour = Math.floor((diff / (1000 * 60 * 60)) % 24);
-
-    if (day > 0) {
-        return `${day}일 ${hour}시간 남음`;
-    }
-
-    return `${hour}시간 남음`;
+function normalizeAuctionStatus(
+  status
+) {
+  return String(
+    status || ""
+  ).toUpperCase();
 }
 
-function getAuctionBids() {
-    return JSON.parse(localStorage.getItem(AUCTION_BIDS_KEY) || "[]");
-}
-
-function getAuctionWinners() {
-    return JSON.parse(localStorage.getItem(AUCTION_WINNERS_KEY) || "[]");
+function isCompletedStatus(
+  status
+) {
+  return [
+    "COMPLETED",
+    "ENDED",
+    "CLOSED",
+    "SOLD",
+    "경매종료",
+    "낙찰완료",
+  ].includes(
+    normalizeAuctionStatus(
+      status
+    )
+  );
 }
 
 function MemberAuctionBidsPage() {
-    const { loginUser } = useAuth();
+  const { carId } =
+    useParams();
 
-    const bidderType = loginUser?.role || "MEMBER";
+  const [
+    car,
+    setCar,
+  ] = useState(null);
 
-    const bidderId =
-        loginUser?.id ||
-        loginUser?.memberId ||
-        loginUser?.dealerId ||
-        loginUser?.companyId ||
-        1;
+  const [
+    bids,
+    setBids,
+  ] = useState([]);
 
-    const allBids = getAuctionBids();
-    const winners = getAuctionWinners();
+  const [
+    closeResult,
+    setCloseResult,
+  ] = useState(null);
 
-    const myBids = allBids
-        .filter((bid) => bid.bidderType === bidderType && bid.bidderId === bidderId)
-        .map((bid) => {
-            const car = getCarById(bid.carId);
-            const winner = winners.find((item) => item.carId === bid.carId);
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
 
-            const isWinner =
-                winner &&
-                String(winner.bidId) === String(bid.id) &&
-                winner.bidderId === bid.bidderId;
+  const [
+    isClosing,
+    setIsClosing,
+  ] = useState(false);
 
-            const isAuctionDone =
-                Boolean(winner) ||
-                car?.auction?.status === "경매종료" ||
-                car?.auction?.status === "낙찰완료" ||
-                getRemainText(car?.auction?.endDate) === "경매 종료";
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
-            return {
-                ...bid,
-                car,
-                winner,
-                isWinner,
-                isAuctionDone,
-            };
-        })
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const [
+    actionMessage,
+    setActionMessage,
+  ] = useState("");
 
-    return (
-        <main className="member-auction-bids-page">
-            <div className="member-auction-bids-container">
-                <section className="member-auction-bids-header">
-                    <div>
-                        <p className="page-label">MY AUCTION BID</p>
-                        <h2>내 입찰 차량</h2>
-                        <p>내가 비공개 입찰에 참여한 차량 목록을 확인합니다.</p>
-                    </div>
+  const loadAuctionData =
+    useCallback(async ({
+      showLoading = false,
+    } = {}) => {
+      if (!carId) {
+        setErrorMessage(
+          "차량 ID를 확인할 수 없습니다."
+        );
 
-                    <Link to="/" className="member-auction-primary-link">
-                        차량 보러가기
-                    </Link>
-                </section>
+        if (showLoading) {
+          setIsLoading(false);
+        }
 
-                <section className="member-auction-summary-grid">
-                    <article>
-                        <span>전체 입찰</span>
-                        <strong>{myBids.length}</strong>
-                        <em>건</em>
-                    </article>
+        return;
+      }
 
-                    <article>
-                        <span>진행중</span>
-                        <strong>
-                            {
-                                myBids.filter((bid) => !bid.isAuctionDone && !bid.winner)
-                                    .length
-                            }
-                        </strong>
-                        <em>건</em>
-                    </article>
+      try {
+        if (showLoading) {
+          setIsLoading(true);
+        }
 
-                    <article>
-                        <span>낙찰</span>
-                        <strong>{myBids.filter((bid) => bid.isWinner).length}</strong>
-                        <em>건</em>
-                    </article>
+        setErrorMessage("");
 
-                    <article>
-                        <span>미낙찰/종료</span>
-                        <strong>
-                            {
-                                myBids.filter(
-                                    (bid) => bid.isAuctionDone && !bid.isWinner
-                                ).length
-                            }
-                        </strong>
-                        <em>건</em>
-                    </article>
-                </section>
+        const [
+          carResult,
+          bidResult,
+        ] = await Promise.all([
+          getCarDetail(carId),
+          getSellerAuctionBids(
+            carId
+          ),
+        ]);
 
-                <section className="member-auction-panel">
-                    <div className="member-auction-panel-header">
-                        <div>
-                            <h3>입찰 내역</h3>
-                            <p>
-                                비공개 입찰 방식이라 다른 사람의 입찰 금액은 표시되지 않습니다.
-                            </p>
-                        </div>
-                    </div>
+        setCar(carResult);
 
-                    <div className="member-auction-table-wrap">
-                        <table className="member-auction-table">
-                            <thead>
-                                <tr>
-                                    <th>차량명</th>
-                                    <th>내 입찰가</th>
-                                    <th>입찰 시간</th>
-                                    <th>경매 마감</th>
-                                    <th>결과</th>
-                                    <th>관리</th>
-                                </tr>
-                            </thead>
+        setBids(
+          Array.isArray(
+            bidResult
+          )
+            ? bidResult
+            : []
+        );
+      } catch (error) {
+        console.error(
+          "판매 차량 입찰 내역 조회 실패:",
+          error
+        );
 
-                            <tbody>
-                                {myBids.length > 0 ? (
-                                    myBids.map((bid) => {
-                                        const car = bid.car;
-                                        const winner = bid.winner;
+        setCar(null);
+        setBids([]);
 
-                                        if (!car) {
-                                            return (
-                                                <tr key={bid.id}>
-                                                    <td>
-                                                        <strong>{bid.carName || "삭제된 차량"}</strong>
-                                                        <span>차량 정보를 찾을 수 없음</span>
-                                                    </td>
+        setErrorMessage(
+          error?.message ||
+          "입찰 내역을 불러오지 못했습니다."
+        );
+      } finally {
+        if (showLoading) {
+          setIsLoading(false);
+        }
+      }
+    }, [carId]);
 
-                                                    <td>
-                                                        <strong>
-                                                            {Number(bid.bidPrice).toLocaleString()}만원
-                                                        </strong>
-                                                    </td>
+  useEffect(() => {
+    let isCancelled = false;
 
-                                                    <td>
-                                                        <strong>{formatDateTime(bid.createdAt)}</strong>
-                                                    </td>
+    if (!carId) {
+      queueMicrotask(() => {
+        if (isCancelled) {
+          return;
+        }
 
-                                                    <td>
-                                                        <strong>-</strong>
-                                                    </td>
+        setErrorMessage(
+          "차량 ID를 확인할 수 없습니다."
+        );
 
-                                                    <td>
-                                                        <span className="member-bid-status 종료">
-                                                            확인불가
-                                                        </span>
-                                                    </td>
+        setIsLoading(false);
+      });
 
-                                                    <td>-</td>
-                                                </tr>
-                                            );
-                                        }
+      return () => {
+        isCancelled = true;
+      };
+    }
 
-                                        const remainText = getRemainText(car.auction?.endDate);
+    Promise.all([
+      getCarDetail(carId),
+      getSellerAuctionBids(
+        carId
+      ),
+    ])
+      .then(
+        ([
+          carResult,
+          bidResult,
+        ]) => {
+          if (isCancelled) {
+            return;
+          }
 
-                                        let resultText = "진행중";
-                                        let resultClass = "진행중";
+          setCar(carResult);
 
-                                        if (bid.isWinner) {
-                                            resultText = "낙찰";
-                                            resultClass = "낙찰";
-                                        } else if (winner) {
-                                            resultText = "미낙찰";
-                                            resultClass = "미낙찰";
-                                        } else if (bid.isAuctionDone) {
-                                            resultText = "경매종료";
-                                            resultClass = "종료";
-                                        }
+          setBids(
+            Array.isArray(
+              bidResult
+            )
+              ? bidResult
+              : []
+          );
 
-                                        return (
-                                            <tr key={bid.id}>
-                                                <td>
-                                                    <strong>
-                                                        <Link to={`/cars/${car.id}`}>{car.carName}</Link>
-                                                    </strong>
-                                                    <span>
-                                                        {car.year}년식 · {car.region}
-                                                    </span>
-                                                </td>
+          setErrorMessage("");
+        }
+      )
+      .catch((error) => {
+        if (isCancelled) {
+          return;
+        }
 
-                                                <td>
-                                                    <strong>
-                                                        {Number(bid.bidPrice).toLocaleString()}만원
-                                                    </strong>
-                                                    <span>내 입찰가</span>
-                                                </td>
+        console.error(
+          "판매 차량 입찰 내역 조회 실패:",
+          error
+        );
 
-                                                <td>
-                                                    <strong>{formatDateTime(bid.createdAt)}</strong>
-                                                </td>
+        setCar(null);
+        setBids([]);
 
-                                                <td>
-                                                    <strong>{formatDateTime(car.auction?.endDate)}</strong>
-                                                    <span>{winner ? "낙찰 처리 완료" : remainText}</span>
-                                                </td>
+        setErrorMessage(
+          error?.message ||
+          "입찰 내역을 불러오지 못했습니다."
+        );
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      });
 
-                                                <td>
-                                                    <span className={`member-bid-status ${resultClass}`}>
-                                                        {resultText}
-                                                    </span>
-                                                </td>
+    return () => {
+      isCancelled = true;
+    };
+  }, [carId]);
 
-                                                <td>
-                                                    <div className="member-auction-actions">
-                                                        <Link to={`/cars/${car.id}`}>상세보기</Link>
+  function handleRefresh() {
+    loadAuctionData({
+      showLoading: false,
+    });
+  }
 
-                                                        {bid.isWinner && winner && (
-                                                            <Link to={`/member/auction-trades/${winner.id}`}>
-                                                                거래진행
-                                                            </Link>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                ) : (
-                                    <tr>
-                                        <td colSpan="6" className="member-auction-empty">
-                                            아직 입찰한 차량이 없습니다.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+  const sortedBids =
+    useMemo(() => {
+      return [...bids].sort(
+        (firstBid, secondBid) => {
+          const amountDiff =
+            Number(
+              secondBid.bidAmount ||
+              0
+            ) -
+            Number(
+              firstBid.bidAmount ||
+              0
+            );
 
-                <section className="member-auction-guide-box">
-                    <h3>현재 임시 처리 상태</h3>
-                    <p>
-                        지금은 localStorage에 저장된 입찰 내역을 보여줍니다. 나중에
-                        백엔드 연결 시에는 내 입찰 목록 API, 낙찰 결과 API로 교체하면 됩니다.
-                    </p>
-                </section>
-            </div>
-        </main>
+          if (amountDiff !== 0) {
+            return amountDiff;
+          }
+
+          return (
+            Number(
+              firstBid.bidId ||
+              0
+            ) -
+            Number(
+              secondBid.bidId ||
+              0
+            )
+          );
+        }
+      );
+    }, [bids]);
+
+  const highestBid =
+    sortedBids[0] ||
+    null;
+
+  const auction =
+    car?.auction ||
+    null;
+
+  const auctionId =
+    auction?.auctionId ||
+    car?.auctionId ||
+    bids[0]?.auctionId ||
+    null;
+
+  const auctionStatus =
+    closeResult?.status ||
+    auction?.status ||
+    car?.auctionStatus ||
+    car?.status ||
+    "ACTIVE";
+
+  const isAuctionClosed =
+    Boolean(closeResult) ||
+    isCompletedStatus(
+      auctionStatus
     );
+
+  const carName =
+    car?.carName ||
+    [
+      car?.make ||
+      car?.brand,
+      car?.model ||
+      car?.modelName,
+    ]
+      .filter(Boolean)
+      .join(" ") ||
+    "판매 차량";
+
+  const startPrice =
+    Number(
+      auction?.startPrice ??
+      car?.startPrice ??
+      car?.price ??
+      0
+    );
+
+  const endTime =
+    closeResult?.endTime ||
+    auction?.endTime ||
+    auction?.endDate ||
+    car?.endTime ||
+    car?.endDate ||
+    null;
+
+  const winningBid =
+    closeResult?.winningBid ||
+    null;
+
+  async function handleCloseAuction() {
+    if (
+      isClosing ||
+      isAuctionClosed
+    ) {
+      return;
+    }
+
+    if (!auctionId) {
+      setActionMessage(
+        "경매 ID를 확인할 수 없습니다."
+      );
+
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "경매를 마감하면 최고 입찰자가 자동 낙찰됩니다. 계속하시겠습니까?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setIsClosing(true);
+      setActionMessage(
+        "경매를 마감하고 있습니다."
+      );
+
+      const result =
+        await closeAuction(
+          auctionId
+        );
+
+      setCloseResult(result);
+
+      if (
+        result?.winningBid
+      ) {
+        setActionMessage(
+          `${result.winningBid.dealerName || "딜러"}님이 ${Number(
+            result.winningBid.bidAmount || 0
+          ).toLocaleString()}만원으로 낙찰되었습니다.`
+        );
+      } else {
+        setActionMessage(
+          "입찰자가 없어 유찰 처리되었습니다."
+        );
+      }
+
+      await loadAuctionData({
+        showLoading: false,
+      });
+    } catch (error) {
+      console.error(
+        "경매 마감 실패:",
+        error
+      );
+
+      setActionMessage(
+        error?.message ||
+        "경매 마감 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsClosing(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <main className="member-auction-bids-page">
+        <div className="member-auction-bids-container">
+          <section className="member-auction-panel">
+            <div className="member-auction-empty">
+              입찰 내역을 불러오는 중입니다.
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <main className="member-auction-bids-page">
+        <div className="member-auction-bids-container">
+          <section className="member-auction-bids-header">
+            <div>
+              <p className="page-label">
+                MY AUCTION
+              </p>
+
+              <h2>
+                판매 차량 입찰 관리
+              </h2>
+
+              <p>
+                {errorMessage}
+              </p>
+            </div>
+
+            <Link
+              to="/member"
+              className="member-auction-primary-link"
+            >
+              마이페이지
+            </Link>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="member-auction-bids-page">
+      <div className="member-auction-bids-container">
+        <section className="member-auction-bids-header">
+          <div>
+            <p className="page-label">
+              MY AUCTION
+            </p>
+
+            <h2>
+              판매 차량 입찰 관리
+            </h2>
+
+            <p>
+              {carName}에 들어온 입찰을 확인하고
+              경매를 마감합니다.
+            </p>
+          </div>
+
+          <Link
+            to={`/cars/${carId}`}
+            className="member-auction-primary-link"
+          >
+            차량 상세보기
+          </Link>
+        </section>
+
+        <section className="member-auction-summary-grid">
+          <article>
+            <span>
+              전체 입찰
+            </span>
+
+            <strong>
+              {bids.length}
+            </strong>
+
+            <em>건</em>
+          </article>
+
+          <article>
+            <span>
+              경매 시작가
+            </span>
+
+            <strong>
+              {startPrice.toLocaleString()}
+            </strong>
+
+            <em>만원</em>
+          </article>
+
+          <article>
+            <span>
+              현재 최고가
+            </span>
+
+            <strong>
+              {Number(
+                highestBid?.bidAmount ||
+                0
+              ).toLocaleString()}
+            </strong>
+
+            <em>만원</em>
+          </article>
+
+          <article>
+            <span>
+              경매 상태
+            </span>
+
+            <strong>
+              {isAuctionClosed
+                ? "마감"
+                : "진행중"}
+            </strong>
+          </article>
+        </section>
+
+        <section className="member-auction-panel">
+          <div className="member-auction-panel-header">
+            <div>
+              <h3>
+                입찰 내역
+              </h3>
+
+              <p>
+                판매자 본인만 전체 입찰 금액을 확인할 수 있습니다.
+                최고 입찰가가 먼저 표시됩니다.
+              </p>
+            </div>
+
+            <div className="member-auction-actions">
+              <button
+                type="button"
+                onClick={
+                  handleRefresh
+                }
+                disabled={
+                  isClosing
+                }
+              >
+                새로고침
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  handleCloseAuction
+                }
+                disabled={
+                  isClosing ||
+                  isAuctionClosed
+                }
+              >
+                {isClosing
+                  ? "마감 처리 중"
+                  : isAuctionClosed
+                    ? "경매 마감됨"
+                    : "경매 마감"}
+              </button>
+            </div>
+          </div>
+
+          {actionMessage && (
+            <div className="member-auction-guide-box">
+              <p>
+                {actionMessage}
+              </p>
+            </div>
+          )}
+
+          {winningBid && (
+            <div className="member-auction-guide-box">
+              <h3>
+                최종 낙찰 결과
+              </h3>
+
+              <p>
+                낙찰 딜러:{" "}
+                <strong>
+                  {winningBid.dealerName ||
+                    "-"}
+                </strong>
+                <br />
+
+                낙찰 금액:{" "}
+                <strong>
+                  {Number(
+                    winningBid.bidAmount ||
+                    0
+                  ).toLocaleString()}
+                  만원
+                </strong>
+                <br />
+
+                마감 시각:{" "}
+                <strong>
+                  {formatDateTime(
+                    closeResult?.endTime
+                  )}
+                </strong>
+              </p>
+            </div>
+          )}
+
+          <div className="member-auction-table-wrap">
+            <table className="member-auction-table">
+              <thead>
+                <tr>
+                  <th>
+                    순위
+                  </th>
+
+                  <th>
+                    딜러
+                  </th>
+
+                  <th>
+                    입찰 금액
+                  </th>
+
+                  <th>
+                    입찰 시간
+                  </th>
+
+                  <th>
+                    상태
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {sortedBids.length >
+                0 ? (
+                  sortedBids.map(
+                    (
+                      bid,
+                      index
+                    ) => {
+                      const isWinner =
+                        Number(
+                          winningBid?.bidId
+                        ) ===
+                        Number(
+                          bid.bidId
+                        );
+
+                      return (
+                        <tr
+                          key={
+                            bid.bidId
+                          }
+                        >
+                          <td>
+                            <strong>
+                              {index + 1}위
+                            </strong>
+                          </td>
+
+                          <td>
+                            <strong>
+                              {bid.dealerName ||
+                                `딜러 ${bid.dealerId}`}
+                            </strong>
+
+                            <span>
+                              딜러 ID:{" "}
+                              {bid.dealerId}
+                            </span>
+                          </td>
+
+                          <td>
+                            <strong>
+                              {Number(
+                                bid.bidAmount ||
+                                0
+                              ).toLocaleString()}
+                              만원
+                            </strong>
+                          </td>
+
+                          <td>
+                            <strong>
+                              {formatDateTime(
+                                bid.createdAt
+                              )}
+                            </strong>
+                          </td>
+
+                          <td>
+                            <span
+                              className={`member-bid-status ${
+                                isWinner
+                                  ? "낙찰"
+                                  : isAuctionClosed
+                                    ? "미낙찰"
+                                    : "진행중"
+                              }`}
+                            >
+                              {isWinner
+                                ? "낙찰"
+                                : isAuctionClosed
+                                  ? "미낙찰"
+                                  : index === 0
+                                    ? "현재 최고가"
+                                    : "입찰완료"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="member-auction-empty"
+                    >
+                      아직 등록된 입찰이 없습니다.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="member-auction-guide-box">
+          <h3>
+            경매 마감 안내
+          </h3>
+
+          <p>
+            경매를 마감하면 서버가 가장 높은 금액을 제시한 딜러를
+            자동으로 낙찰자로 선정합니다. 같은 금액이면 먼저 입찰한
+            딜러가 우선됩니다. 입찰자가 없으면 차량은 유찰 처리됩니다.
+            현재 마감 예정 시각은 {formatDateTime(endTime)}입니다.
+          </p>
+        </section>
+      </div>
+    </main>
+  );
 }
 
 export default MemberAuctionBidsPage;

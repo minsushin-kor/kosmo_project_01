@@ -147,7 +147,7 @@ function createDealInfo(
   const feePrice =
     Math.floor(
       winningPrice *
-        (feeRate / 100)
+      (feeRate / 100)
     );
 
   const totalPrice =
@@ -269,7 +269,7 @@ function MemberAuctionTradePage() {
     setDealStatus,
   ] = useState(
     savedDeal?.status ||
-      "결제대기"
+    "결제대기"
   );
 
   function handleCreatePaymentWaiting() {
@@ -348,8 +348,10 @@ function MemberAuctionTradePage() {
               낙찰 결과가 없거나 삭제된 거래입니다.
             </p>
 
-            <Link to="/member/auction-bids">
-              내 입찰 차량으로
+            <Link
+              to={`/member/cars/${car.carId || car.id}/bids`}
+            >
+              입찰 내역
             </Link>
           </section>
         </div>
@@ -424,9 +426,9 @@ function MemberAuctionTradePage() {
                 <span>
                   {car
                     ? `${car.year}년식 · ${car.region} · ${Number(
-                        car.mileage ||
-                          0
-                      ).toLocaleString()}km`
+                      car.mileage ||
+                      0
+                    ).toLocaleString()}km`
                     : "차량 상세정보 없음"}
                 </span>
 
@@ -582,7 +584,7 @@ function MemberAuctionTradePage() {
               }
             >
               {dealStatus ===
-              "결제완료"
+                "결제완료"
                 ? "결제완료됨"
                 : "임시 결제완료 처리"}
             </button>

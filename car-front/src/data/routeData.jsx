@@ -312,7 +312,7 @@ export const PROTECTED_ROUTES = [
   },
   {
     id: "member-auction-bids",
-    path: "/member/auction-bids",
+    path: "/member/cars/:carId/bids",
     element: (
       <MemberAuctionBidsPage />
     ),
