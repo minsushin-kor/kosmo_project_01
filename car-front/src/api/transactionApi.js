@@ -1,10 +1,9 @@
 import apiClient from "./apiClient";
 
 export async function getMyTransactions() {
-    const result =
-        await apiClient.get(
-            "/users/me/transactions"
-        );
+    const result = await apiClient.get(
+        "/users/me/transactions"
+    );
 
     return Array.isArray(result)
         ? result
@@ -35,10 +34,11 @@ export async function updateTransactionStatus(
         );
     }
 
-    const normalizedStatus =
-        String(status || "")
-            .trim()
-            .toUpperCase();
+    const normalizedStatus = String(
+        status || ""
+    )
+        .trim()
+        .toUpperCase();
 
     const allowedStatuses = [
         "PENDING_PAYMENT",
@@ -60,8 +60,17 @@ export async function updateTransactionStatus(
     return apiClient.patch(
         `/transactions/${transactionId}/status`,
         {
-            status:
-                normalizedStatus,
+            status: normalizedStatus,
         }
     );
+}
+
+export async function getAdminTransactions() {
+    const result = await apiClient.get(
+        "/admin/transactions"
+    );
+
+    return Array.isArray(result)
+        ? result
+        : [];
 }
