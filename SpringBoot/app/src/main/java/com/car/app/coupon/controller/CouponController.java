@@ -1,5 +1,6 @@
 package com.car.app.coupon.controller;
 
+import com.car.app.coupon.entity.Coupon;
 import com.car.app.coupon.service.CouponService;
 import com.car.app.global.response.ApiResponse;
 import lombok.*;
