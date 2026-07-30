@@ -64,6 +64,24 @@ export async function getSellerAuctionBids(
 }
 
 /**
+ * 특정 차량의 입찰 목록을 조회합니다. (딜러 본인 입찰 여부 확인용)
+ *
+ * @param {number|string} carId 차량 ID
+ * @returns {Promise<Array>} 입찰 목록
+ */
+export async function getAuctionBids(carId) {
+    try {
+        // 딜러 본인의 입찰 목록에서 해당 차량 ID만 필터링
+        const allBids = await getMyAuctionBids();
+        if (!carId) return allBids;
+        return allBids.filter(bid => String(bid.carId) === String(carId));
+    } catch {
+        // 권한 없는 경우 빈 배열 반환
+        return [];
+    }
+}
+
+/**
  * 딜러 본인의 전체 입찰 내역을 조회합니다.
  *
  * @returns {Promise<Array>} 딜러 본인의 입찰 목록

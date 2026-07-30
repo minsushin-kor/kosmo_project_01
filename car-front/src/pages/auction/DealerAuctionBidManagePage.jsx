@@ -7,6 +7,7 @@ import {
 import {
   Link,
   useParams,
+  useSearchParams,
 } from "react-router-dom";
 import {
   getMyAuctionBids,
@@ -47,32 +48,24 @@ function normalizeStatus(status) {
   ).toUpperCase();
 }
 
+function isBidWon(bid) {
+  return bid?.winner === true || bid?.isWinner === true || String(bid?.status || "").toUpperCase() === "WON";
+}
+
+function isBidActive(bid) {
+  if (isBidWon(bid)) return false;
+  const status = String(bid?.auctionStatus || "").toUpperCase();
+  return status === "ACTIVE" || status === "PROGRESS" || status === "OPEN" || !status || status === "NULL";
+}
+
 function getBidResultText(bid) {
-  if (bid.winner) {
+  if (isBidWon(bid)) {
     return "낙찰";
   }
-
-  const status =
-    normalizeStatus(
-      bid.auctionStatus
-    );
-
-  if (
-    [
-      "COMPLETED",
-      "ENDED",
-      "CLOSED",
-      "SOLD",
-      "FAILED",
-      "경매종료",
-      "낙찰완료",
-      "유찰",
-    ].includes(status)
-  ) {
-    return "미낙찰";
+  if (isBidActive(bid)) {
+    return "입찰중";
   }
-
-  return "입찰중";
+  return "미낙찰";
 }
 
 function getStatusClassName(bid) {
@@ -93,6 +86,9 @@ function getStatusClassName(bid) {
 function DealerAuctionBidManagePage() {
   const { carId } =
     useParams();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "all";
 
   const [
     bidList,
@@ -240,39 +236,39 @@ function DealerAuctionBidManagePage() {
       carId,
     ]);
 
-  const summary =
-    useMemo(() => {
-      return filteredBids.reduce(
-        (result, bid) => {
-          result.total += 1;
+  const displayBids = useMemo(() => {
+    return filteredBids.filter((bid) => {
+      if (activeTab === "bidding") {
+        return isBidActive(bid);
+      }
+      if (activeTab === "won") {
+        return isBidWon(bid);
+      }
+      return true;
+    });
+  }, [filteredBids, activeTab]);
 
-          const bidResult =
-            getBidResultText(bid);
-
-          if (
-            bidResult ===
-            "낙찰"
-          ) {
-            result.winner += 1;
-          } else if (
-            bidResult ===
-            "미낙찰"
-          ) {
-            result.failed += 1;
-          } else {
-            result.active += 1;
-          }
-
-          return result;
-        },
-        {
-          total: 0,
-          active: 0,
-          winner: 0,
-          failed: 0,
+  const summary = useMemo(() => {
+    return filteredBids.reduce(
+      (result, bid) => {
+        result.total += 1;
+        if (isBidWon(bid)) {
+          result.winner += 1;
+        } else if (isBidActive(bid)) {
+          result.inProgress += 1;
+        } else {
+          result.failed += 1;
         }
-      );
-    }, [filteredBids]);
+        return result;
+      },
+      {
+        total: 0,
+        inProgress: 0,
+        winner: 0,
+        failed: 0,
+      }
+    );
+  }, [filteredBids]);
 
   const selectedCarName =
     carId &&
@@ -361,7 +357,7 @@ function DealerAuctionBidManagePage() {
             </span>
 
             <strong>
-              {summary.active}
+              {summary.inProgress}
             </strong>
 
             <em>건</em>
@@ -392,16 +388,43 @@ function DealerAuctionBidManagePage() {
           </article>
         </section>
 
+        <div style={{ display: "flex", gap: "10px", margin: "16px 0" }}>
+          <button
+            type="button"
+            style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: activeTab === "all" ? "#2563eb" : "#e2e8f0", color: activeTab === "all" ? "#fff" : "#334155", cursor: "pointer", fontWeight: "bold" }}
+            onClick={() => setSearchParams({ tab: "all" })}
+          >
+            전체 ({filteredBids.length})
+          </button>
+          <button
+            type="button"
+            style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: activeTab === "bidding" ? "#2563eb" : "#e2e8f0", color: activeTab === "bidding" ? "#fff" : "#334155", cursor: "pointer", fontWeight: "bold" }}
+            onClick={() => setSearchParams({ tab: "bidding" })}
+          >
+            🔨 입찰 진행 중 ({summary.inProgress || 0})
+          </button>
+          <button
+            type="button"
+            style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: activeTab === "won" ? "#86198f" : "#e2e8f0", color: activeTab === "won" ? "#fff" : "#334155", cursor: "pointer", fontWeight: "bold" }}
+            onClick={() => setSearchParams({ tab: "won" })}
+          >
+            🏆 최종 낙찰 완료 ({summary.winner || 0})
+          </button>
+        </div>
+
         <section className="auction-bid-panel">
           <div className="auction-bid-panel-header">
             <div>
               <h3>
-                입찰 목록
+                {activeTab === "bidding" ? "🔨 입찰 진행 중인 경매" : activeTab === "won" ? "🏆 최종 낙찰받은 경매 목록" : "입찰 목록"}
               </h3>
 
               <p>
-                다른 딜러의 입찰 금액은 표시되지 않으며,
-                본인이 제출한 입찰과 경매 결과만 조회됩니다.
+                {activeTab === "bidding" 
+                  ? "딜러 본인이 현재 입찰에 참여하고 있는 진행 중인 경매입니다." 
+                  : activeTab === "won" 
+                    ? "딜러 본인이 최종 낙찰에 성공한 경매 매물 목록입니다." 
+                    : "내가 참여한 전체 경매 입찰 결과입니다."}
               </p>
             </div>
 
@@ -442,11 +465,11 @@ function DealerAuctionBidManagePage() {
                   </th>
 
                   <th>
-                    내 입찰 금액
+                    내 입찰가
                   </th>
 
                   <th>
-                    입찰 시간
+                    입찰일시
                   </th>
 
                   <th>
@@ -464,9 +487,9 @@ function DealerAuctionBidManagePage() {
               </thead>
 
               <tbody>
-                {filteredBids.length >
+                {displayBids.length >
                   0 ? (
-                  filteredBids.map(
+                  displayBids.map(
                     (bid) => {
                       const resultText =
                         getBidResultText(
@@ -482,6 +505,12 @@ function DealerAuctionBidManagePage() {
                           <td>
                             <Link
                               to={`/cars/${bid.carId}`}
+                              state={{
+                                alreadyBid: true,
+                                bidAmount: bid.bidAmount,
+                                carId: bid.carId,
+                                winner: bid.winner === true,
+                              }}
                             >
                               <strong>
                                 {bid.carName ||

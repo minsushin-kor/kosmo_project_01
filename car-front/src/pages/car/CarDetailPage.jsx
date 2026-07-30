@@ -5,6 +5,7 @@ import {
 } from "react";
 import {
   Link,
+  useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -22,6 +23,8 @@ import {
   refreshMessageRooms,
 } from "../../components/message/messageStorage";
 import {
+  getAuctionBids,
+  getMyAuctionBids,
   placeAuctionBid,
 } from "../../api/auctionApi";
 import {
@@ -196,6 +199,11 @@ function CarDetailPage() {
   const navigate =
     useNavigate();
 
+  const location = useLocation();
+  const alreadyBidFromState = location.state?.alreadyBid === true;
+  const bidAmountFromState = location.state?.bidAmount || 0;
+  const winnerFromState = location.state?.winner === true;
+
   const { loginUser } =
     useAuth();
 
@@ -353,6 +361,31 @@ function CarDetailPage() {
   useEffect(() => {
     let isMounted = true;
 
+    async function loadAuctionBids() {
+      const targetCarId = car?.id || id;
+      if (!targetCarId || !loginUser) return;
+
+      try {
+        // 딜러 본인의 전체 입찰 목록을 가져와 해당 차량으로 필터링
+        const myBids = await getMyAuctionBids().catch(() => []);
+        if (isMounted && Array.isArray(myBids)) {
+          setBidList(myBids);
+        }
+      } catch (err) {
+        console.error("입찰 내역 로딩 실패:", err);
+      }
+    }
+
+    loadAuctionBids();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [car?.id, id, loginUser]);
+
+  useEffect(() => {
+    let isMounted = true;
+
     async function loadWishlistStatus() {
       if (
         !canUseWishlist ||
@@ -444,38 +477,55 @@ function CarDetailPage() {
       );
     }, [id]);
 
-  const myBid =
-    useMemo(() => {
-      if (!loginUser) {
-        return null;
+  // getMyAuctionBids()는 이미 딜러 본인의 입찰만 반환하므로
+  // carId만으로 필터링하면 충분함
+  const myBid = useMemo(() => {
+    if (!loginUser) return null;
+
+    // [1차] location.state로 넘어온 경우 즉시 반환
+    if (alreadyBidFromState) {
+      return { bidAmount: bidAmountFromState, bidPrice: bidAmountFromState, winner: winnerFromState };
+    }
+
+    const targetCarId = Number(car?.id || id || 0);
+
+    // [2차] 로컬스토리지 체크
+    const dealerIds = [loginUser.dealerId, loginUser.id, loginUser.memberId]
+      .map(v => Number(v)).filter(v => v > 0);
+    for (const dId of (dealerIds.length > 0 ? dealerIds : [0])) {
+      const saved = localStorage.getItem(`dealer_bid_${dId}_car_${targetCarId}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && (parsed.bidAmount || parsed.bidPrice)) return parsed;
+        } catch (e) { /* ignore */ }
       }
+    }
 
-      const bidderType =
-        loginUser.role ||
-        AUTH_ROLES.MEMBER;
+    // [3차] 서버에서 받아온 내 입찰 목록에서 carId 일치 항목 반환
+    if (!Array.isArray(bidList) || bidList.length === 0) return null;
+    return bidList.find(bid => Number(bid.carId) === targetCarId) || null;
+  }, [bidList, loginUser, car?.id, id, alreadyBidFromState, bidAmountFromState]);
 
-      const bidderId =
-        getLoginUserId(
-          loginUser
-        );
+  const hasDealerBidThisCar = useMemo(() => {
+    // 0. 입찰 내역 페이지에서 넘어온 경우 (location.state) - 가장 확실한 판별
+    if (alreadyBidFromState) {
+      return true;
+    }
 
-      if (!bidderId) {
-        return null;
+    const targetCarId = Number(car?.id || id || 0);
+
+    // 로컬스토리지 완료 키 체크 (myBid에서 이미 처리하지만 중복 안전망으로 유지)
+    if (targetCarId > 0) {
+      if (localStorage.getItem(`has_bid_car_${targetCarId}`) === "true" ||
+          localStorage.getItem(`dealer_bid_car_${targetCarId}`) === "true") {
+        return true;
       }
+    }
 
-      return bidList.find(
-        (bid) =>
-          bid.bidderType ===
-          bidderType &&
-          Number(
-            bid.bidderId
-          ) ===
-          Number(bidderId)
-      );
-    }, [
-      bidList,
-      loginUser,
-    ]);
+    // myBid가 있으면 입찰 완료
+    return Boolean(myBid);
+  }, [alreadyBidFromState, car?.id, id, myBid]);
 
   const carImages =
     Array.isArray(
@@ -1123,6 +1173,24 @@ function CarDetailPage() {
         ]
       );
 
+      // 입찰 완료 즉시 딜러 개별 입찰 이력 로컬 저장 (하이브리드 이중 검증용)
+      const saveDealerId = Number(loginUser?.dealerId || loginUser?.id || loginUser?.memberId || 0);
+      const saveCarId = Number(car?.id || id || 0);
+      if (saveCarId > 0) {
+        localStorage.setItem(`has_bid_car_${saveCarId}`, "true");
+        localStorage.setItem(`dealer_bid_car_${saveCarId}`, "true");
+      }
+      if (saveDealerId > 0 && saveCarId > 0) {
+        localStorage.setItem(`dealer_bid_${saveDealerId}_car_${saveCarId}`, JSON.stringify({
+          carId: saveCarId,
+          bidAmount: priceNumber,
+          bidPrice: priceNumber,
+          dealerId: saveDealerId,
+          dealerName: loginUser?.name || loginUser?.loginId || "",
+          bidCreatedAt: new Date().toISOString()
+        }));
+      }
+
       setBidPrice("");
 
       setBidMessage(
@@ -1643,12 +1711,71 @@ function CarDetailPage() {
               </div>
             </div>
           ) : isAuctionCar ? (
-            <form
-              className="bid-form"
-              onSubmit={
-                handleBidSubmit
-              }
-            >
+            hasDealerBidThisCar ? (
+              <div
+                className="bid-form"
+                style={{
+                  background: myBid?.winner ? "#f0fdf4" : "#f8fafc",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  border: `1px solid ${myBid?.winner ? "#86efac" : "#cbd5e1"}`
+                }}
+              >
+                {myBid?.winner ? (() => {
+                  const winAmount = Number(myBid?.bidAmount || bidAmountFromState || 0);
+                  const feeRate = 0.03;
+                  const fee = Math.round(winAmount * feeRate * 10) / 10;
+                  const total = Math.round((winAmount + fee) * 10) / 10;
+                  return (
+                    <>
+                      <h3 style={{ color: "#15803d", marginBottom: "12px", fontSize: "1.1rem" }}>
+                        🏆 축하합니다! 낙찰이 완료되었습니다
+                      </h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", borderTop: "1px solid #bbf7d0", paddingTop: "12px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", color: "#166534", fontSize: "0.95rem" }}>
+                          <span>낙찰 금액</span>
+                          <strong>{winAmount.toLocaleString()}만원</strong>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", color: "#166534", fontSize: "0.95rem" }}>
+                          <span>수수료 <span style={{ color: "#4ade80", fontSize: "0.8rem" }}>(낙찰가의 3%)</span></span>
+                          <strong>{fee.toLocaleString()}만원</strong>
+                        </div>
+                        <div style={{
+                          display: "flex", justifyContent: "space-between",
+                          borderTop: "1px dashed #86efac", marginTop: "4px", paddingTop: "8px",
+                          color: "#14532d", fontSize: "1.05rem", fontWeight: "bold"
+                        }}>
+                          <span>최종 납부 금액</span>
+                          <span style={{ color: "#15803d", fontSize: "1.2rem" }}>{total.toLocaleString()}만원</span>
+                        </div>
+                      </div>
+                      <p style={{ margin: "10px 0 0 0", color: "#16a34a", fontSize: "0.8rem" }}>
+                        * 차량 인도 및 결제 관련 사항은 판매자에게 문의하세요.
+                      </p>
+                    </>
+                  );
+                })()
+                ) : (
+                  <>
+                    <h3 style={{ color: "#0f172a", marginBottom: "8px", fontSize: "1.1rem" }}>
+                      ✅ 이미 입찰 참여가 완료된 경매입니다
+                    </h3>
+                    <p style={{ margin: 0, color: "#334155", fontSize: "0.98rem" }}>
+                      제출하신 입찰 금액: <strong style={{ color: "#2563eb", fontSize: "1.15rem" }}>{Number(myBid?.bidPrice || myBid?.bidAmount || bidAmountFromState || 0).toLocaleString()}만원</strong>
+                    </p>
+                    <p style={{ margin: "6px 0 0 0", color: "#64748b", fontSize: "0.8rem" }}>
+                      * 경매당 1회만 입찰이 가능하며, 추가 입찰이나 금액 수정은 불가능합니다.
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <form
+                className="bid-form"
+                onSubmit={
+                  handleBidSubmit
+                }
+              >
               <label htmlFor="bidPrice">
                 입찰 금액
               </label>
@@ -1693,7 +1820,7 @@ function CarDetailPage() {
                 <p className="my-bid-text">
                   내 입찰가:{" "}
                   {Number(
-                    myBid.bidPrice
+                    myBid.bidPrice || myBid.bidAmount || 0
                   ).toLocaleString()}
                   만원
                 </p>
@@ -1730,6 +1857,7 @@ function CarDetailPage() {
                 </button>
               </div>
             </form>
+          )
           ) : (
             <div>
               {tradeMessage && (

@@ -1,75 +1,64 @@
-import {
-  useAuth,
-} from "../../hooks/useAuth";
+import { useEffect, useState } from "react";
+import { useAuth } from "../../hooks/useAuth";
+import { getMyCommissionCoupons, getMyCompanyCoupons } from "../../api/couponApi";
 import "../../css/common/page.css";
 
-const companyCoupons = [
-  {
-    id: 1,
-    name: "딜러 등록 지원 쿠폰",
-    description:
-      "딜러 계정 등록 관련 지원 혜택입니다.",
-    expiredAt: "2026-08-31",
-    status: "사용가능",
-  },
-  {
-    id: 2,
-    name: "회사 홍보 지원 쿠폰",
-    description:
-      "회사 공개페이지 홍보 지원 혜택입니다.",
-    expiredAt: "2026-09-30",
-    status: "사용가능",
-  },
-  {
-    id: 3,
-    name: "매물 관리 지원 쿠폰",
-    description:
-      "소속 딜러 매물 관리 지원 혜택입니다.",
-    expiredAt: "2026-12-31",
-    status: "사용가능",
-  },
-];
-
 function CompanyCouponPage() {
-  const {
-    loginUser,
-  } = useAuth();
+  const { loginUser } = useAuth();
+  const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCoupons() {
+      setLoading(true);
+      try {
+        if (loginUser?.role === "ROLE_DEALER") {
+          const res = await getMyCommissionCoupons();
+          setCoupons(Array.isArray(res) ? res : res?.data || []);
+        } else if (loginUser?.role === "ROLE_COMPANY") {
+          const res = await getMyCompanyCoupons();
+          setCoupons(Array.isArray(res) ? res : res?.data || []);
+        }
+      } catch (err) {
+        console.error("쿠폰 조회 실패:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCoupons();
+  }, [loginUser]);
 
   return (
     <main className="page-section">
       <div className="page-header">
-        <h2>쿠폰함</h2>
-
+        <h2>🎟️ 쿠폰함</h2>
         <p>
-          {loginUser?.companyName ||
-            loginUser?.name ||
-            "회사"}
-          에 지급된 쿠폰을 확인합니다.
+          {loginUser?.companyName || loginUser?.name || "사용자"} 님에게 지급된 쿠폰 목록입니다.
         </p>
       </div>
 
       <section className="notice-list">
-        {companyCoupons.length === 0 ? (
-          <div className="notice-item">
-            보유한 쿠폰이 없습니다.
-          </div>
+        {loading ? (
+          <div className="notice-item">쿠폰 목록을 불러오는 중...</div>
+        ) : coupons.length === 0 ? (
+          <div className="notice-item">보유한 미사용 쿠폰이 없습니다.</div>
         ) : (
-          companyCoupons.map((coupon) => (
-            <article
-              className="notice-item"
-              key={coupon.id}
-            >
-              <div className="notice-item-header">
-                <span>{coupon.status}</span>
-
-                <time>
-                  {coupon.expiredAt}까지
-                </time>
+          coupons.map((coupon) => (
+            <article className="notice-item" key={coupon.couponId || coupon.id}>
+              <div className="notice-meta" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className="notice-badge" style={{ backgroundColor: "#2563eb", color: "#fff", padding: "2px 8px", borderRadius: "4px" }}>
+                  {coupon.status === "UNUSED" ? "사용가능 (50% 감면)" : coupon.status}
+                </span>
+                <span className="notice-date">
+                  {coupon.expiredAt ? `${coupon.expiredAt.substring(0, 10)} 까지` : "기한 제한 없음"}
+                </span>
               </div>
-
-              <h3>{coupon.name}</h3>
-
-              <p>{coupon.description}</p>
+              <h3 style={{ marginTop: "8px" }}>{coupon.name}</h3>
+              <p style={{ color: "#666", fontSize: "0.9rem" }}>
+                {coupon.couponType === "COMMISSION_DISCOUNT"
+                  ? "경매/매물 거래 성사 시 수수료 50% 감면 (1회용)"
+                  : "멤버십 할인 지원 혜택"}
+              </p>
             </article>
           ))
         )}

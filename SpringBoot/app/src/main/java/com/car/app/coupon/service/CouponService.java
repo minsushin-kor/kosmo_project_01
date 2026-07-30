@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import com.car.app.notification.service.NotificationService;
 import java.util.Optional;
 
 @Service
@@ -27,6 +28,7 @@ public class CouponService {
     private final DealerRepository dealerRepository;
     private final TransactionRepository transactionRepository;
     private final CompanyRepository companyRepository;
+    private final NotificationService notificationService;
 
     /**
      * 이탈위험 점수가 75점 이상인 활성 딜러에게 50% 수수료 감면 쿠폰을 자동 발행합니다.
@@ -67,8 +69,30 @@ public class CouponService {
                         .expiredAt(LocalDateTime.now().plusDays(30)) // 30일 유효
                         .build();
                 couponRepository.save(coupon);
+
+                // 4. 알림 전송 (딜러 쿠폰함 연동)
+                if (notificationService != null) {
+                    try {
+                        notificationService.sendNotification("DEALER", dealer.getDealerId(), "COUPON",
+                                "이탈 방지 수수료 50% 감면 쿠폰이 쿠폰함에 지급되었습니다. (유효기간 30일)", null);
+                    } catch (Exception e) {
+                        // 알림 생성 오류 시 쿠폰 발급은 유지
+                    }
+                }
             }
         }
+    }
+
+    /**
+     * 딜러 본인의 미사용 수수료 감면 쿠폰 개수를 조회합니다. (헤더 뱃지 1 표시용)
+     */
+    @Transactional(readOnly = true)
+    public int getUnusedCouponCount(String dealerLoginId) {
+        Dealer dealer = dealerRepository.findByLoginId(dealerLoginId).orElse(null);
+        if (dealer == null) return 0;
+        return couponRepository.findByDealerDealerIdAndCouponTypeAndStatus(
+                dealer.getDealerId(), "COMMISSION_DISCOUNT", "UNUSED"
+        ).size();
     }
 
     /**

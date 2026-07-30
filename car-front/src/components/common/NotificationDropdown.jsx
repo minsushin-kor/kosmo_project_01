@@ -13,6 +13,8 @@ import {
   prefetchRoute,
 } from "../../data/routeLoaders";
 
+import { getUnusedCouponCount } from "../../api/couponApi";
+
 function NotificationDropdown({
   loginUser,
 }) {
@@ -20,15 +22,39 @@ function NotificationDropdown({
     isNotificationOpen,
     setIsNotificationOpen,
   ] = useState(false);
+  const [couponCount, setCouponCount] = useState(0);
 
   const notificationRef =
     useRef(null);
 
-  const notifications = loginUser
+  useEffect(() => {
+    if (loginUser && loginUser.role === "ROLE_DEALER") {
+      getUnusedCouponCount()
+        .then((res) => {
+          if (typeof res === "number") setCouponCount(res);
+          else if (res && typeof res.data === "number") setCouponCount(res.data);
+          else if (res && typeof res.unusedCount === "number") setCouponCount(res.unusedCount);
+        })
+        .catch(() => setCouponCount(0));
+    }
+  }, [loginUser]);
+
+  const baseNotifications = loginUser
     ? getNotificationsByRole(
         loginUser.role
       )
     : [];
+
+  const notifications = couponCount > 0 && loginUser?.role === "ROLE_DEALER"
+    ? [
+        {
+          id: "coupon-notif-1",
+          text: `🎁 [쿠폰함] 이탈 방지 수수료 50% 감면 쿠폰 ${couponCount}장이 보유 중입니다.`,
+          path: "/company/my-page",
+        },
+        ...baseNotifications
+      ]
+    : baseNotifications;
 
   const handleNotificationClick =
     () => {

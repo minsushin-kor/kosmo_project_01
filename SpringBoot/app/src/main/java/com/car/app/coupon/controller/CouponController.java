@@ -66,6 +66,22 @@ public class CouponController {
     }
 
     /**
+     * 딜러 본인의 미사용 수수료 감면 쿠폰 개수를 조회합니다 (상단 헤더/알림 뱃지 1 표시용).
+     */
+    @GetMapping("/coupons/my-count")
+    @PreAuthorize("hasRole('DEALER')")
+    public ResponseEntity<ApiResponse<Integer>> getMyUnusedCouponCount() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String dealerLoginId = authentication.getName();
+            int count = couponService.getUnusedCouponCount(dealerLoginId);
+            return ResponseEntity.ok(ApiResponse.success(count, "미사용 쿠폰 개수 조회가 완료되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
      * 특정 거래 건에 대해 딜러가 보유한 쿠폰을 수동 적용하여 수수료를 감면받습니다.
      */
     @PostMapping("/transactions/{transactionId}/apply-coupon")

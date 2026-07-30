@@ -50,16 +50,31 @@ export const MYPAGE_MENU_DATA = {
   [AUTH_ROLES.DEALER]: [
     {
       id: 1,
-      name: "딜러 페이지",
+      name: "딜러 마이페이지",
       path: "/dealer",
     },
     {
       id: 2,
+      name: "🎟️ 보유 쿠폰함",
+      path: "/company/coupons",
+    },
+    {
+      id: 3,
+      name: "🔨 입찰 중인 경매",
+      path: "/dealer/bids",
+    },
+    {
+      id: 4,
+      name: "🏆 낙찰받은 경매",
+      path: "/dealer/won-auctions",
+    },
+    {
+      id: 5,
       name: "내 매물 관리",
       path: "/dealer/cars",
     },
     {
-      id: 3,
+      id: 6,
       name: "매물 등록",
       path: "/dealer/register-car",
     },
