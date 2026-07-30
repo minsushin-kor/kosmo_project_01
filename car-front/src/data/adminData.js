@@ -49,33 +49,6 @@ export const adminSummaryCards = [
   },
 ];
 
-export const adminMembers = [
-  {
-    id: 1,
-    type: "일반회원",
-    name: "홍길동",
-    email: "hong@test.com",
-    status: "정상",
-    joinDate: "2026-07-01",
-  },
-  {
-    id: 2,
-    type: "기업회원",
-    name: "서울오토",
-    email: "seoul@auto.com",
-    status: "승인대기",
-    joinDate: "2026-07-02",
-  },
-  {
-    id: 3,
-    type: "딜러회원",
-    name: "김딜러",
-    email: "dealer@test.com",
-    status: "정상",
-    joinDate: "2026-07-03",
-  },
-];
-
 export const adminCars = [
   {
     id: 1,

@@ -30,11 +30,6 @@ const adminMenus = [
     ],
   },
   {
-    id: 3,
-    name: "매물 관리",
-    path: "/admin/cars",
-  },
-  {
     id: 4,
     name: "최종 거래 관리",
     path: "/admin/final-deals",
@@ -67,6 +62,7 @@ function AdminLayout({ title, description, children, actions }) {
   const location = useLocation();
 
   const isChurnMenuOpen = location.pathname.startsWith("/admin/churn");
+
   const isAccountMenuOpen = [
     "/admin/members",
     "/admin/companies",
@@ -83,7 +79,8 @@ function AdminLayout({ title, description, children, actions }) {
 
         <nav className="admin-sidebar-menu">
           {adminMenus.map((menu) => {
-            const hasChildren = menu.children && menu.children.length > 0;
+            const hasChildren =
+              menu.children && menu.children.length > 0;
 
             if (hasChildren) {
               const isMenuOpen =
@@ -92,7 +89,10 @@ function AdminLayout({ title, description, children, actions }) {
                   : isChurnMenuOpen;
 
               return (
-                <div className="admin-menu-group" key={menu.id}>
+                <div
+                  className="admin-menu-group"
+                  key={menu.id}
+                >
                   <NavLink
                     to={menu.path}
                     className={() =>
@@ -131,7 +131,9 @@ function AdminLayout({ title, description, children, actions }) {
                 to={menu.path}
                 end={menu.path === "/admin"}
                 className={({ isActive }) =>
-                  isActive ? "admin-menu-link active" : "admin-menu-link"
+                  isActive
+                    ? "admin-menu-link active"
+                    : "admin-menu-link"
                 }
               >
                 {menu.name}
@@ -144,12 +146,19 @@ function AdminLayout({ title, description, children, actions }) {
       <section className="admin-layout-content">
         <div className="admin-layout-header">
           <div>
-            <p className="admin-page-label">ADMIN PAGE</p>
+            <p className="admin-page-label">
+              ADMIN PAGE
+            </p>
+
             <h2>{title}</h2>
             <p>{description}</p>
           </div>
 
-          {actions && <div className="admin-header-actions">{actions}</div>}
+          {actions && (
+            <div className="admin-header-actions">
+              {actions}
+            </div>
+          )}
         </div>
 
         {children}
