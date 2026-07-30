@@ -49,37 +49,18 @@ export async function getPublicDealerCars(
 }
 
 export async function getPublicCompanyCars(
-    dealers
+    companyId
 ) {
-    if (
-        !Array.isArray(dealers) ||
-        dealers.length === 0
-    ) {
+    if (!companyId) {
         return [];
     }
 
-    const carRequests =
-        dealers.map((dealer) => {
-            const dealerId =
-                dealer.dealerId ||
-                dealer.id;
-
-            return getPublicDealerCars(
-                dealerId
-            ).catch((error) => {
-                console.error(
-                    `딜러 ${dealerId} 차량 조회 실패:`,
-                    error
-                );
-
-                return [];
-            });
-        });
-
-    const dealerCarLists =
-        await Promise.all(
-            carRequests
+    const cars =
+        await apiClient.get(
+            `/companies/${companyId}/cars`
         );
 
-    return dealerCarLists.flat();
+    return Array.isArray(cars)
+        ? cars
+        : [];
 }

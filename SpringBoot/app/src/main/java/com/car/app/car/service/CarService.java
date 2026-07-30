@@ -333,6 +333,83 @@ public class CarService {
     }
 
     /**
+     * 특정 일반회원이 등록한 공개 경매 차량 목록을 조회합니다.
+     *
+     * 삭제 상태 차량은 제외하며 최신 등록순으로 반환합니다.
+     */
+    @Transactional(readOnly = true)
+    public List<CarDto.Response> getPublicMemberCars(
+            Long memberId) {
+
+        Member member = memberRepository
+                .findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "존재하지 않는 일반회원입니다."));
+
+        List<Car> memberCars = carRepository
+                .findByMemberMemberIdAndStatusNotOrderByCreatedAtDesc(
+                        member.getMemberId(),
+                        "DELETED");
+
+        /*
+         * 차량 이미지가 지연 로딩 관계이므로
+         * 트랜잭션 내부에서 미리 초기화합니다.
+         */
+        memberCars.forEach(car -> car.getImages().size());
+
+        return memberCars.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 딜러 본인이 등록한 일반 판매 차량의 상태를 변경합니다.
+     */
+    @Transactional
+    public Car updateMyDealerCarStatus(
+            Long carId,
+            String loginId,
+            String status) {
+
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "존재하지 않는 차량 매물입니다."));
+
+        if (car.getDealer() == null
+                || !loginId.equals(
+                        car.getDealer().getLoginId())) {
+
+            throw new SecurityException(
+                    "본인이 등록한 딜러 차량만 상태를 변경할 수 있습니다.");
+        }
+
+        String normalizedStatus = status == null
+                ? ""
+                : status
+                        .trim()
+                        .toUpperCase();
+
+        if (!List.of(
+                "REGISTERED",
+                "SOLD").contains(normalizedStatus)) {
+
+            throw new IllegalArgumentException(
+                    "차량 상태는 REGISTERED 또는 SOLD 중 하나여야 합니다.");
+        }
+
+        if ("DELETED".equalsIgnoreCase(
+                car.getStatus())) {
+
+            throw new IllegalArgumentException(
+                    "삭제된 차량의 상태는 변경할 수 없습니다.");
+        }
+
+        car.setStatus(normalizedStatus);
+
+        return carRepository.save(car);
+    }
+
+    /**
      * 관리자 전용 차량 상태 변경
      */
     @Transactional

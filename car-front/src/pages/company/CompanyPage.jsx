@@ -14,6 +14,9 @@ import {
   getPublicCompanyDealers,
 } from "../../api/companyApi";
 import {
+  mapServerCarToClientCar,
+} from "../../api/carApi";
+import {
   useAuth,
 } from "../../hooks/useAuth";
 import "../../css/company/companyPage.css";
@@ -163,7 +166,7 @@ function CompanyPage() {
 
         const carResponse =
           await getPublicCompanyCars(
-            activeDealers
+            companyId
           );
 
         if (!isMounted) {
@@ -180,6 +183,10 @@ function CompanyPage() {
 
         setCompanyCars(
           carResponse
+            .map(
+              mapServerCarToClientCar
+            )
+            .filter(Boolean)
         );
       } catch (error) {
         console.error(
@@ -606,6 +613,13 @@ function CompanyPage() {
               매물입니다.
             </p>
           </div>
+
+          <Link
+            to={`/companies/${companyId}/cars`}
+            className="company-public-outline-btn"
+          >
+            전체 매물 보기
+          </Link>
         </div>
 
         {visibleCars.length === 0 ? (

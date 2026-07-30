@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import {
@@ -21,6 +20,7 @@ import {
   updateMemberProfile,
 } from "../../api/myPageApi";
 import {
+  deleteCar,
   getMyCars,
 } from "../../api/carApi";
 import {
@@ -31,17 +31,14 @@ import "../../css/member/myPage.css";
 
 function resolveCarImage(car) {
   const images =
-    Array.isArray(
-      car?.images
-    )
+    Array.isArray(car?.images)
       ? car.images
       : [];
 
   const mainImage =
     images.find(
       (image) =>
-        image?.isMain ===
-        true
+        image?.isMain === true
     );
 
   return (
@@ -117,9 +114,7 @@ function getCarMileage(car) {
       0
     );
 
-  return Number.isFinite(
-    mileage
-  )
+  return Number.isFinite(mileage)
     ? mileage
     : 0;
 }
@@ -127,8 +122,7 @@ function getCarMileage(car) {
 function getCarPrice(car) {
   const price =
     Number(
-      car?.auction
-        ?.startPrice ??
+      car?.auction?.startPrice ??
       car?.startPrice ??
       car?.sellingPrice ??
       car?.sellingprice ??
@@ -136,9 +130,7 @@ function getCarPrice(car) {
       0
     );
 
-  return Number.isFinite(
-    price
-  )
+  return Number.isFinite(price)
     ? price
     : 0;
 }
@@ -166,23 +158,18 @@ function createMemberEditForm(
       loginUser?.phone || "",
 
     hasCar:
-      Boolean(
-        loginUser?.hasCar
-      ),
+      Boolean(loginUser?.hasCar),
 
     ownedCarMake:
-      loginUser
-        ?.ownedCarMake ||
+      loginUser?.ownedCarMake ||
       "",
 
     ownedCarModel:
-      loginUser
-        ?.ownedCarModel ||
+      loginUser?.ownedCarModel ||
       "",
 
     ownedCarYear:
-      loginUser
-        ?.ownedCarYear ??
+      loginUser?.ownedCarYear ??
       "",
 
     ownedCarOdometer:
@@ -231,10 +218,6 @@ function MyPage() {
     setRegisteredAuctionCars,
   ] = useState([]);
 
-  /*
-   * effect 안에서 로딩 상태를 즉시 true로 변경하지 않도록
-   * 최초 상태를 true로 설정합니다.
-   */
   const [
     isMyCarsLoading,
     setIsMyCarsLoading,
@@ -244,6 +227,11 @@ function MyPage() {
     myCarsError,
     setMyCarsError,
   ] = useState("");
+
+  const [
+    processingAuctionCarId,
+    setProcessingAuctionCarId,
+  ] = useState(null);
 
   const [
     favoriteCars,
@@ -286,37 +274,6 @@ function MyPage() {
     ownedCars[0] || null;
 
 
-  const inquiryList =
-    useMemo(
-      () => [
-        {
-          id: 1,
-          carId: 1,
-          carName:
-            "현대 아반떼 CN7 1호 매물",
-          content:
-            "방문해서 차량 확인 가능한가요?",
-          inquiryStatus:
-            "답변대기",
-          saleStatus:
-            "판매중",
-        },
-        {
-          id: 2,
-          carId: 2,
-          carName:
-            "기아 K5 3세대 1호 매물",
-          content:
-            "사고 이력 확인 가능할까요?",
-          inquiryStatus:
-            "답변완료",
-          saleStatus:
-            "판매중",
-        },
-      ],
-      []
-    );
-
   function openMemberEditModal() {
     setMemberEditForm(
       createMemberEditForm(
@@ -350,8 +307,8 @@ function MyPage() {
     } = event.target;
 
     setMemberEditForm(
-      (prev) => ({
-        ...prev,
+      (previousForm) => ({
+        ...previousForm,
 
         [name]:
           type === "checkbox"
@@ -456,8 +413,7 @@ function MyPage() {
         );
 
     if (
-      ownedCarYear !==
-      null &&
+      ownedCarYear !== null &&
       (
         !Number.isInteger(
           ownedCarYear
@@ -479,8 +435,7 @@ function MyPage() {
         !Number.isFinite(
           ownedCarOdometer
         ) ||
-        ownedCarOdometer <
-        0
+        ownedCarOdometer < 0
       )
     ) {
       setMemberEditMessage(
@@ -561,9 +516,7 @@ function MyPage() {
                 updatedProfile
                   .ownedCarModel,
               ]
-                .filter(
-                  Boolean
-                )
+                .filter(Boolean)
                 .join(" "),
 
               year:
@@ -635,9 +588,7 @@ function MyPage() {
           nextOwnedCars,
       });
 
-      setIsMemberEditOpen(
-        false
-      );
+      setIsMemberEditOpen(false);
 
       alert(
         "회원정보가 수정되었습니다."
@@ -659,12 +610,64 @@ function MyPage() {
     }
   }
 
-  /*
-   * 일반회원일 때만 내 등록 차량을 조회합니다.
-   *
-   * effect 본문에서는 setState를 직접 호출하지 않고,
-   * Promise 완료 콜백에서 상태를 갱신합니다.
-   */
+  async function handleDeleteAuctionCar(
+    carId
+  ) {
+    if (
+      !carId ||
+      processingAuctionCarId !==
+      null
+    ) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "등록한 경매 차량을 삭제하시겠습니까?\n삭제한 매물은 다시 복구할 수 없습니다."
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setProcessingAuctionCarId(
+      carId
+    );
+
+    try {
+      await deleteCar(carId);
+
+      setRegisteredAuctionCars(
+        (currentCars) =>
+          currentCars.filter(
+            (car) =>
+              String(
+                getCarId(car)
+              ) !==
+              String(carId)
+          )
+      );
+
+      alert(
+        "경매 매물이 삭제되었습니다."
+      );
+    } catch (error) {
+      console.error(
+        "경매 매물 삭제 실패:",
+        error
+      );
+
+      alert(
+        error?.message ||
+        "경매 매물을 삭제하지 못했습니다."
+      );
+    } finally {
+      setProcessingAuctionCarId(
+        null
+      );
+    }
+  }
+
   useEffect(() => {
     if (!isMember) {
       return undefined;
@@ -685,17 +688,36 @@ function MyPage() {
 
         const memberAuctionCars =
           carList.filter(
-            (car) =>
-              car.saleType ===
-              "AUCTION" ||
-              car.ownerType ===
-              "MEMBER" ||
-              (
+            (car) => {
+              const isMemberCar =
+                car.ownerType ===
+                "MEMBER" ||
+                (
+                  Boolean(
+                    car.memberId
+                  ) &&
+                  !car.dealerId
+                );
+
+              const isAuctionCar =
+                car.saleType ===
+                "AUCTION" ||
                 Boolean(
-                  car.memberId
-                ) &&
-                !car.dealerId
-              )
+                  car.auction
+                );
+
+              const isNotDeleted =
+                car.status !==
+                "삭제" &&
+                car.status !==
+                "DELETED";
+
+              return (
+                isMemberCar &&
+                isAuctionCar &&
+                isNotDeleted
+              );
+            }
           );
 
         setRegisteredAuctionCars(
@@ -724,9 +746,7 @@ function MyPage() {
         );
       })
       .finally(() => {
-        if (
-          !isMounted
-        ) {
+        if (!isMounted) {
           return;
         }
 
@@ -760,9 +780,7 @@ function MyPage() {
               : []
           );
 
-          setFavoriteCarsError(
-            ""
-          );
+          setFavoriteCarsError("");
         })
         .catch((error) => {
           if (!isMounted) {
@@ -775,6 +793,7 @@ function MyPage() {
           );
 
           setFavoriteCars([]);
+
           setFavoriteCarsError(
             error?.message ||
             "관심 차량을 불러오지 못했습니다."
@@ -817,8 +836,7 @@ function MyPage() {
       event
     ) {
       if (
-        event.key ===
-        "Escape"
+        event.key === "Escape"
       ) {
         setSelectedOwnedCar(
           null
@@ -1053,8 +1071,7 @@ function MyPage() {
                 0 ? (
                 <div className="mypage-list-empty">
                   <strong>
-                    찜한 차량이
-                    없습니다.
+                    찜한 차량이 없습니다.
                   </strong>
 
                   <p>
@@ -1068,9 +1085,7 @@ function MyPage() {
                   {favoriteCars.map(
                     (car) => {
                       const carId =
-                        getCarId(
-                          car
-                        );
+                        getCarId(car);
 
                       const carImage =
                         resolveCarImage(
@@ -1078,47 +1093,71 @@ function MyPage() {
                         );
 
                       const carName =
-                        getCarName(
-                          car
-                        );
+                        getCarName(car);
+
+                      const carPrice =
+                        getCarPrice(car);
+
+                      const mileage =
+                        getCarMileage(car);
 
                       return (
                         <Link
-                          key={
-                            carId
-                          }
+                          key={carId}
                           to={`/cars/${carId}`}
                           className="favorite-car-item"
                         >
                           <div className="favorite-car-image">
                             {carImage ? (
                               <img
-                                src={
-                                  carImage
-                                }
-                                alt={`${carName} 이미지`}
+                                src={carImage}
+                                alt={`${carName} 대표 이미지`}
                                 loading="lazy"
+                                onError={(
+                                  event
+                                ) => {
+                                  event.currentTarget.style.display =
+                                    "none";
+
+                                  const fallback =
+                                    event
+                                      .currentTarget
+                                      .nextElementSibling;
+
+                                  if (
+                                    fallback
+                                  ) {
+                                    fallback.style.display =
+                                      "flex";
+                                  }
+                                }}
                               />
-                            ) : (
-                              <span>
-                                {car.imageText ||
-                                  car.modelName ||
-                                  car.model ||
-                                  "CAR"}
-                              </span>
-                            )}
+                            ) : null}
+
+                            <span
+                              className="member-auction-image-fallback"
+                              style={{
+                                display:
+                                  carImage
+                                    ? "none"
+                                    : "flex",
+                              }}
+                            >
+                              {car.modelName ||
+                                car.model ||
+                                "CAR"}
+                            </span>
                           </div>
 
                           <div className="favorite-car-info">
                             <div className="favorite-car-title-row">
                               <h4>
-                                {
-                                  carName
-                                }
+                                {carName}
                               </h4>
 
                               <span>
-                                찜한 차량
+                                {car.status ||
+                                  "판매중"}
                               </span>
                             </div>
 
@@ -1130,9 +1169,7 @@ function MyPage() {
                               </li>
 
                               <li>
-                                {getCarMileage(
-                                  car
-                                ).toLocaleString()}
+                                {mileage.toLocaleString()}
                                 km
                               </li>
 
@@ -1145,9 +1182,7 @@ function MyPage() {
 
                             <div className="favorite-car-bottom">
                               <strong>
-                                {getCarPrice(
-                                  car
-                                ).toLocaleString()}
+                                {carPrice.toLocaleString()}
                                 만원
                               </strong>
 
@@ -1164,91 +1199,6 @@ function MyPage() {
               )}
             </section>
 
-            <section className="member-data-section">
-              <div className="mypage-section-header">
-                <div>
-                  <h3>
-                    내 구매 문의 내역
-                  </h3>
-
-                  <p>
-                    회사딜러에게 보낸
-                    차량 문의
-                  </p>
-                </div>
-              </div>
-
-              {inquiryList.length ===
-                0 ? (
-                <div className="mypage-list-empty">
-                  <strong>
-                    구매 문의 내역이
-                    없습니다.
-                  </strong>
-
-                  <p>
-                    차량 상세 페이지에서
-                    판매자에게 문의해보세요.
-                  </p>
-                </div>
-              ) : (
-                <div className="mypage-simple-table">
-                  <div className="mypage-simple-table-head">
-                    <span>
-                      차량명
-                    </span>
-
-                    <span>
-                      문의 내용
-                    </span>
-
-                    <span>
-                      답변 상태
-                    </span>
-
-                    <span>
-                      판매 상태
-                    </span>
-                  </div>
-
-                  {inquiryList.map(
-                    (inquiry) => (
-                      <Link
-                        key={
-                          inquiry.id
-                        }
-                        to={`/cars/${inquiry.carId}`}
-                        className="mypage-simple-table-row mypage-clickable-row"
-                      >
-                        <span>
-                          {
-                            inquiry.carName
-                          }
-                        </span>
-
-                        <span>
-                          {
-                            inquiry.content
-                          }
-                        </span>
-
-                        <span>
-                          {
-                            inquiry.inquiryStatus
-                          }
-                        </span>
-
-                        <span>
-                          {
-                            inquiry.saleStatus
-                          }
-                        </span>
-                      </Link>
-                    )
-                  )}
-                </div>
-              )}
-            </section>
 
             <section className="member-data-section">
               <div className="mypage-section-header">
@@ -1313,9 +1263,7 @@ function MyPage() {
                   {registeredAuctionCars.map(
                     (car) => {
                       const carId =
-                        getCarId(
-                          car
-                        );
+                        getCarId(car);
 
                       const carImage =
                         resolveCarImage(
@@ -1323,9 +1271,7 @@ function MyPage() {
                         );
 
                       const carName =
-                        getCarName(
-                          car
-                        );
+                        getCarName(car);
 
                       const auctionStatus =
                         getAuctionStatus(
@@ -1333,87 +1279,139 @@ function MyPage() {
                         );
 
                       const startPrice =
-                        getCarPrice(
-                          car
-                        );
+                        getCarPrice(car);
 
                       const mileage =
                         getCarMileage(
                           car
                         );
 
+                      const isProcessing =
+                        String(
+                          processingAuctionCarId
+                        ) ===
+                        String(carId);
+
                       return (
-                        <Link
-                          key={
-                            carId
-                          }
-                          to={`/cars/${carId}`}
-                          className="favorite-car-item"
+                        <article
+                          key={carId}
+                          className="favorite-car-item member-auction-car-item"
                         >
-                          <div className="favorite-car-image">
-                            {carImage ? (
-                              <img
-                                src={
-                                  carImage
-                                }
-                                alt={`${carName} 대표 이미지`}
-                                loading="lazy"
-                              />
-                            ) : (
-                              <span>
+                          <Link
+                            to={`/cars/${carId}`}
+                            className="member-auction-car-main"
+                          >
+                            <div className="favorite-car-image">
+                              {carImage ? (
+                                <img
+                                  src={carImage}
+                                  alt={`${carName} 대표 이미지`}
+                                  loading="lazy"
+                                  onError={(
+                                    event
+                                  ) => {
+                                    event.currentTarget.style.display =
+                                      "none";
+
+                                    const fallback =
+                                      event
+                                        .currentTarget
+                                        .nextElementSibling;
+
+                                    if (
+                                      fallback
+                                    ) {
+                                      fallback.style.display =
+                                        "flex";
+                                    }
+                                  }}
+                                />
+                              ) : null}
+
+                              <span
+                                className="member-auction-image-fallback"
+                                style={{
+                                  display:
+                                    carImage
+                                      ? "none"
+                                      : "flex",
+                                }}
+                              >
                                 {car.modelName ||
                                   car.model ||
                                   "CAR"}
                               </span>
-                            )}
-                          </div>
-
-                          <div className="favorite-car-info">
-                            <div className="favorite-car-title-row">
-                              <h4>
-                                {
-                                  carName
-                                }
-                              </h4>
-
-                              <span>
-                                {
-                                  auctionStatus
-                                }
-                              </span>
                             </div>
 
-                            <ul>
-                              <li>
-                                {car.year
-                                  ? `${car.year}년식`
-                                  : "연식 미등록"}
-                              </li>
+                            <div className="favorite-car-info">
+                              <div className="favorite-car-title-row">
+                                <h4>
+                                  {carName}
+                                </h4>
 
-                              <li>
-                                {mileage.toLocaleString()}
-                                km
-                              </li>
+                                <span>
+                                  {auctionStatus}
+                                </span>
+                              </div>
 
-                              <li>
-                                {car.region ||
-                                  car.state ||
-                                  "지역 미등록"}
-                              </li>
-                            </ul>
+                              <ul>
+                                <li>
+                                  {car.year
+                                    ? `${car.year}년식`
+                                    : "연식 미등록"}
+                                </li>
 
-                            <div className="favorite-car-bottom">
-                              <strong>
-                                {startPrice.toLocaleString()}
-                                만원
-                              </strong>
+                                <li>
+                                  {mileage.toLocaleString()}
+                                  km
+                                </li>
 
-                              <span>
-                                상세보기
-                              </span>
+                                <li>
+                                  {car.region ||
+                                    car.state ||
+                                    "지역 미등록"}
+                                </li>
+                              </ul>
+
+                              <div className="favorite-car-bottom">
+                                <strong>
+                                  {startPrice.toLocaleString()}
+                                  만원
+                                </strong>
+
+                                <span>
+                                  상세보기
+                                </span>
+                              </div>
                             </div>
+                          </Link>
+
+                          <div className="member-auction-car-actions">
+                            <Link
+                              to={`/cars/${carId}`}
+                              className="member-auction-detail-button"
+                            >
+                              상세
+                            </Link>
+
+                            <button
+                              type="button"
+                              className="member-auction-delete-button"
+                              disabled={
+                                isProcessing
+                              }
+                              onClick={() =>
+                                handleDeleteAuctionCar(
+                                  carId
+                                )
+                              }
+                            >
+                              {isProcessing
+                                ? "삭제 중"
+                                : "삭제"}
+                            </button>
                           </div>
-                        </Link>
+                        </article>
                       );
                     }
                   )}
@@ -1566,9 +1564,7 @@ function MyPage() {
                       disabled={
                         isMemberEditSubmitting
                       }
-                      maxLength={
-                        50
-                      }
+                      maxLength={50}
                     />
                   </label>
 
@@ -1589,9 +1585,7 @@ function MyPage() {
                       disabled={
                         isMemberEditSubmitting
                       }
-                      maxLength={
-                        100
-                      }
+                      maxLength={100}
                     />
                   </label>
 
@@ -1612,9 +1606,7 @@ function MyPage() {
                       disabled={
                         isMemberEditSubmitting
                       }
-                      maxLength={
-                        20
-                      }
+                      maxLength={20}
                     />
                   </label>
                 </div>
@@ -1679,9 +1671,7 @@ function MyPage() {
                               isMemberEditSubmitting
                             }
                             placeholder="예: 현대"
-                            maxLength={
-                              50
-                            }
+                            maxLength={50}
                           />
                         </label>
 
@@ -1704,9 +1694,7 @@ function MyPage() {
                               isMemberEditSubmitting
                             }
                             placeholder="예: 아반떼 CN7"
-                            maxLength={
-                              100
-                            }
+                            maxLength={100}
                           />
                         </label>
 

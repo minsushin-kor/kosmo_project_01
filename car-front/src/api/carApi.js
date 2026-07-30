@@ -552,6 +552,30 @@ export async function deleteCar(
 }
 
 /**
+ * 현재 로그인한 딜러가 본인 차량의 상태를 변경합니다.
+ */
+export async function updateMyDealerCarStatus(
+  carId,
+  status
+) {
+  if (!carId) {
+    throw new Error(
+      "상태를 변경할 차량 ID가 필요합니다."
+    );
+  }
+
+  const response =
+    await apiClient.patch(
+      `/cars/${carId}/status`,
+      { status }
+    );
+
+  return mapServerCarToClientCar(
+    response
+  );
+}
+
+/**
  * 일반회원이 딜러 차량을 즉시 구매합니다.
  */
 export async function purchaseCar(
@@ -609,5 +633,31 @@ export async function getMyCars() {
     .map(
       mapServerCarToClientCar
     )
+    .filter(Boolean);
+}
+/**
+ * 특정 일반회원이 등록한 공개 경매 차량 목록을 조회합니다.
+ */
+export async function getPublicMemberCars(
+  memberId
+) {
+  if (!memberId) {
+    throw new Error(
+      "일반회원 ID가 필요합니다."
+    );
+  }
+
+  const response =
+    await apiClient.get(
+      `/members/${memberId}/cars`
+    );
+
+  const carList =
+    Array.isArray(response)
+      ? response
+      : [];
+
+  return carList
+    .map(mapServerCarToClientCar)
     .filter(Boolean);
 }

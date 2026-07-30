@@ -2,9 +2,15 @@
   min-height: calc(100vh - 68px);
   padding: 34px 24px 56px;
   background:
-    radial-gradient(circle at 10% 15%, rgba(207, 231, 255, 0.75), transparent 26%),
-    radial-gradient(circle at 90% 85%, rgba(220, 240, 255, 0.9), transparent 30%),
-    linear-gradient(180deg, #f8fbff 0%, #eef7ff 100%);
+    radial-gradient(circle at 10% 15%,
+      rgba(207, 231, 255, 0.75),
+      transparent 26%),
+    radial-gradient(circle at 90% 85%,
+      rgba(220, 240, 255, 0.9),
+      transparent 30%),
+    linear-gradient(180deg,
+      #f8fbff 0%,
+      #eef7ff 100%);
   box-sizing: border-box;
 }
 
@@ -117,6 +123,10 @@
 
   color: inherit;
   text-decoration: none;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .member-car-card:hover {
@@ -125,9 +135,16 @@
 }
 
 .member-car-image {
-  height: 150px;
+  position: relative;
+
+  width: 100%;
+  height: 190px;
+  overflow: hidden;
+
   background:
-    linear-gradient(135deg, rgba(20, 115, 230, 0.16), rgba(255, 255, 255, 0.7)),
+    linear-gradient(135deg,
+      rgba(20, 115, 230, 0.12),
+      rgba(255, 255, 255, 0.72)),
     #eef7ff;
 
   display: flex;
@@ -135,11 +152,34 @@
   justify-content: center;
 }
 
-.member-car-image span {
+.member-car-image img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+  object-position: center;
+
+  display: block;
+
+  transition: transform 0.25s ease;
+}
+
+.member-car-image-fallback {
+  position: absolute;
+  inset: 0;
+
+  align-items: center;
+  justify-content: center;
+
   color: var(--main-blue);
   font-size: 28px;
   font-weight: 900;
   letter-spacing: 1px;
+  text-align: center;
+}
+
+.member-car-card:hover .member-car-image img {
+  transform: scale(1.03);
 }
 
 .member-car-info {
@@ -151,6 +191,7 @@
 
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -158,6 +199,7 @@
 .member-car-seller-type {
   padding: 5px 9px;
   border-radius: 999px;
+
   font-size: 12px;
   font-weight: 900;
 }
@@ -174,34 +216,67 @@
 
 .member-car-info h3 {
   margin: 0 0 8px;
+
   color: var(--text-main);
   font-size: 18px;
   font-weight: 900;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .member-car-info p {
   margin: 0 0 12px;
+
   color: var(--text-sub);
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.6;
 }
 
-.member-car-info strong {
+.member-car-info>strong {
   color: var(--text-main);
   font-size: 20px;
   font-weight: 900;
 }
 
+.member-car-auction-info {
+  margin-top: 14px;
+  padding-top: 12px;
+
+  border-top: 1px solid #edf3fa;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.member-car-auction-info span {
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.member-car-auction-info span:first-child {
+  color: var(--main-blue);
+  font-weight: 900;
+}
+
 .member-cars-empty {
   padding: 54px 20px;
+
   border: 1px dashed #cfe3fb;
   border-radius: 20px;
   background-color: #f8fbff;
+
   text-align: center;
 }
 
 .member-cars-empty h3 {
   margin: 0 0 8px;
+
   color: var(--text-main);
   font-size: 20px;
   font-weight: 900;
@@ -209,13 +284,16 @@
 
 .member-cars-empty p {
   margin: 0;
+
   color: var(--text-sub);
   font-size: 14px;
+  line-height: 1.6;
 }
 
 @media (max-width: 980px) {
   .member-cars-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -226,12 +304,18 @@
 
   .member-cars-hero {
     padding: 24px;
+
     flex-direction: column;
     align-items: flex-start;
   }
 
+  .member-cars-hero h1 {
+    font-size: 25px;
+  }
+
   .member-cars-back-btn {
     width: 100%;
+    box-sizing: border-box;
   }
 
   .member-cars-section {
@@ -240,5 +324,9 @@
 
   .member-cars-grid {
     grid-template-columns: 1fr;
+  }
+
+  .member-car-image {
+    height: 200px;
   }
 }

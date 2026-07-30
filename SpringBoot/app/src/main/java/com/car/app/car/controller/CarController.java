@@ -176,6 +176,47 @@ public class CarController {
     }
 
     /**
+     * 딜러 본인이 등록한 일반 판매 차량의 상태를 변경합니다.
+     */
+    @PatchMapping("/{carId}/status")
+    @PreAuthorize("hasRole('DEALER')")
+    public ResponseEntity<ApiResponse<CarDto.Response>> updateMyDealerCarStatus(
+            @PathVariable Long carId,
+            @RequestBody CarDto.StatusUpdateRequest request) {
+
+        try {
+            Authentication authentication = SecurityContextHolder
+                    .getContext()
+                    .getAuthentication();
+
+            Car car = carService
+                    .updateMyDealerCarStatus(
+                            carId,
+                            authentication.getName(),
+                            request.getStatus());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(
+                            carService.mapToResponse(car),
+                            "차량 상태가 변경되었습니다."));
+        } catch (SecurityException e) {
+            return ResponseEntity
+                    .status(403)
+                    .body(
+                            ApiResponse.fail(
+                                    "ERR_UNAUTHORIZED",
+                                    e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(
+                            ApiResponse.fail(
+                                    "ERR_INVALID_REQUEST",
+                                    e.getMessage()));
+        }
+    }
+
+    /**
      * 본인이 등록한 차량을 삭제(비활성화)합니다.
      */
     @DeleteMapping("/{carId}")

@@ -35,6 +35,15 @@ public class CarDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    public static class StatusUpdateRequest {
+        private String status;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class ImageDto {
         private String imageUrl;
         private Boolean isMain;
@@ -75,4 +84,5 @@ public class CarDto {
         private List<ImageDto> images;
         private Boolean goldenBadgeStatus;
     }
+
 }

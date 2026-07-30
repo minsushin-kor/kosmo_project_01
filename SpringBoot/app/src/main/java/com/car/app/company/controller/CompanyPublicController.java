@@ -95,6 +95,30 @@ public class CompanyPublicController {
         }
 
         /**
+         * 특정 회사 소속 딜러들이 등록한 차량 목록 조회
+         */
+        @GetMapping("/api/companies/{companyId}/cars")
+        public ResponseEntity<ApiResponse<List<CarDto.Response>>> getCompanyCars(
+                        @PathVariable Long companyId) {
+
+                if (!companyRepository.existsById(companyId)) {
+                        throw new IllegalArgumentException(
+                                        "존재하지 않는 회사입니다.");
+                }
+
+                List<CarDto.Response> cars = carRepository
+                                .findByDealerCompanyCompanyIdOrderByCreatedAtDesc(companyId)
+                                .stream()
+                                .map(carService::mapToResponse)
+                                .collect(Collectors.toList());
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(
+                                                cars,
+                                                "회사 등록 차량 목록 조회가 완료되었습니다."));
+        }
+
+        /**
          * 공개 딜러 프로필 상세 조회
          */
         @GetMapping("/api/dealers/{dealerId}")
