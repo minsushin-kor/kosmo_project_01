@@ -1,18 +1,26 @@
 import cars from "../data/cars";
 import { getDealerCarsFromStorage } from "./dealerCarStorage";
+import {
+  toKoreanVehicleMake,
+  toKoreanVehicleModel,
+  toKoreanVehicleName,
+} from "./vehicleNameMapper";
 
 export function normalizeCar(car) {
   if (!car) {
     return null;
   }
 
+  const rawMake = car.rawMake || car.make || car.brand || "";
+  const rawModel = car.rawModel || car.model || car.modelName || "";
+  const brand = toKoreanVehicleMake(rawMake) || "-";
+  const modelName = toKoreanVehicleModel(rawModel) || "-";
   const carName =
-    car.carName ||
-    car.name ||
-    `${car.make || car.brand || ""} ${car.model || car.modelName || ""}`.trim();
-
-  const brand = car.brand || car.make || "-";
-  const modelName = car.modelName || car.model || "-";
+    toKoreanVehicleName({
+      make: rawMake,
+      model: rawModel,
+      name: car.carName || car.name,
+    }) || `${brand} ${modelName}`.trim();
   const mileage = Number(car.mileage || car.odometer || 0);
   const price = Number(car.price || car.sellingprice || car.auction?.startPrice || 0);
 
@@ -38,13 +46,15 @@ export function normalizeCar(car) {
     ...car,
 
     carName,
-    name: car.name || carName,
+    name: carName,
 
     brand,
-    make: car.make || brand,
+    make: brand,
+    rawMake,
 
     modelName,
-    model: car.model || modelName,
+    model: modelName,
+    rawModel,
 
     mileage,
     odometer: Number(car.odometer || mileage),

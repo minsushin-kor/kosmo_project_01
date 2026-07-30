@@ -1,4 +1,9 @@
 import apiClient from "./apiClient";
+import {
+  toKoreanVehicleMake,
+  toKoreanVehicleModel,
+  toKoreanVehicleName,
+} from "../utils/vehicleNameMapper";
 
 const WON_PRICE_THRESHOLD = 100000;
 
@@ -71,15 +76,30 @@ export function mapServerCarToClientCar(
     serverCar.id ??
     null;
 
-  const make =
+  const rawMake =
     serverCar.make ||
     serverCar.brand ||
     "";
 
-  const model =
+  const rawModel =
     serverCar.model ||
     serverCar.modelName ||
     "";
+
+  const make =
+    toKoreanVehicleMake(rawMake);
+
+  const model =
+    toKoreanVehicleModel(rawModel);
+
+  const carName =
+    toKoreanVehicleName({
+      make: rawMake,
+      model: rawModel,
+      name:
+        serverCar.carName ||
+        serverCar.name,
+    });
 
   const saleType =
     serverCar.saleType ||
@@ -195,17 +215,16 @@ export function mapServerCarToClientCar(
 
     make,
     brand: make,
+    rawMake,
 
     model,
     modelName: model,
+    rawModel,
 
-    carName:
-      serverCar.carName ||
-      `${make} ${model}`.trim(),
+    carName,
 
     name:
-      serverCar.name ||
-      `${make} ${model}`.trim(),
+      carName,
 
     option:
       serverCar.option || "",

@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import {
+  toKoreanVehicleMake,
+  toKoreanVehicleModel,
+} from "../../utils/vehicleNameMapper";
 
 const formatWon = (value) =>
   new Intl.NumberFormat("ko-KR", {
@@ -710,7 +714,8 @@ function BuyerRecomendTest({ springServerUrl, springJwt }) {
                           <strong>{index + 1}</strong>
                         </td>
                         <td>
-                          <strong>{vehicle.make}</strong> {vehicle.model}
+                          <strong>{toKoreanVehicleMake(vehicle.make)}</strong>{" "}
+                          {toKoreanVehicleModel(vehicle.model)}
                           <br />
                           <small>{vehicle.vehicle_id}</small>
                         </td>

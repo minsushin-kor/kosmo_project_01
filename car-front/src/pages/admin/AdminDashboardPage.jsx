@@ -14,6 +14,9 @@ import {
   getCompanyChurnUsers,
   getDealerChurnUsers,
 } from "../../api/adminChurnApi";
+import {
+  toKoreanVehicleName,
+} from "../../utils/vehicleNameMapper";
 import "../../css/admin/adminDashboardPage.css";
 
 const CAR_STATUS_LABEL_MAP = {
@@ -63,7 +66,7 @@ function formatPrice(value) {
 }
 
 function getCarName(car) {
-  return (
+  const sourceName =
     car?.carName ||
     car?.name ||
     [
@@ -78,8 +81,17 @@ function getCarName(car) {
     ]
       .filter(Boolean)
       .join(" ") ||
-    `차량 #${car?.id ?? "-"}`
-  );
+    `차량 #${car?.id ?? "-"}`;
+
+  return toKoreanVehicleName({
+    make:
+      car?.make ||
+      car?.manufacturerName,
+    model:
+      car?.model ||
+      car?.modelName,
+    name: sourceName,
+  });
 }
 
 function getCompanyName(car) {

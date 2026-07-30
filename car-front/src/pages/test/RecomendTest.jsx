@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  toKoreanVehicleMake,
+  toKoreanVehicleModel,
+} from "../../utils/vehicleNameMapper";
 
 const formatMmr = (value) =>
   new Intl.NumberFormat("ko-KR", {
@@ -307,7 +311,8 @@ function RecomendTest({ fastApiServerUrl, springServerUrl }) {
                     <td>{vehicle.vehicle_id}</td>
                     <td>{vehicle.year}</td>
                     <td>
-                      <strong>{vehicle.make}</strong> {vehicle.model}
+                      <strong>{toKoreanVehicleMake(vehicle.make)}</strong>{" "}
+                      {toKoreanVehicleModel(vehicle.model)}
                     </td>
                     <td>{Number(vehicle.odometer).toLocaleString()}</td>
                     <td className="recommend-options">
