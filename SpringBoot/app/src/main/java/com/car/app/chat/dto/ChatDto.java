@@ -25,6 +25,7 @@ public class ChatDto {
         private LocalDateTime createdAt;
         private String lastMessage;
         private LocalDateTime lastMessageTime;
+        private long unreadCount;
     }
 
     @Getter
@@ -35,7 +36,7 @@ public class ChatDto {
     public static class MessageResponse {
         private Long messageId;
         private Long roomId;
-        private String senderType; // "MEMBER" 또는 "DEALER"
+        private String senderType;
         private Long senderId;
         private String senderName;
         private String message;

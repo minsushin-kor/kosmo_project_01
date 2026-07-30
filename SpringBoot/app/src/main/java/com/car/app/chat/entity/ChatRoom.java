@@ -1,8 +1,8 @@
 package com.car.app.chat.entity;
 
 import com.car.app.car.entity.Car;
-import com.car.app.member.entity.Member;
 import com.car.app.dealer.entity.Dealer;
+import com.car.app.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -38,4 +38,10 @@ public class ChatRoom {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "member_last_read_at")
+    private LocalDateTime memberLastReadAt;
+
+    @Column(name = "dealer_last_read_at")
+    private LocalDateTime dealerLastReadAt;
 }

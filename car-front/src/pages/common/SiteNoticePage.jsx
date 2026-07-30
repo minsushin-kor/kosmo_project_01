@@ -1,60 +1,91 @@
 import { useEffect, useState } from "react";
-import {
-  getSiteNoticeChangeEventName,
-  getSiteNotices,
-} from "../../utils/siteNoticeStorage";
+import { getNotices } from "../../api/noticeApi";
 import "../../css/common/page.css";
 
+function formatDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 function SiteNoticePage() {
-  const [siteNotices, setSiteNotices] = useState(() => getSiteNotices());
+  const [siteNotices, setSiteNotices] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    const eventName = getSiteNoticeChangeEventName();
-    const handleNoticeChange = () => {
-      setSiteNotices(getSiteNotices());
-    };
+    let isMounted = true;
 
-    window.addEventListener(eventName, handleNoticeChange);
-    window.addEventListener("storage", handleNoticeChange);
+    async function loadNotices() {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+        const notices = await getNotices();
 
-    return () => {
-      window.removeEventListener(eventName, handleNoticeChange);
-      window.removeEventListener("storage", handleNoticeChange);
-    };
-  }, []);
-
-  const sortedNotices = [...siteNotices].sort((a, b) => {
-    if (a.important !== b.important) {
-      return Number(b.important) - Number(a.important);
+        if (isMounted) {
+          setSiteNotices(Array.isArray(notices) ? notices : []);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(
+            error.message || "공지사항을 불러오지 못했습니다."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     }
 
-    return new Date(b.date) - new Date(a.date);
-  });
+    loadNotices();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <main className="page-section">
       <div className="page-header">
         <h2>공지사항</h2>
-        <p>
-          웹사이트 관리자가 작성한
-          공지사항을 확인합니다.
-        </p>
+        <p>웹사이트 관리자가 작성한 공지사항을 확인합니다.</p>
       </div>
 
       <section className="notice-list">
-        {sortedNotices.length === 0 ? (
+        {isLoading ? (
+          <div className="notice-item">
+            <p>공지사항을 불러오는 중입니다.</p>
+          </div>
+        ) : errorMessage ? (
+          <div className="notice-item">
+            <p>{errorMessage}</p>
+          </div>
+        ) : siteNotices.length === 0 ? (
           <div className="notice-item">
             <p>등록된 공지사항이 없습니다.</p>
           </div>
         ) : (
-          sortedNotices.map((notice) => (
-            <article className="notice-item" key={notice.id}>
+          siteNotices.map((notice) => (
+            <article className="notice-item" key={notice.noticeId}>
               <div className="notice-item-header">
                 <span>
-                  {notice.important ? "중요 · " : ""}
-                  {notice.category}
+                  {notice.isImportant ? "중요 · " : ""}
+                  {notice.category || "안내"}
                 </span>
-                <time>{notice.date}</time>
+                <time>{formatDate(notice.createdAt)}</time>
               </div>
 
               <h3>{notice.title}</h3>
