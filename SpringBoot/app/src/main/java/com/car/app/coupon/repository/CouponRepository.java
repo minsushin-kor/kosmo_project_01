@@ -1,6 +1,7 @@
 package com.car.app.coupon.repository;
 
 import com.car.app.coupon.entity.Coupon;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -21,4 +22,7 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     boolean existsByDealerDealerIdAndCouponTypeAndStatus(Long dealerId, String couponType, String status);
     boolean existsByCompanyCompanyIdAndCouponTypeAndStatus(Long companyId, String couponType, String status);
     Optional<Coupon> findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(Long dealerId, String couponType);
+
+    @EntityGraph(attributePaths = "dealer")
+    List<Coupon> findByCouponTypeOrderByIssuedAtDesc(String couponType);
 }

@@ -244,6 +244,23 @@
   margin-bottom: 22px;
 }
 
+.admin-churn-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  min-width: 0;
+  margin-bottom: 22px;
+}
+
+.admin-churn-dashboard-grid > .admin-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.admin-churn-dashboard-grid .admin-manage-table {
+  min-width: 760px;
+}
+
 .admin-panel {
   padding: 22px;
 }
@@ -352,6 +369,16 @@
 .admin-risk.높음 {
   background-color: #ffebee;
   color: #c62828;
+}
+
+.admin-risk.낮음 {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.admin-risk.미계산 {
+  background-color: #f1f5f9;
+  color: #64748b;
 }
 
 .admin-churn-reason-list {

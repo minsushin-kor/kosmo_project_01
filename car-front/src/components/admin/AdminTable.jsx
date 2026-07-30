@@ -1,6 +1,7 @@
 import {
   useState,
 } from "react";
+import "../../css/admin/adminManagePage.css";
 
 function AdminTable({
   columns,

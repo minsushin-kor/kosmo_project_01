@@ -114,11 +114,26 @@ public class AiAdminController {
         List<AdminDealerChurnResponse> result = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
+        Map<Long, DealerChurn> latestChurnByDealerId = new HashMap<>();
+        for (DealerChurn churn : dealerChurnRepository.findAllByOrderByCalculatedAtDesc()) {
+            if (churn.getDealer() != null) {
+                latestChurnByDealerId.putIfAbsent(churn.getDealer().getDealerId(), churn);
+            }
+        }
+
+        Map<Long, Coupon> latestCouponByDealerId = new HashMap<>();
+        for (Coupon coupon : couponRepository.findByCouponTypeOrderByIssuedAtDesc(CHURN_COUPON_TYPE)) {
+            if (coupon.getDealer() != null) {
+                latestCouponByDealerId.putIfAbsent(coupon.getDealer().getDealerId(), coupon);
+            }
+        }
+
         for (Dealer dealer : dealers) {
-            Optional<DealerChurn> churnOpt = dealerChurnRepository.findFirstByDealerDealerIdOrderByCalculatedAtDesc(dealer.getDealerId());
-            Optional<Coupon> couponOpt = couponRepository.findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(
-                    dealer.getDealerId(),
-                    CHURN_COUPON_TYPE
+            Optional<DealerChurn> churnOpt = Optional.ofNullable(
+                    latestChurnByDealerId.get(dealer.getDealerId())
+            );
+            Optional<Coupon> couponOpt = Optional.ofNullable(
+                    latestCouponByDealerId.get(dealer.getDealerId())
             );
             boolean couponEligible = isCouponEligible(dealer, couponOpt);
 
@@ -185,8 +200,17 @@ public class AiAdminController {
         List<Company> companies = companyRepository.findAll();
         List<AdminCompanyChurnResponse> result = new ArrayList<>();
 
+        Map<Long, CompanyChurn> latestChurnByCompanyId = new HashMap<>();
+        for (CompanyChurn churn : companyChurnRepository.findAllByOrderByCalculatedAtDesc()) {
+            if (churn.getCompany() != null) {
+                latestChurnByCompanyId.putIfAbsent(churn.getCompany().getCompanyId(), churn);
+            }
+        }
+
         for (Company company : companies) {
-            Optional<CompanyChurn> churnOpt = companyChurnRepository.findFirstByCompanyCompanyIdOrderByCalculatedAtDesc(company.getCompanyId());
+            Optional<CompanyChurn> churnOpt = Optional.ofNullable(
+                    latestChurnByCompanyId.get(company.getCompanyId())
+            );
 
             result.add(AdminCompanyChurnResponse.builder()
                     .companyId(company.getCompanyId())

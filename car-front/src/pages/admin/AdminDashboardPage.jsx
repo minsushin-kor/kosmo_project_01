@@ -10,6 +10,10 @@ import AdminTable from "../../components/admin/AdminTable";
 import {
   getAdminDashboardSummary,
 } from "../../api/adminDashboardApi";
+import {
+  getCompanyChurnUsers,
+  getDealerChurnUsers,
+} from "../../api/adminChurnApi";
 import "../../css/admin/adminDashboardPage.css";
 
 const CAR_STATUS_LABEL_MAP = {
@@ -327,11 +331,52 @@ function formatChangeRate(changeRate) {
   )}%`;
 }
 
+async function requestDashboardSections() {
+  const [
+    dashboardResult,
+    companyChurnResult,
+    dealerChurnResult,
+  ] = await Promise.allSettled([
+    getAdminDashboardSummary(),
+    getCompanyChurnUsers(),
+    getDealerChurnUsers(),
+  ]);
+
+  return {
+    dashboardResult,
+    companyChurnResult,
+    dealerChurnResult,
+  };
+}
+
+function getRequestErrorMessage(
+  result,
+  fallbackMessage
+) {
+  if (result.status === "fulfilled") {
+    return "";
+  }
+
+  return result.reason instanceof Error
+    ? result.reason.message
+    : fallbackMessage;
+}
+
 function AdminDashboardPage() {
   const [
     dashboard,
     setDashboard,
   ] = useState(null);
+
+  const [
+    companyChurnUsers,
+    setCompanyChurnUsers,
+  ] = useState([]);
+
+  const [
+    dealerChurnUsers,
+    setDealerChurnUsers,
+  ] = useState([]);
 
   const [
     isLoading,
@@ -348,6 +393,63 @@ function AdminDashboardPage() {
     setErrorMessage,
   ] = useState("");
 
+  const applyDashboardSections =
+    useCallback((results) => {
+      const errors = [];
+
+      if (
+        results.dashboardResult.status ===
+        "fulfilled"
+      ) {
+        setDashboard(
+          results.dashboardResult.value
+        );
+      } else {
+        errors.push(
+          getRequestErrorMessage(
+            results.dashboardResult,
+            "관리자 대시보드 정보를 불러오지 못했습니다."
+          )
+        );
+      }
+
+      if (
+        results.companyChurnResult.status ===
+        "fulfilled"
+      ) {
+        setCompanyChurnUsers(
+          results.companyChurnResult.value
+        );
+      } else {
+        errors.push(
+          getRequestErrorMessage(
+            results.companyChurnResult,
+            "회사 이탈 위험 데이터를 불러오지 못했습니다."
+          )
+        );
+      }
+
+      if (
+        results.dealerChurnResult.status ===
+        "fulfilled"
+      ) {
+        setDealerChurnUsers(
+          results.dealerChurnResult.value
+        );
+      } else {
+        errors.push(
+          getRequestErrorMessage(
+            results.dealerChurnResult,
+            "딜러 이탈 위험 데이터를 불러오지 못했습니다."
+          )
+        );
+      }
+
+      setErrorMessage(
+        errors.filter(Boolean).join(" ")
+      );
+    }, []);
+
   const loadDashboard =
     useCallback(async ({
       showLoading = false,
@@ -356,14 +458,12 @@ function AdminDashboardPage() {
         setIsRefreshing(true);
       }
 
-      setErrorMessage("");
-
       try {
-        const dashboardResult =
-          await getAdminDashboardSummary();
+        const results =
+          await requestDashboardSections();
 
-        setDashboard(
-          dashboardResult
+        applyDashboardSections(
+          results
         );
       } catch (error) {
         console.error(
@@ -380,19 +480,19 @@ function AdminDashboardPage() {
           setIsRefreshing(false);
         }
       }
-    }, []);
+    }, [applyDashboardSections]);
 
   useEffect(() => {
     let isCancelled = false;
 
-    getAdminDashboardSummary()
-      .then((dashboardResult) => {
+    requestDashboardSections()
+      .then((results) => {
         if (isCancelled) {
           return;
         }
 
-        setDashboard(
-          dashboardResult
+        applyDashboardSections(
+          results
         );
       })
       .catch((error) => {
@@ -419,7 +519,7 @@ function AdminDashboardPage() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [applyDashboardSections]);
 
   const summaryCards =
     useMemo(() => {
@@ -521,10 +621,6 @@ function AdminDashboardPage() {
       []
     );
 
-  /*
-   * 이탈 위험 데이터 연동 전까지
-   * 테이블 구조만 유지합니다.
-   */
   const companyChurnColumns =
     useMemo(
       () => [
@@ -537,8 +633,8 @@ function AdminDashboardPage() {
           label: "회사명",
         },
         {
-          key: "recentActivity",
-          label: "최근활동",
+          key: "calculatedAt",
+          label: "예측 시각 (KST)",
         },
         {
           key: "churnRate",
@@ -554,10 +650,6 @@ function AdminDashboardPage() {
               {member.risk}
             </span>
           ),
-        },
-        {
-          key: "action",
-          label: "관리상태",
         },
       ],
       []
@@ -575,8 +667,8 @@ function AdminDashboardPage() {
           label: "딜러명",
         },
         {
-          key: "recentActivity",
-          label: "최근활동",
+          key: "calculatedAt",
+          label: "예측 시각 (KST)",
         },
         {
           key: "churnRate",
@@ -790,8 +882,8 @@ function AdminDashboardPage() {
               </h3>
 
               <p>
-                이탈 위험 예측 데이터 연동
-                전입니다.
+                FastAPI의 최신 회사 이탈
+                예측 결과입니다.
               </p>
             </div>
 
@@ -807,8 +899,16 @@ function AdminDashboardPage() {
             columns={
               companyChurnColumns
             }
-            data={[]}
-            emptyMessage="조회된 회사 이탈 위험 데이터가 없습니다."
+            data={
+              isLoading
+                ? []
+                : companyChurnUsers
+            }
+            emptyMessage={
+              isLoading
+                ? "회사 이탈 위험 데이터를 불러오는 중입니다."
+                : "조회된 회사 이탈 위험 데이터가 없습니다."
+            }
           />
         </article>
 
@@ -820,8 +920,8 @@ function AdminDashboardPage() {
               </h3>
 
               <p>
-                이탈 위험 예측 데이터 연동
-                전입니다.
+                FastAPI의 최신 딜러 이탈
+                예측 결과입니다.
               </p>
             </div>
 
@@ -837,8 +937,16 @@ function AdminDashboardPage() {
             columns={
               dealerChurnColumns
             }
-            data={[]}
-            emptyMessage="조회된 딜러 이탈 위험 데이터가 없습니다."
+            data={
+              isLoading
+                ? []
+                : dealerChurnUsers
+            }
+            emptyMessage={
+              isLoading
+                ? "딜러 이탈 위험 데이터를 불러오는 중입니다."
+                : "조회된 딜러 이탈 위험 데이터가 없습니다."
+            }
           />
         </article>
       </section>
