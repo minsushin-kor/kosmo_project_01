@@ -41,16 +41,11 @@ const adminMenus = [
   },
   {
     id: 5,
-    name: "신고 관리",
-    path: "/admin/reports",
-  },
-  {
-    id: 6,
     name: "공지사항 관리",
     path: "/admin/notices",
   },
   {
-    id: 7,
+    id: 6,
     name: "이탈 위험 관리",
     path: "/admin/churn/company",
     children: [

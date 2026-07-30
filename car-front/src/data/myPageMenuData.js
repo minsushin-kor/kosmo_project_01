@@ -17,11 +17,6 @@ export const MYPAGE_MENU_DATA = {
       name: "매물 관리",
       path: "/admin/cars",
     },
-    {
-      id: 4,
-      name: "신고 관리",
-      path: "/admin/reports",
-    },
   ],
 
   [AUTH_ROLES.COMPANY]: [

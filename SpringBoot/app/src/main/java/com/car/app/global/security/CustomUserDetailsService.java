@@ -28,58 +28,91 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username)
+            throws UsernameNotFoundException {
 
-        // 0단계: 통합 UserRepository에서 조회
+        /*
+         * users 테이블은 통합 인증 계정이고, 실제 최종 권한은 역할별 상세
+         * 테이블에 저장될 수 있습니다. 특히 관리자 계정은 members.role이
+         * ADMIN인데 users.roleType이 MEMBER로 남아 있을 수 있으므로,
+         * MEMBER/ADMIN 계정은 members.role을 우선하여 권한을 확정합니다.
+         */
         Optional<User> userOpt = userRepository.findByLoginId(username);
+
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            String role = "ROLE_" + user.getRoleType().toUpperCase();
+            String userRoleType = normalizeRole(user.getRoleType());
+
+            if ("MEMBER".equals(userRoleType)
+                    || "ADMIN".equals(userRoleType)) {
+                Optional<Member> memberOpt = memberRepository.findByLoginId(username);
+
+                if (memberOpt.isPresent()) {
+                    Member member = memberOpt.get();
+
+                    return new CustomUserDetails(
+                            user.getLoginId(),
+                            user.getPassword(),
+                            toAuthority(member.getRole()),
+                            user.getName());
+                }
+            }
+
             return new CustomUserDetails(
                     user.getLoginId(),
                     user.getPassword(),
-                    role,
-                    user.getName()
-            );
+                    toAuthority(userRoleType),
+                    user.getName());
         }
 
-        // 1단계: 상사 마스터 (loginId 기준)
         Optional<Company> companyOpt = companyRepository.findByLoginId(username);
+
         if (companyOpt.isPresent()) {
             Company company = companyOpt.get();
+
             return new CustomUserDetails(
                     company.getLoginId(),
                     company.getPassword(),
                     "ROLE_COMPANY_MASTER",
-                    company.getName()
-            );
+                    company.getName());
         }
 
-        // 2단계: 일반 회원 및 관리자 (loginId 기준)
         Optional<Member> memberOpt = memberRepository.findByLoginId(username);
+
         if (memberOpt.isPresent()) {
             Member member = memberOpt.get();
-            String role = "ROLE_" + member.getRole().toUpperCase();
+
             return new CustomUserDetails(
                     member.getLoginId(),
                     member.getPassword(),
-                    role,
-                    member.getName()
-            );
+                    toAuthority(member.getRole()),
+                    member.getName());
         }
 
-        // 3단계: 딜러 (loginId 기준)
         Optional<Dealer> dealerOpt = dealerRepository.findByLoginId(username);
+
         if (dealerOpt.isPresent()) {
             Dealer dealer = dealerOpt.get();
+
             return new CustomUserDetails(
                     dealer.getLoginId(),
                     dealer.getPassword(),
                     "ROLE_DEALER",
-                    dealer.getName()
-            );
+                    dealer.getName());
         }
 
-        throw new UsernameNotFoundException("해당 로그인 아이디를 가진 계정을 찾을 수 없습니다: " + username);
+        throw new UsernameNotFoundException(
+                "해당 로그인 아이디를 가진 계정을 찾을 수 없습니다: " + username);
+    }
+
+    private String normalizeRole(String role) {
+        return String.valueOf(role)
+                .trim()
+                .toUpperCase()
+                .replaceFirst("^ROLE_", "");
+    }
+
+    private String toAuthority(String role) {
+        return "ROLE_" + normalizeRole(role);
     }
 }

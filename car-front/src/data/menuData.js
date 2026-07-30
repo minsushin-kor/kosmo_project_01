@@ -41,9 +41,20 @@ export const ROLE_MENU_LIST = {
       name: "회사",
       path: "/company",
     },
+    {
+      id: "site-notice",
+      name: "공지사항",
+      path: "/notices",
+    },
   ],
 
-  [AUTH_ROLES.MEMBER]: [],
+  [AUTH_ROLES.MEMBER]: [
+    {
+      id: "site-notice",
+      name: "공지사항",
+      path: "/notices",
+    },
+  ],
 };
 
 export function getMenusByRole(role) {
@@ -51,7 +62,10 @@ export function getMenusByRole(role) {
 }
 
 export function getHeaderMenus(role) {
-  if (role === AUTH_ROLES.COMPANY) {
+  if (
+    role === AUTH_ROLES.ADMIN ||
+    role === AUTH_ROLES.COMPANY
+  ) {
     return getMenusByRole(role);
   }
 

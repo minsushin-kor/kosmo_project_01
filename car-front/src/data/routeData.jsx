@@ -135,10 +135,6 @@ const AdminCarManagePage = lazy(
   ROUTE_LOADERS.adminCarManage
 );
 
-const AdminReportManagePage = lazy(
-  ROUTE_LOADERS.adminReportManage
-);
-
 const AdminChurnManagePage = lazy(
   ROUTE_LOADERS.adminChurnManage
 );
@@ -436,16 +432,6 @@ export const PROTECTED_ROUTES = [
     path: "/admin/final-deals",
     element: (
       <AdminFinalDealManagePage />
-    ),
-    allowedRoles: [
-      AUTH_ROLES.ADMIN,
-    ],
-  },
-  {
-    id: "admin-reports",
-    path: "/admin/reports",
-    element: (
-      <AdminReportManagePage />
     ),
     allowedRoles: [
       AUTH_ROLES.ADMIN,

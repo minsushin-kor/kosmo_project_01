@@ -4,16 +4,11 @@ export const NOTIFICATION_DATA = {
   [AUTH_ROLES.ADMIN]: [
     {
       id: 1,
-      message: "신고 처리 대기 건이 있습니다.",
-      path: "/admin/reports",
-    },
-    {
-      id: 2,
       message: "신규 매물 검토가 필요합니다.",
       path: "/admin/cars",
     },
     {
-      id: 3,
+      id: 2,
       message: "신규 회원 가입 내역이 있습니다.",
       path: "/admin/members",
     },

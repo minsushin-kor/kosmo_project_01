@@ -149,11 +149,6 @@ export const ROUTE_LOADERS = {
       "../pages/admin/AdminCarManagePage"
     ),
 
-  adminReportManage: () =>
-    import(
-      "../pages/admin/AdminReportManagePage"
-    ),
-
   adminChurnManage: () =>
     import(
       "../pages/admin/AdminChurnManagePage"
@@ -257,9 +252,6 @@ const ROUTE_LOADERS_BY_PATH = {
 
   "/admin/final-deals":
     ROUTE_LOADERS.adminFinalDealManage,
-
-  "/admin/reports":
-    ROUTE_LOADERS.adminReportManage,
 
   "/admin/churn":
     ROUTE_LOADERS.adminChurnManage,

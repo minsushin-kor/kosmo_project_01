@@ -40,6 +40,10 @@ function Header() {
     logout,
   } = useAuth();
 
+  const isAdmin =
+    loginUser?.role ===
+    AUTH_ROLES.ADMIN;
+
   const isCompany =
     loginUser?.role ===
     AUTH_ROLES.COMPANY;
@@ -51,9 +55,11 @@ function Header() {
   const menus =
     getHeaderMenus(loginUser?.role);
 
-  const logoPath = isCompany
-    ? "/company/mypage"
-    : "/";
+  const logoPath = isAdmin
+    ? "/admin"
+    : isCompany
+      ? "/company/mypage"
+      : "/";
 
   const companyName =
     loginUser?.companyName ||
@@ -73,11 +79,10 @@ function Header() {
 
   return (
     <header
-      className={`header ${
-        isCompany
+      className={`header ${isCompany
           ? "company-header"
           : ""
-      }`}
+        }`}
     >
       <div className="header-left">
         <div className="logo">
@@ -129,6 +134,26 @@ function Header() {
               로그인
             </Link>
           </>
+        ) : isAdmin ? (
+          <>
+            <Link
+              to="/admin"
+              className="mypage-link"
+              {...getPrefetchHandlers(
+                "/admin"
+              )}
+            >
+              관리자 대시보드
+            </Link>
+
+            <button
+              type="button"
+              className="logout-btn"
+              onClick={handleLogout}
+            >
+              로그아웃
+            </button>
+          </>
         ) : isCompany ? (
           <>
             <Link
@@ -143,10 +168,10 @@ function Header() {
               {Number(
                 loginUser?.couponCount || 0
               ) > 0 && (
-                <span className="header-count-badge">
-                  {loginUser.couponCount}
-                </span>
-              )}
+                  <span className="header-count-badge">
+                    {loginUser.couponCount}
+                  </span>
+                )}
             </Link>
 
             <NotificationDropdown
