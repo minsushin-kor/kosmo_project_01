@@ -13,6 +13,32 @@ import {
 } from "../../api/adminChurnApi";
 import "../../css/admin/adminDashboardPage.css";
 
+function renderRiskReasons(churnUser) {
+  const reasons = Array.isArray(
+    churnUser.reason
+  )
+    ? churnUser.reason
+    : [];
+
+  if (reasons.length === 0) {
+    return (
+      <span className="admin-churn-reason-empty">
+        분석 사유 없음
+      </span>
+    );
+  }
+
+  return (
+    <ul className="admin-churn-reason-list">
+      {reasons.map((reason, index) => (
+        <li key={`${churnUser.id}-${index}`}>
+          {reason}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 const companyChurnColumns = [
   {
     key: "memberType",
@@ -24,7 +50,7 @@ const companyChurnColumns = [
   },
   {
     key: "calculatedAt",
-    label: "예측 시각",
+    label: "예측 시각 (KST)",
   },
   {
     key: "churnRate",
@@ -42,12 +68,9 @@ const companyChurnColumns = [
     ),
   },
   {
-    key: "action",
-    label: "추천 조치",
-  },
-  {
     key: "reason",
     label: "위험 감지 사유",
+    render: renderRiskReasons,
   },
 ];
 
@@ -62,7 +85,7 @@ const dealerChurnColumns = [
   },
   {
     key: "calculatedAt",
-    label: "예측 시각",
+    label: "예측 시각 (KST)",
   },
   {
     key: "churnRate",
@@ -102,6 +125,7 @@ const dealerChurnColumns = [
   {
     key: "reason",
     label: "위험 감지 사유",
+    render: renderRiskReasons,
   },
 ];
 

@@ -452,22 +452,18 @@ def get_risk_grade(probability: float) -> str:
         return "Safe"
 
 
-DEFAULT_RISK_REASON = "현재 설정된 활동 위험 기준에 해당하는 특이사항이 없습니다."
-
-
 def build_dealer_risk_reasons(
     last_activity_days: int,
     recent_trade_count: int,
     previous_trade_count: int,
     site_usage_rate: float,
-    avg_selling_price: float | None = None,
 ) -> list[str]:
-    """개인 딜러의 활동 지표를 동일한 규칙으로 설명 문구로 변환합니다."""
+    """모델 입력 지표가 위험 기준에 해당할 때 실제 수치만 설명합니다."""
     risk_reasons = []
 
     if last_activity_days >= 14:
         risk_reasons.append(
-            f"마지막 접속 후 {last_activity_days}일간 로그인이 없어 장기 휴면 상태입니다."
+            f"마지막 활동 후 {last_activity_days}일 경과 (위험 기준: 14일 이상)"
         )
 
     expected_60d = max(1.0, float(previous_trade_count) / 3.0)
@@ -481,24 +477,18 @@ def build_dealer_risk_reasons(
     )
     if trade_drop_rate >= 0.50 and previous_trade_count >= 30:
         risk_reasons.append(
-            f"과거 누적 실적({previous_trade_count}회) 대비 최근 거래가 "
-            f"{int(trade_drop_rate * 100)}% 급락했습니다."
+            f"이전 거래 {previous_trade_count}건 대비 최근 60일 거래 "
+            f"{recent_trade_count}건 (감소율: {int(trade_drop_rate * 100)}%)"
         )
     elif recent_trade_count == 0:
-        risk_reasons.append("최근 60일 동안 성사된 차량 거래가 전무합니다.")
+        risk_reasons.append("최근 60일 거래 0건")
 
     if site_usage_rate <= 0.30:
         risk_reasons.append(
-            f"사이트 매물 조회 이용률이 {int(site_usage_rate * 100)}%로 매우 저조합니다."
+            f"사이트 이용률 {site_usage_rate * 100:.1f}% (위험 기준: 30% 이하)"
         )
 
-    if avg_selling_price is not None and avg_selling_price <= 3000000.0:
-        risk_reasons.append(
-            f"평균 판매 단가가 {int(avg_selling_price / 10000)}만원으로 "
-            "초저가/영세 차량 위주입니다."
-        )
-
-    return risk_reasons or [DEFAULT_RISK_REASON]
+    return risk_reasons
 
 
 def build_company_risk_reasons(
@@ -508,31 +498,29 @@ def build_company_risk_reasons(
     recent_trade_per_dealer: float,
     previous_trade_per_dealer: float,
 ) -> list[str]:
-    """회사의 활동 지표를 동일한 규칙으로 설명 문구로 변환합니다."""
+    """모델 입력 지표가 위험 기준에 해당할 때 실제 수치만 설명합니다."""
     risk_reasons = []
 
     if active_dealer_ratio <= 0.60:
         risk_reasons.append(
-            f"소속 딜러들의 현재 활동 비율이 {int(active_dealer_ratio * 100)}%로 "
-            "과반이 비활성 상태입니다."
+            f"활성 딜러 비율 {active_dealer_ratio * 100:.1f}% (위험 기준: 60% 이하)"
         )
     if site_usage_rate_avg <= 0.40:
         risk_reasons.append(
-            f"상사 소속 딜러들의 평균 사이트 이용률이 "
-            f"{int(site_usage_rate_avg * 100)}%로 저조합니다."
+            f"평균 사이트 이용률 {site_usage_rate_avg * 100:.1f}% (위험 기준: 40% 이하)"
         )
     if recent_trade_count == 0:
-        risk_reasons.append(
-            "상사 소속 전체 딜러들의 최근 60일간 거래가 전무합니다."
-        )
+        risk_reasons.append("회사 소속 딜러의 최근 60일 거래 합계 0건")
 
     growth = recent_trade_per_dealer / (previous_trade_per_dealer + 1e-5)
     if growth <= 0.40:
         risk_reasons.append(
-            "과거 거래 패턴 대비 상사 전체의 활동성 성장률이 크게 하락했습니다."
+            f"딜러 1인당 이전 거래 {previous_trade_per_dealer:.1f}건 대비 "
+            f"최근 거래 {recent_trade_per_dealer:.1f}건 "
+            f"(활동 비율: {growth * 100:.1f}%)"
         )
 
-    return risk_reasons or [DEFAULT_RISK_REASON]
+    return risk_reasons
 
 
 def clamp(value: float, min_value: float, max_value: float) -> float:
@@ -1561,7 +1549,6 @@ def predict_personal(features: DealerFeatures):
             recent_trade_count=features.Recent_60d_Trade_Count,
             previous_trade_count=features.Previous_Trade_Count,
             site_usage_rate=features.Site_Usage_Rate,
-            avg_selling_price=features.Avg_Selling_Price,
         )
 
         print("--- [Prediction Result] ---")
@@ -1709,17 +1696,11 @@ def predict_churn_batch(request: BatchChurnRequest):
                 active_probability = float(active_prob)
                 churn_probability = float(churn_prob)
                 risk_grade = get_risk_grade(churn_probability)
-                average_price = (
-                    float(item.Avg_Selling_Price)
-                    if item.Avg_Selling_Price > 0
-                    else None
-                )
                 risk_reasons = build_dealer_risk_reasons(
                     last_activity_days=item.Last_Activity_Days,
                     recent_trade_count=item.Recent_60d_Trade_Count,
                     previous_trade_count=item.Previous_Trade_Count,
                     site_usage_rate=item.Site_Usage_Rate,
-                    avg_selling_price=average_price,
                 )
                 action = (
                     "수수료 50% 쿠폰발송"

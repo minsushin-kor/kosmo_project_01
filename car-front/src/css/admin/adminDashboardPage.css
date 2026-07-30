@@ -354,6 +354,30 @@
   color: #c62828;
 }
 
+.admin-churn-reason-list {
+  min-width: 260px;
+  max-width: 420px;
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+  white-space: normal;
+}
+
+.admin-churn-reason-list li {
+  margin: 0 0 6px;
+  line-height: 1.45;
+}
+
+.admin-churn-reason-list li:last-child {
+  margin-bottom: 0;
+}
+
+.admin-churn-reason-empty {
+  color: #94a3b8;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 /* =========================
    검토 대기 목록
 ========================= */

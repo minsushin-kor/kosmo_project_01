@@ -22,6 +22,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 /**
@@ -34,6 +36,7 @@ public class AiAdminController {
 
     private static final String CHURN_COUPON_TYPE = "COMMISSION_DISCOUNT";
     private static final double CHURN_COUPON_RISK_THRESHOLD = 70.0;
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
     private final AiService aiService;
     private final DealerRepository dealerRepository;
@@ -56,7 +59,7 @@ public class AiAdminController {
         private String riskGrade;
         private String riskReasons;
         private String action;
-        private LocalDateTime calculatedAt;
+        private OffsetDateTime calculatedAt;
         private String couponStatus;
         private boolean couponEligible;
     }
@@ -74,7 +77,7 @@ public class AiAdminController {
         private String riskGrade;
         private String riskReasons;
         private String action;
-        private LocalDateTime calculatedAt;
+        private OffsetDateTime calculatedAt;
     }
 
     @Getter
@@ -83,7 +86,7 @@ public class AiAdminController {
     @AllArgsConstructor
     public static class ChurnStatusResponse {
         private String status;
-        private LocalDateTime lastCalculatedAt;
+        private OffsetDateTime lastCalculatedAt;
         private int dealerCount;
         private int companyCount;
     }
@@ -127,9 +130,12 @@ public class AiAdminController {
                     .riskScore(dealer.getRiskScore())
                     .tier(dealer.getTier())
                     .riskGrade(churnOpt.map(DealerChurn::getRiskGrade).orElse(dealer.getRiskScore() != null && dealer.getRiskScore() >= 75.0 ? "CARE_REQUIRED" : "NORMAL"))
-                    .riskReasons(churnOpt.map(DealerChurn::getRiskReasons).orElse("활동 특이사항 없음"))
-                    .action(churnOpt.map(DealerChurn::getAction).orElse("모니터링"))
-                    .calculatedAt(churnOpt.map(DealerChurn::getCalculatedAt).orElse(null))
+                    .riskReasons(churnOpt.map(DealerChurn::getRiskReasons).orElse(null))
+                    .action(churnOpt.map(DealerChurn::getAction).orElse(null))
+                    .calculatedAt(churnOpt
+                            .map(DealerChurn::getCalculatedAt)
+                            .map(this::toKoreanTime)
+                            .orElse(null))
                     .couponStatus(resolveCouponStatus(couponOpt, couponEligible, now))
                     .couponEligible(couponEligible)
                     .build());
@@ -189,9 +195,12 @@ public class AiAdminController {
                     .riskScore(company.getRiskScore())
                     .tier(company.getTier())
                     .riskGrade(churnOpt.map(CompanyChurn::getRiskGrade).orElse(company.getRiskScore() != null && company.getRiskScore() >= 70.0 ? "CARE_REQUIRED" : "NORMAL"))
-                    .riskReasons(churnOpt.map(CompanyChurn::getRiskReasons).orElse("활동 특이사항 없음"))
-                    .action(churnOpt.map(CompanyChurn::getAction).orElse("모니터링"))
-                    .calculatedAt(churnOpt.map(CompanyChurn::getCalculatedAt).orElse(null))
+                    .riskReasons(churnOpt.map(CompanyChurn::getRiskReasons).orElse(null))
+                    .action(churnOpt.map(CompanyChurn::getAction).orElse(null))
+                    .calculatedAt(churnOpt
+                            .map(CompanyChurn::getCalculatedAt)
+                            .map(this::toKoreanTime)
+                            .orElse(null))
                     .build());
         }
 
@@ -210,7 +219,9 @@ public class AiAdminController {
     @GetMapping("/churn-status")
     public ResponseEntity<ApiResponse<ChurnStatusResponse>> getChurnStatus() {
         List<DealerChurn> latestDealerChurns = dealerChurnRepository.findAllByOrderByCalculatedAtDesc();
-        LocalDateTime lastCalculatedAt = latestDealerChurns.isEmpty() ? null : latestDealerChurns.get(0).getCalculatedAt();
+        OffsetDateTime lastCalculatedAt = latestDealerChurns.isEmpty()
+                ? null
+                : toKoreanTime(latestDealerChurns.get(0).getCalculatedAt());
 
         ChurnStatusResponse response = ChurnStatusResponse.builder()
                 .status("ACTIVE")
@@ -220,5 +231,12 @@ public class AiAdminController {
                 .build();
 
         return ResponseEntity.ok(ApiResponse.success(response, "이탈 예측 뱃치 계산 시각 및 상태 조회가 완료되었습니다."));
+    }
+
+    private OffsetDateTime toKoreanTime(LocalDateTime calculatedAt) {
+        return calculatedAt
+                .atZone(ZoneId.systemDefault())
+                .withZoneSameInstant(KOREA_ZONE)
+                .toOffsetDateTime();
     }
 }

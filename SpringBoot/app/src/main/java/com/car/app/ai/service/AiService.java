@@ -241,8 +241,8 @@ public class AiService {
                         dealerUpdates.add(dealer);
 
                         String reasonsStr = (pred.getRiskReasons() != null && !pred.getRiskReasons().isEmpty())
-                                ? String.join(", ", pred.getRiskReasons())
-                                : "활동 특이사항 없음";
+                                ? String.join("\n", pred.getRiskReasons())
+                                : null;
 
                         if (item != null) {
                             DealerChurn churn = latestDealerChurnMap.get(dealer.getDealerId());
@@ -284,8 +284,8 @@ public class AiService {
                         companyUpdates.add(company);
 
                         String reasonsStr = (pred.getRiskReasons() != null && !pred.getRiskReasons().isEmpty())
-                                ? String.join(", ", pred.getRiskReasons())
-                                : "활동 특이사항 없음";
+                                ? String.join("\n", pred.getRiskReasons())
+                                : null;
 
                         if (item != null) {
                             CompanyChurn churn = latestCompanyChurnMap.get(company.getCompanyId());

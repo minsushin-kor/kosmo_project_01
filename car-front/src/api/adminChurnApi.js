@@ -91,19 +91,30 @@ function formatCalculatedAt(calculatedAt) {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
+      timeZone: "Asia/Seoul",
     }
   ).format(date);
 }
 
 function normalizeReason(riskReasons) {
-  if (Array.isArray(riskReasons)) {
-    return riskReasons.join(", ");
-  }
+  const ignoredMessages = new Set([
+    "활동 특이사항 없음",
+    "현재 설정된 활동 위험 기준에 해당하는 특이사항이 없습니다.",
+  ]);
 
-  return (
-    riskReasons ||
-    "활동 특이사항 없음"
-  );
+  const reasons = Array.isArray(riskReasons)
+    ? riskReasons
+    : String(riskReasons || "").split(
+        /\r?\n|,\s*/
+      );
+
+  return reasons
+    .map((reason) => String(reason).trim())
+    .filter(
+      (reason) =>
+        reason &&
+        !ignoredMessages.has(reason)
+    );
 }
 
 function mapCouponStatus(couponStatus) {
