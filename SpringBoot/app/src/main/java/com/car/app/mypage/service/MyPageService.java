@@ -266,6 +266,8 @@ public class MyPageService {
                                                 member.getProfileImageUrl())
                                 .role(
                                                 member.getRole())
+                                .preferredCar(
+                                                member.getPreferredCar())
                                 .hasCar(
                                                 Boolean.TRUE.equals(
                                                                 member.getHasCar()))
@@ -502,6 +504,8 @@ public class MyPageService {
                                 .profileImageUrl(
                                                 member.getProfileImageUrl())
                                 .role(member.getRole())
+                                .preferredCar(
+                                                member.getPreferredCar())
                                 .hasCar(member.getHasCar())
                                 .ownedCarImageUrl(
                                                 member.getOwnedCarImageUrl())

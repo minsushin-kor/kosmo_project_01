@@ -1,5 +1,7 @@
 package com.car.app.ai.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,6 +11,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -24,6 +28,7 @@ import java.util.List;
 public class AiClient {
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${ai.fastapi.base-url}")
     private String baseUrl;
@@ -186,6 +191,7 @@ public class AiClient {
         private String model;
         private Double odometer;
         private String option;
+        private String body;
         private String color;
         private Long sellingPrice;
         private String state;
@@ -269,9 +275,31 @@ public class AiClient {
             log.info("FastAPI 서버로 일반 구매자 AI 차량 추천 요청 송신: {} (차량 후보 수: {}대)", url,
                     request.getVehicles() != null ? request.getVehicles().size() : 0);
             return restTemplate.postForObject(url, request, Object.class);
+        } catch (HttpStatusCodeException e) {
+            String message = extractFastApiDetail(
+                    e.getResponseBodyAsString(),
+                    "추천 조건을 확인해 주세요.");
+            log.warn("FastAPI 일반 구매자 추천 요청 거부: {}", message);
+            throw new IllegalArgumentException(message, e);
+        } catch (ResourceAccessException e) {
+            String message = String.format(
+                    "AI 서버에 연결할 수 없습니다. FastAPI 실행 상태와 연결 주소(%s)를 확인해 주세요.",
+                    baseUrl);
+            log.error("FastAPI 일반 구매자 추천 서버 연결 실패: {}", e.getMessage());
+            throw new IllegalStateException(message, e);
         } catch (Exception e) {
             log.error("FastAPI 서버로 일반 구매자 AI 차량 추천 요청 실패: {}", e.getMessage());
             return null;
+        }
+    }
+
+    private String extractFastApiDetail(String responseBody, String fallback) {
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            String detail = root.path("detail").asText();
+            return detail == null || detail.isBlank() ? fallback : detail;
+        } catch (Exception ignored) {
+            return fallback;
         }
     }
 }

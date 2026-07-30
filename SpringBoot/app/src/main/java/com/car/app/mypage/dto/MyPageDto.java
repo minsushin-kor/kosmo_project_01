@@ -57,6 +57,7 @@ public class MyPageDto {
         private String phone;
         private String profileImageUrl;
         private String role;
+        private String preferredCar;
 
         // 일반회원 보유 차량 정보
         private Boolean hasCar;

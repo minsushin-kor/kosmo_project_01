@@ -571,6 +571,8 @@ export function createAuthUserFromProfile({
 
     notificationCount: 0,
     couponCount: 0,
-    preferredCar: "",
+    preferredCar:
+      profile.preferredCar ||
+      "",
   };
 }

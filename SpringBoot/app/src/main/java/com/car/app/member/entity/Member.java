@@ -44,6 +44,9 @@ public class Member {
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
+    @Column(name = "preferred_car", length = 200)
+    private String preferredCar;
+
     @Column(name = "has_car")
     private Boolean hasCar;
 

@@ -5,6 +5,7 @@ import json
 import joblib
 import numpy as np
 import pandas as pd
+import re
 from pathlib import Path
 from difflib import SequenceMatcher
 from math import log1p
@@ -249,6 +250,16 @@ class BatchChurnResponse(BaseModel):
 
 
 class VehicleRecommendationRequest(BaseModel):
+    recommendationPriority: str = Field(
+        default="preferred_car",
+        pattern="^(preferred_car|recent_search)$",
+        description="회원 추천 우선 기준",
+    )
+    preferredCar: str | None = Field(
+        default=None,
+        max_length=200,
+        description="회원가입 때 입력한 선호차량 자유 입력값",
+    )
     preferredMake: str | None = Field(
         default=None,
         max_length=50,
@@ -279,6 +290,11 @@ class VehicleRecommendationRequest(BaseModel):
         default=None,
         max_length=30,
         description="선호 색상",
+    )
+    preferredRegion: str | None = Field(
+        default=None,
+        max_length=50,
+        description="최근 검색 지역",
     )
     minimumCondition: float | None = Field(
         default=None,
@@ -315,6 +331,8 @@ class BuyerRecommendationVehicle(BaseModel):
     model: str = Field(..., min_length=1, max_length=100, description="모델명")
     odometer: float = Field(..., ge=0, description="주행거리(km)")
     option: str | None = Field(default=None, description="쉼표로 구분된 옵션")
+    body: str | None = Field(default=None, max_length=50, description="차종")
+    fuel: str | None = Field(default=None, max_length=30, description="연료")
     color: str | None = Field(default=None, max_length=30, description="외장 색상")
     sellingPrice: int | None = Field(default=None, ge=0, description="판매가(원)")
     state: str | None = Field(default=None, max_length=50, description="차량 등록 지역")
@@ -347,6 +365,8 @@ class VehiclePredictionResult(BaseModel):
     make: str
     model: str
     odometer: int
+    body: str | None = None
+    fuel: str | None = None
     color: str | None
     option: list[str]
     sellingPrice: int | None
@@ -522,7 +542,14 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
 
 VEHICLE_MAKE_ALIASES = {
     "현대": "hyundai",
+    "현대차": "hyundai",
     "기아": "kia",
+    "기아차": "kia",
+    "제네시스": "genesis",
+    "르노": "renault",
+    "르노코리아": "renault",
+    "kg모빌리티": "kgmobility",
+    "쌍용": "kgmobility",
     "벤츠": "mercedes-benz",
     "메르세데스벤츠": "mercedes-benz",
     "쉐보레": "chevrolet",
@@ -559,6 +586,43 @@ VEHICLE_MODEL_ALIASES = {
     "스포티지": "sportage",
 }
 
+VEHICLE_BODY_ALIASES = {
+    "suv": "suv",
+    "스포츠유틸리티": "suv",
+    "세단": "sedan",
+    "sedan": "sedan",
+    "해치백": "hatchback",
+    "hatchback": "hatchback",
+    "쿠페": "coupe",
+    "coupe": "coupe",
+    "왜건": "wagon",
+    "wagon": "wagon",
+    "트럭": "truck",
+    "truck": "truck",
+    "밴": "van",
+    "van": "van",
+}
+
+VEHICLE_FUEL_ALIASES = {
+    "가솔린": "gasoline",
+    "휘발유": "gasoline",
+    "gasoline": "gasoline",
+    "gas": "gasoline",
+    "디젤": "diesel",
+    "경유": "diesel",
+    "diesel": "diesel",
+    "하이브리드": "hybrid",
+    "hev": "hybrid",
+    "hybrid": "hybrid",
+    "전기": "electric",
+    "전기차": "electric",
+    "ev": "electric",
+    "electric": "electric",
+    "lpg": "lpg",
+}
+
+PREFERRED_CAR_TOKEN_SEPARATOR = re.compile(r"[\s,;/|]+")
+
 
 def clean_optional_text(value: str | None) -> str | None:
     """빈 문자열을 추천 조건에서 제외할 수 있도록 정리합니다."""
@@ -582,6 +646,74 @@ def normalize_vehicle_text(
     if aliases:
         return aliases.get(normalized, normalized)
     return normalized
+
+
+def split_preferred_car_tokens(value: str | None) -> list[str]:
+    """선호차량 자유 입력값을 공백과 일반 구분자로 안전하게 나눕니다."""
+    cleaned = clean_optional_text(value)
+    if cleaned is None:
+        return []
+
+    tokens = []
+    seen = set()
+    for token in PREFERRED_CAR_TOKEN_SEPARATOR.split(cleaned):
+        token = token.strip()
+        normalized = normalize_vehicle_text(token)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        tokens.append(token)
+    return tokens
+
+
+def is_known_alias(value: str, aliases: dict[str, str]) -> bool:
+    normalized = normalize_vehicle_text(value)
+    return normalized in aliases or normalized in set(aliases.values())
+
+
+def parse_preferred_car(value: str | None) -> dict:
+    """자유 입력 선호차량에서 추천 기본 조건과 검색 전용 조건을 분리합니다."""
+    tokens = split_preferred_car_tokens(value)
+    parsed = {
+        "tokens": tokens,
+        "preferredMake": None,
+        "preferredModel": None,
+        "preferredBody": None,
+        "preferredFuel": None,
+        "remainingKeywords": [],
+    }
+
+    for token in tokens:
+        if (
+            parsed["preferredMake"] is None
+            and is_known_alias(token, VEHICLE_MAKE_ALIASES)
+        ):
+            parsed["preferredMake"] = token
+            continue
+        if (
+            parsed["preferredBody"] is None
+            and is_known_alias(token, VEHICLE_BODY_ALIASES)
+        ):
+            parsed["preferredBody"] = token
+            continue
+        if (
+            parsed["preferredFuel"] is None
+            and is_known_alias(token, VEHICLE_FUEL_ALIASES)
+        ):
+            parsed["preferredFuel"] = token
+            continue
+        if (
+            parsed["preferredModel"] is None
+            and is_known_alias(token, VEHICLE_MODEL_ALIASES)
+        ):
+            parsed["preferredModel"] = token
+            continue
+        parsed["remainingKeywords"].append(token)
+
+    if parsed["preferredModel"] is None and parsed["remainingKeywords"]:
+        parsed["preferredModel"] = parsed["remainingKeywords"].pop(0)
+
+    return parsed
 
 
 def get_text_match_ratio(
@@ -798,6 +930,8 @@ def build_vehicle_prediction_catalog(vehicles: list[dict]) -> list[dict]:
                 "make": str(vehicle["make"]),
                 "model": str(vehicle["model"]),
                 "odometer": int(float(vehicle["odometer"])),
+                "body": clean_optional_text(vehicle.get("body")),
+                "fuel": clean_optional_text(vehicle.get("fuel")),
                 "color": clean_optional_text(vehicle.get("color")),
                 "option": parse_vehicle_options(vehicle.get("option")),
                 "sellingPrice": vehicle.get("sellingPrice"),
@@ -837,13 +971,47 @@ def validate_vehicle_recommendation_request(
     preferences: VehicleRecommendationRequest,
 ) -> tuple[dict, list[str]]:
     """추천에 사용할 입력값을 정리하고 기본 조건 개수를 검증합니다."""
+    parsed_preferred_car = parse_preferred_car(preferences.preferredCar)
+    explicit_make = clean_optional_text(preferences.preferredMake)
+    explicit_model = clean_optional_text(preferences.preferredModel)
+    prefer_saved_car = preferences.recommendationPriority == "preferred_car"
     cleaned_preferences = {
-        "preferredMake": clean_optional_text(preferences.preferredMake),
-        "preferredModel": clean_optional_text(preferences.preferredModel),
+        "recommendationPriority": preferences.recommendationPriority,
+        "preferredCar": clean_optional_text(preferences.preferredCar),
+        "preferredMake": (
+            (
+                parsed_preferred_car["preferredMake"]
+                or explicit_make
+            )
+            if prefer_saved_car
+            else (
+                explicit_make
+                or parsed_preferred_car["preferredMake"]
+            )
+        ),
+        "preferredModel": (
+            (
+                parsed_preferred_car["preferredModel"]
+                or explicit_model
+            )
+            if prefer_saved_car
+            else (
+                explicit_model
+                or parsed_preferred_car["preferredModel"]
+            )
+        ),
+        "preferredBody": (
+            parsed_preferred_car["preferredBody"]
+            if prefer_saved_car or explicit_model is None
+            else None
+        ),
+        "preferredFuel": parsed_preferred_car["preferredFuel"],
+        "preferredCarTokens": parsed_preferred_car["tokens"],
         "preferredYear": preferences.preferredYear,
         "maxOdometer": preferences.maxOdometer,
         "expectedPrice": preferences.expectedPrice,
         "preferredColor": clean_optional_text(preferences.preferredColor),
+        "preferredRegion": clean_optional_text(preferences.preferredRegion),
         "minimumCondition": preferences.minimumCondition,
         "priceTolerance": preferences.priceTolerance,
         "options": normalize_requested_options(preferences.options),
@@ -866,7 +1034,10 @@ def validate_vehicle_recommendation_request(
     if len(active_basic_keys) < 2:
         raise HTTPException(
             status_code=422,
-            detail="기본 조건 5개 중 최소 2개를 입력해야 합니다.",
+            detail=(
+                "추천 조건이 부족해 차량 추천이 어렵습니다. "
+                "검색 조건 또는 회원가입 선호차량에서 기본 조건을 2개 이상 준비해 주세요."
+            ),
         )
 
     if preferences.exactMake and cleaned_preferences["preferredMake"] is None:
@@ -889,6 +1060,54 @@ def validate_vehicle_recommendation_request(
         )
 
     return cleaned_preferences, active_basic_keys
+
+
+def filter_catalog_by_preferred_car_search(
+    catalog: list[dict],
+    preferences: dict,
+) -> tuple[list[dict], list[dict]]:
+    """차종·연료 선호는 모델 점수가 아닌 후보 차량 검색에만 사용합니다."""
+    filtered_catalog = list(catalog)
+    excluded_conditions = []
+    search_filters = [
+        ("preferredBody", "body", VEHICLE_BODY_ALIASES, "차종"),
+        ("preferredFuel", "fuel", VEHICLE_FUEL_ALIASES, "연료"),
+        ("preferredRegion", "state", None, "지역"),
+    ]
+
+    for preference_key, vehicle_key, aliases, label in search_filters:
+        preferred_value = preferences.get(preference_key)
+        if preferred_value is None:
+            continue
+
+        supported = any(
+            clean_optional_text(vehicle.get(vehicle_key)) is not None
+            for vehicle in catalog
+        )
+        if not supported:
+            excluded_conditions.append(
+                {
+                    "condition": preference_key,
+                    "reason": (
+                        f"전달된 차량 데이터에 {label} 정보가 없어 "
+                        "후보 검색에서 제외했습니다."
+                    ),
+                }
+            )
+            continue
+
+        filtered_catalog = [
+            vehicle
+            for vehicle in filtered_catalog
+            if get_text_match_ratio(
+                preferred_value,
+                vehicle.get(vehicle_key) or "",
+                aliases,
+            )
+            >= 0.85
+        ]
+
+    return filtered_catalog, excluded_conditions
 
 
 def add_score_breakdown(
@@ -1901,8 +2120,14 @@ def recommend_vehicles_for_buyer(
 
         preferred_make = cleaned_preferences["preferredMake"]
         preferred_model = cleaned_preferences["preferredModel"]
+        search_filtered_catalog, excluded_conditions = (
+            filter_catalog_by_preferred_car_search(
+                catalog,
+                cleaned_preferences,
+            )
+        )
         filtered_catalog = []
-        for vehicle in catalog:
+        for vehicle in search_filtered_catalog:
             if (
                 cleaned_preferences["exactMake"]
                 and get_text_match_ratio(
@@ -1925,7 +2150,6 @@ def recommend_vehicles_for_buyer(
                 continue
             filtered_catalog.append(vehicle)
 
-        excluded_conditions = []
         active_optional_keys = []
         color_supported = any(
             clean_optional_text(vehicle.get("color")) is not None

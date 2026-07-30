@@ -6,7 +6,10 @@ import {
 } from "react";
 import SearchBox from "../../components/common/SearchBox";
 import {
+  clearLastSearchCondition,
+  getLastSearchCondition,
   initialSearchCondition,
+  saveLastSearchCondition,
 } from "../../data/searchData";
 import CarCard from "../../components/car/CarCard";
 import RightSidebar from "../../components/common/RightSidebar";
@@ -133,8 +136,16 @@ function IndexPage() {
   const [
     searchCondition,
     setSearchCondition,
-  ] = useState(
+  ] = useState(() =>
+    getLastSearchCondition() ||
     initialSearchCondition
+  );
+
+  const [
+    recommendationSearchCondition,
+    setRecommendationSearchCondition,
+  ] = useState(() =>
+    getLastSearchCondition()
   );
 
   const [
@@ -577,6 +588,34 @@ function IndexPage() {
       []
     );
 
+  const handleSearchSubmit =
+    useCallback(
+      (condition) => {
+        const savedCondition = {
+          ...initialSearchCondition,
+          ...condition,
+        };
+
+        saveLastSearchCondition(
+          savedCondition
+        );
+        setRecommendationSearchCondition(
+          savedCondition
+        );
+        setCurrentPage(1);
+      },
+      []
+    );
+
+  const handleSearchReset =
+    useCallback(() => {
+      clearLastSearchCondition();
+      setRecommendationSearchCondition(
+        null
+      );
+      setCurrentPage(1);
+    }, []);
+
   const handleSortChange =
     useCallback(
       (event) => {
@@ -635,6 +674,12 @@ function IndexPage() {
             }
             setSearchCondition={
               handleSearchConditionChange
+            }
+            onSearch={
+              handleSearchSubmit
+            }
+            onReset={
+              handleSearchReset
             }
           />
         </aside>
@@ -877,6 +922,12 @@ function IndexPage() {
             }
             candidateCars={
               roleCars
+            }
+            recommendationSearchCondition={
+              recommendationSearchCondition
+            }
+            onSearchConditionApply={
+              handleSearchSubmit
             }
           />
         </aside>

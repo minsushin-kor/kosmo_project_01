@@ -3,7 +3,12 @@ import {
 } from "../../data/searchData";
 import "../../css/common/searchBox.css";
 
-function SearchBox({ searchCondition, setSearchCondition }) {
+function SearchBox({
+  searchCondition,
+  setSearchCondition,
+  onSearch,
+  onReset,
+}) {
   function updateCondition(name, value) {
     setSearchCondition((prevCondition) => ({
       ...prevCondition,
@@ -29,10 +34,12 @@ function SearchBox({ searchCondition, setSearchCondition }) {
 
   function handleSearch(e) {
     e.preventDefault();
+    onSearch?.(searchCondition);
   }
 
   function handleReset() {
     setSearchCondition(initialSearchCondition);
+    onReset?.();
   }
 
   return (

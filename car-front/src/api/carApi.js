@@ -214,6 +214,7 @@ export function mapServerCarToClientCar(
 
     condition:
       serverCar.condition ??
+      serverCar.predicted_condition ??
       null,
 
     odometer: mileage,
@@ -228,6 +229,7 @@ export function mapServerCarToClientCar(
 
     mmr:
       serverCar.mmr ??
+      serverCar.predicted_mmr ??
       null,
 
     sellingPrice,
@@ -658,6 +660,49 @@ export async function getPublicMemberCars(
       : [];
 
   return carList
+    .map(mapServerCarToClientCar)
+    .filter(Boolean);
+}
+
+/**
+ * 로그인한 일반회원의 최근 검색 조건과
+ * DB 선호차량을 FastAPI 추천 계산에 사용합니다.
+ */
+export async function getBuyerAiRecommendations(
+  preferences = {}
+) {
+  const response = await apiClient.post(
+    "/ai/recommend-buyer",
+    preferences
+  );
+
+  const recommendations = Array.isArray(
+    response?.recommendations
+  )
+    ? response.recommendations
+    : [];
+
+  return recommendations
+    .map(mapServerCarToClientCar)
+    .filter(Boolean);
+}
+
+/**
+ * 로그인한 딜러에게 Condition/MMR 기준으로
+ * 추천된 일반회원 경매 차량을 조회합니다.
+ */
+export async function getDealerAiRecommendations() {
+  const response = await apiClient.get(
+    "/dealers/recommendations"
+  );
+
+  const recommendations = Array.isArray(
+    response
+  )
+    ? response
+    : [];
+
+  return recommendations
     .map(mapServerCarToClientCar)
     .filter(Boolean);
 }

@@ -38,6 +38,10 @@ public class AuthService {
             throw new IllegalArgumentException("로그인 아이디는 필수 입력 항목입니다.");
         }
         String loginId = request.getLoginId().trim();
+        String preferredCar = trimToNull(request.getPreferredCar());
+        if (preferredCar != null && preferredCar.length() > 200) {
+            throw new IllegalArgumentException("선호차량은 200자 이하로 입력해 주세요.");
+        }
 
         if (userRepository.existsByLoginId(loginId) || memberRepository.existsByLoginId(loginId)) {
             throw new IllegalArgumentException("이미 사용 중인 로그인 아이디입니다.");
@@ -66,6 +70,7 @@ public class AuthService {
                 .name(request.getName())
                 .phone(request.getPhone())
                 .profileImageUrl(request.getProfileImageUrl())
+                .preferredCar(preferredCar)
                 .hasCar(request.getHasCar())
                 .ownedCarImageUrl(request.getOwnedCarImageUrl())
                 .ownedCarMake(request.getOwnedCarMake())
@@ -77,6 +82,14 @@ public class AuthService {
                 .build();
 
         return memberRepository.save(member);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     /**

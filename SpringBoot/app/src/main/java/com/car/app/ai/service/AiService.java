@@ -11,6 +11,8 @@ import com.car.app.company.repository.CompanyRepository;
 import com.car.app.coupon.service.CouponService;
 import com.car.app.dealer.entity.Dealer;
 import com.car.app.dealer.repository.DealerRepository;
+import com.car.app.member.entity.Member;
+import com.car.app.member.repository.MemberRepository;
 import com.car.app.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,7 @@ public class AiService {
     private final CouponService couponService;
     private final DealerChurnRepository dealerChurnRepository;
     private final CompanyChurnRepository companyChurnRepository;
+    private final MemberRepository memberRepository;
 
     /**
      * 현재 로그인한 딜러를 위한 AI 추천 차량 목록을 상세 DTO 포맷으로 가공하여 조회합니다.
@@ -55,7 +58,35 @@ public class AiService {
      * preferences와 vehicles 후보 목록을 조립하여 FastAPI에 전달하고 추천 연산 결과를 반환합니다.
      */
     @Transactional(readOnly = true)
-    public Object recommendVehiclesForBuyer(Object preferences) {
+    public Object recommendVehiclesForBuyer(
+            Map<String, Object> preferences,
+            String memberLoginId) {
+        if (memberLoginId == null || memberLoginId.isBlank()) {
+            throw new IllegalArgumentException("로그인한 일반회원 정보를 확인할 수 없습니다.");
+        }
+
+        Member member = memberRepository.findByLoginId(memberLoginId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일반회원 계정입니다."));
+
+        String recommendationPriority = preferences != null
+                ? String.valueOf(preferences.getOrDefault("recommendationPriority", "preferred_car"))
+                : "preferred_car";
+        boolean hasPreferredCar = member.getPreferredCar() != null
+                && !member.getPreferredCar().isBlank();
+
+        if (!hasPreferredCar && "preferred_car".equals(recommendationPriority)) {
+            throw new IllegalArgumentException(
+                    "회원가입 시 등록한 선호차량이 없어 추천하기 어렵습니다. 최근 검색 우선을 선택해 주세요.");
+        }
+
+        Map<String, Object> mergedPreferences = new LinkedHashMap<>();
+        if (preferences != null) {
+            mergedPreferences.putAll(preferences);
+        }
+        if (hasPreferredCar) {
+            mergedPreferences.put("preferredCar", member.getPreferredCar().trim());
+        }
+
         // 1. DB에서 조건에 부합하는 딜러 판매 매물 전체 목록 조회 (dealer_id 존재, member_id 없음, status == 'REGISTERED')
         List<Car> candidateCars = carRepository.findByDealerIsNotNullAndMemberIsNullAndStatusOrderByCreatedAtDesc("REGISTERED");
 
@@ -68,6 +99,7 @@ public class AiService {
                         .model(car.getModel())
                         .odometer(car.getOdometer())
                         .option(car.getOption())
+                        .body(car.getBody())
                         .color(car.getColor())
                         .sellingPrice(car.getSellingPrice())
                         .state(car.getState())
@@ -78,7 +110,7 @@ public class AiService {
 
         // 3. FastAPI 요청 객체 조립
         AiClient.BuyerRecommendApiRequest apiRequest = AiClient.BuyerRecommendApiRequest.builder()
-                .preferences(preferences)
+                .preferences(mergedPreferences)
                 .vehicles(vehicleItems)
                 .build();
 
@@ -409,6 +441,7 @@ public class AiService {
                         .model(car.getModel())
                         .odometer(car.getOdometer())
                         .option(car.getOption())
+                        .body(car.getBody())
                         .color(car.getColor())
                         .sellingPrice(car.getSellingPrice())
                         .state(car.getState())

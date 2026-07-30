@@ -16,6 +16,7 @@ public class AuthDto {
         private String name;
         private String phone;
         private String profileImageUrl;
+        private String preferredCar;
         private Boolean hasCar;
         private String ownedCarImageUrl;
         private String ownedCarMake;

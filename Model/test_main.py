@@ -30,6 +30,7 @@ def vehicle(car_id, status="REGISTERED", owner_type="MEMBER"):
         model=f"Model-{car_id}",
         odometer=25000,
         option="내비게이션, 열선시트",
+        body="SUV",
         color="Black",
         sellingPrice=25000000,
         state="SEOUL",
@@ -39,6 +40,46 @@ def vehicle(car_id, status="REGISTERED", owner_type="MEMBER"):
 
 
 class FastApiContractTest(unittest.TestCase):
+    def test_preferred_car_parser_separates_model_and_search_only_terms(self):
+        parsed = api.parse_preferred_car("현대 아반떼 SUV 가솔린")
+
+        self.assertEqual(parsed["preferredMake"], "현대")
+        self.assertEqual(parsed["preferredModel"], "아반떼")
+        self.assertEqual(parsed["preferredBody"], "SUV")
+        self.assertEqual(parsed["preferredFuel"], "가솔린")
+
+    def test_preferred_car_parser_keeps_two_basic_condition_rule(self):
+        preferences = api.VehicleRecommendationRequest(
+            preferredCar="현대 SUV 가솔린"
+        )
+
+        with self.assertRaises(HTTPException) as raised:
+            api.validate_vehicle_recommendation_request(preferences)
+
+        self.assertEqual(raised.exception.status_code, 422)
+        self.assertIn("기본 조건을 2개 이상", raised.exception.detail)
+
+    def test_preferred_body_filters_candidates_without_changing_model_score(self):
+        preferences = api.VehicleRecommendationRequest(
+            preferredCar="현대 아반떼 SUV"
+        )
+        cleaned, active_keys = api.validate_vehicle_recommendation_request(
+            preferences
+        )
+        catalog = [
+            {"body": "SUV", "fuel": None},
+            {"body": "Sedan", "fuel": None},
+        ]
+
+        filtered, excluded = api.filter_catalog_by_preferred_car_search(
+            catalog,
+            cleaned,
+        )
+
+        self.assertEqual(active_keys, ["preferredMake", "preferredModel"])
+        self.assertEqual(filtered, [catalog[0]])
+        self.assertEqual(excluded, [])
+
     def test_demo_catalog_keeps_string_ids_separate_from_db_contract(self):
         demo_prediction = {
             "carId": "DEMO-CAR-001",

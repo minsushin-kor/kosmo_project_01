@@ -312,6 +312,9 @@ function SignUpPage() {
 
           profileImageUrl,
 
+          preferredCar:
+            form.preferredCar.trim(),
+
           hasCar:
             form.hasOwnCar === "Y",
 
@@ -689,6 +692,7 @@ function SignUpPage() {
                   disabled={
                     isSubmitting
                   }
+                  maxLength={200}
                   placeholder="예: 현대 아반떼, SUV, 전기차 등"
                 />
               </div>

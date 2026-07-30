@@ -36,6 +36,7 @@ CREATE TABLE members (
     name VARCHAR(50) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     profile_image_url VARCHAR(500),
+    preferred_car VARCHAR(200),
     role VARCHAR(20) DEFAULT 'MEMBER',
     status VARCHAR(30) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

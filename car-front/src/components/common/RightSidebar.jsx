@@ -17,6 +17,10 @@ import {
 } from "../../data/authUser";
 import useAuth from "../../hooks/useAuth";
 import {
+  getBuyerAiRecommendations,
+  getDealerAiRecommendations,
+} from "../../api/carApi";
+import {
   clearRecentCarIds,
   getRecentCars,
   getRecommendedCars,
@@ -25,6 +29,198 @@ import "../../css/common/rightSidebar.css";
 
 const RECENT_CAR_CHANGE_EVENT =
   "recent-car-change";
+
+const DEALER_RECOMMENDATION_CRITERIA = {
+  CONDITION: "condition",
+  MMR: "mmr",
+};
+
+const MEMBER_RECOMMENDATION_PRIORITIES = {
+  PREFERRED_CAR: "preferred_car",
+  RECENT_SEARCH: "recent_search",
+};
+
+function getRecommendationScore(
+  car,
+  criterion
+) {
+  const score = Number(
+    car?.[criterion]
+  );
+
+  return Number.isFinite(score)
+    ? score
+    : Number.NEGATIVE_INFINITY;
+}
+
+function compareRecommendationScores(
+  firstScore,
+  secondScore
+) {
+  if (firstScore === secondScore) {
+    return 0;
+  }
+
+  return secondScore > firstScore
+    ? 1
+    : -1;
+}
+
+function sortDealerRecommendations(
+  recommendations,
+  criterion
+) {
+  const secondaryCriterion =
+    criterion ===
+      DEALER_RECOMMENDATION_CRITERIA.MMR
+      ? DEALER_RECOMMENDATION_CRITERIA.CONDITION
+      : DEALER_RECOMMENDATION_CRITERIA.MMR;
+
+  return [...recommendations].sort(
+    (firstCar, secondCar) => {
+      const primaryDifference =
+        compareRecommendationScores(
+          getRecommendationScore(
+            firstCar,
+            criterion
+          ),
+          getRecommendationScore(
+            secondCar,
+            criterion
+          )
+        );
+
+      if (primaryDifference !== 0) {
+        return primaryDifference;
+      }
+
+      return compareRecommendationScores(
+        getRecommendationScore(
+          firstCar,
+          secondaryCriterion
+        ),
+        getRecommendationScore(
+          secondCar,
+          secondaryCriterion
+        )
+      );
+    }
+  );
+}
+
+function buildBuyerPreferences(
+  searchCondition,
+  recommendationPriority,
+  preferredCar
+) {
+  const preferences = {
+    recommendationPriority,
+  };
+
+  const normalizedPreferredCar = String(
+    preferredCar || ""
+  ).trim();
+
+  if (normalizedPreferredCar) {
+    preferences.preferredCar =
+      normalizedPreferredCar;
+  }
+
+  if (!searchCondition) {
+    return preferences;
+  }
+
+  const brand = String(
+    searchCondition.brand || ""
+  ).trim();
+  const modelName = String(
+    searchCondition.modelName || ""
+  ).trim();
+  const region = String(
+    searchCondition.region || ""
+  ).trim();
+
+  if (brand) {
+    preferences.preferredMake = brand;
+  }
+  if (modelName) {
+    preferences.preferredModel = modelName;
+  }
+  if (searchCondition.year !== "") {
+    preferences.preferredYear = Number(
+      searchCondition.year
+    );
+  }
+  if (searchCondition.mileage !== "") {
+    preferences.maxOdometer = Number(
+      searchCondition.mileage
+    );
+  }
+  if (region) {
+    preferences.preferredRegion = region;
+  }
+
+  const minPrice = Number(
+    searchCondition.minPrice
+  );
+  const maxPrice = Number(
+    searchCondition.maxPrice
+  );
+  if (
+    Number.isFinite(minPrice) &&
+    Number.isFinite(maxPrice) &&
+    maxPrice > minPrice
+  ) {
+    preferences.expectedPrice =
+      ((minPrice + maxPrice) / 2) *
+      10000;
+    preferences.priceTolerance =
+      ((maxPrice - minPrice) / 2) *
+      10000;
+  }
+
+  return preferences;
+}
+
+function mergeRecommendationCars(
+  recommendations,
+  allCars
+) {
+  const carById = new Map(
+    allCars.map((car) => [
+      Number(car.id),
+      car,
+    ])
+  );
+
+  return recommendations
+    .map((recommendation) => {
+      const currentCar = carById.get(
+        Number(recommendation.id)
+      );
+
+      if (!currentCar) {
+        return recommendation;
+      }
+
+      return {
+        ...currentCar,
+        ...recommendation,
+        images:
+          currentCar.images?.length > 0
+            ? currentCar.images
+            : recommendation.images,
+        carName:
+          currentCar.carName ||
+          recommendation.carName,
+        price:
+          currentCar.price ??
+          recommendation.price,
+      };
+    })
+    .filter((car) => car?.id)
+    .slice(0, 4);
+}
 
 const POPULAR_SEARCH_CONDITIONS = {
   lowPrice: {
@@ -98,6 +294,8 @@ function RightSidebar({
   setCurrentPage,
   allCars = [],
   candidateCars = [],
+  recommendationSearchCondition,
+  onSearchConditionApply,
 }) {
   const navigate = useNavigate();
   const {
@@ -109,6 +307,35 @@ function RightSidebar({
     setRecentVersion,
   ] = useState(0);
 
+  const [
+    aiRecommendedCars,
+    setAiRecommendedCars,
+  ] = useState([]);
+
+  const [
+    isRecommendationLoading,
+    setIsRecommendationLoading,
+  ] = useState(false);
+
+  const [
+    recommendationMessage,
+    setRecommendationMessage,
+  ] = useState("");
+
+  const [
+    dealerRecommendationCriterion,
+    setDealerRecommendationCriterion,
+  ] = useState(
+    DEALER_RECOMMENDATION_CRITERIA.CONDITION
+  );
+
+  const [
+    memberRecommendationPriority,
+    setMemberRecommendationPriority,
+  ] = useState(
+    MEMBER_RECOMMENDATION_PRIORITIES.PREFERRED_CAR
+  );
+
   const role =
     loginUser?.role;
 
@@ -117,6 +344,13 @@ function RightSidebar({
 
   const isDealer =
     role === AUTH_ROLES.DEALER;
+
+  const memberPreferredCar =
+    isMember
+      ? String(
+        loginUser?.preferredCar || ""
+      ).trim()
+      : "";
 
   useEffect(() => {
     const handleRecentCarChange =
@@ -139,6 +373,59 @@ function RightSidebar({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMember && !isDealer) {
+      return undefined;
+    }
+
+    let isActive = true;
+
+    const loadRecommendations = async () => {
+      setIsRecommendationLoading(true);
+      setRecommendationMessage("");
+
+      try {
+        const cars = isDealer
+          ? await getDealerAiRecommendations()
+          : await getBuyerAiRecommendations(
+            buildBuyerPreferences(
+              recommendationSearchCondition,
+              memberRecommendationPriority,
+              memberPreferredCar
+            )
+          );
+
+        if (isActive) {
+          setAiRecommendedCars(cars);
+        }
+      } catch (error) {
+        if (isActive) {
+          setAiRecommendedCars([]);
+          setRecommendationMessage(
+            error?.message ||
+            "추천 차량을 불러오지 못했습니다."
+          );
+        }
+      } finally {
+        if (isActive) {
+          setIsRecommendationLoading(false);
+        }
+      }
+    };
+
+    void loadRecommendations();
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    isDealer,
+    isMember,
+    memberPreferredCar,
+    memberRecommendationPriority,
+    recommendationSearchCondition,
+  ]);
+
   const recentCars = useMemo(
     () => {
       /*
@@ -157,7 +444,7 @@ function RightSidebar({
     ]
   );
 
-  const recommendedCars = useMemo(
+  const localRecommendedCars = useMemo(
     () => {
       /*
        * 최근 본 차량 목록도 추천 결과에 영향을 주므로
@@ -180,6 +467,38 @@ function RightSidebar({
     ]
   );
 
+  const sortedAiRecommendedCars = useMemo(
+    () =>
+      isDealer
+        ? sortDealerRecommendations(
+          aiRecommendedCars,
+          dealerRecommendationCriterion
+        )
+        : aiRecommendedCars,
+    [
+      aiRecommendedCars,
+      dealerRecommendationCriterion,
+      isDealer,
+    ]
+  );
+
+  const recommendedCars = useMemo(
+    () =>
+      isMember || isDealer
+        ? mergeRecommendationCars(
+          sortedAiRecommendedCars,
+          allCars
+        )
+        : localRecommendedCars,
+    [
+      allCars,
+      isDealer,
+      isMember,
+      localRecommendedCars,
+      sortedAiRecommendedCars,
+    ]
+  );
+
   const applyPopularSearch =
     useCallback(
       (type) => {
@@ -192,16 +511,24 @@ function RightSidebar({
           return;
         }
 
-        setSearchCondition({
+        const appliedCondition = {
           ...initialSearchCondition,
           ...condition,
-        });
+        };
+
+        setSearchCondition(
+          appliedCondition
+        );
+        onSearchConditionApply?.(
+          appliedCondition
+        );
 
         setCurrentPage(1);
       },
       [
         setCurrentPage,
         setSearchCondition,
+        onSearchConditionApply,
       ]
     );
 
@@ -269,27 +596,153 @@ function RightSidebar({
 
       <section className="right-widget recommendation-widget">
         <div className="right-widget-title-row">
-          <h3>추천 차량</h3>
+          <h3>
+            {isDealer
+              ? "AI 경매 추천"
+              : "추천 차량"}
+          </h3>
 
           <span>
-            맞춤 추천
+            {isDealer
+              ? dealerRecommendationCriterion ===
+                DEALER_RECOMMENDATION_CRITERIA.CONDITION
+                ? "상태 우선"
+                : "가격 우선"
+              : isMember
+                ? memberRecommendationPriority ===
+                  MEMBER_RECOMMENDATION_PRIORITIES.PREFERRED_CAR
+                  ? "선호차량 우선"
+                  : "검색 우선"
+                : "맞춤 추천"}
           </span>
         </div>
 
         <p className="recommendation-guide">
-          최근 조회 차량과 회원가입 때
-          등록한 선호차량을 기준으로
-          추천합니다.
+          {isDealer
+            ? dealerRecommendationCriterion ===
+              DEALER_RECOMMENDATION_CRITERIA.CONDITION
+              ? "예상 차량 상태가 좋은 순서로 경매 차량을 추천합니다."
+              : "예상 차량 가격이 높은 순서로 경매 차량을 추천합니다."
+            : isMember
+              ? memberRecommendationPriority ===
+                MEMBER_RECOMMENDATION_PRIORITIES.PREFERRED_CAR
+                ? "회원가입 때 등록한 선호차량을 먼저 반영하고 최근 검색 조건을 함께 계산합니다."
+                : "최근 검색 조건을 먼저 반영하고 회원가입 선호차량을 함께 계산합니다."
+              : "최근 검색 조건과 회원가입 때 등록한 선호차량을 기준으로 추천합니다."}
         </p>
 
-        {recommendedCars.length > 0 ? (
+        {isMember && (
+          <fieldset className="recommendation-criterion-selector">
+            <legend>추천 기준</legend>
+
+            <label>
+              <input
+                type="radio"
+                name="memberRecommendationPriority"
+                value={
+                  MEMBER_RECOMMENDATION_PRIORITIES.PREFERRED_CAR
+                }
+                checked={
+                  memberRecommendationPriority ===
+                  MEMBER_RECOMMENDATION_PRIORITIES.PREFERRED_CAR
+                }
+                onChange={(event) =>
+                  setMemberRecommendationPriority(
+                    event.target.value
+                  )
+                }
+              />
+              <span>가입 선호차량 우선</span>
+            </label>
+
+            <label>
+              <input
+                type="radio"
+                name="memberRecommendationPriority"
+                value={
+                  MEMBER_RECOMMENDATION_PRIORITIES.RECENT_SEARCH
+                }
+                checked={
+                  memberRecommendationPriority ===
+                  MEMBER_RECOMMENDATION_PRIORITIES.RECENT_SEARCH
+                }
+                onChange={(event) =>
+                  setMemberRecommendationPriority(
+                    event.target.value
+                  )
+                }
+              />
+              <span>최근 검색 우선</span>
+            </label>
+          </fieldset>
+        )}
+
+        {isDealer && (
+          <fieldset className="recommendation-criterion-selector">
+            <legend>추천 기준</legend>
+
+            <label>
+              <input
+                type="radio"
+                name="dealerRecommendationCriterion"
+                value={
+                  DEALER_RECOMMENDATION_CRITERIA.CONDITION
+                }
+                checked={
+                  dealerRecommendationCriterion ===
+                  DEALER_RECOMMENDATION_CRITERIA.CONDITION
+                }
+                onChange={(event) =>
+                  setDealerRecommendationCriterion(
+                    event.target.value
+                  )
+                }
+              />
+              <span>AI 예상 차량 상태</span>
+            </label>
+
+            <label>
+              <input
+                type="radio"
+                name="dealerRecommendationCriterion"
+                value={
+                  DEALER_RECOMMENDATION_CRITERIA.MMR
+                }
+                checked={
+                  dealerRecommendationCriterion ===
+                  DEALER_RECOMMENDATION_CRITERIA.MMR
+                }
+                onChange={(event) =>
+                  setDealerRecommendationCriterion(
+                    event.target.value
+                  )
+                }
+              />
+              <span>AI 예상 차량 가격</span>
+            </label>
+          </fieldset>
+        )}
+
+        {isRecommendationLoading ? (
+          <div className="recent-car-empty">
+            추천 차량을 계산하고 있습니다.
+          </div>
+        ) : recommendationMessage ? (
+          <div className="recent-car-empty">
+            {recommendationMessage}
+          </div>
+        ) : recommendedCars.length > 0 ? (
           <div className="sidebar-car-list">
             {recommendedCars.map(
               (car) => (
                 <MiniCarItem
                   key={car.id}
                   car={car}
-                  label="추천"
+                  label={
+                    isDealer
+                      ? "AI 추천"
+                      : "추천"
+                  }
                 />
               )
             )}
