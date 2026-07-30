@@ -25,3 +25,7 @@ export function sendChatMessage(
     { message }
   );
 }
+
+export function markChatRoomAsRead(roomId) {
+  return apiClient.post(`/chat/rooms/${roomId}/read`);
+}
