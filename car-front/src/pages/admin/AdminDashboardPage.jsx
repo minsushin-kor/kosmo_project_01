@@ -1,97 +1,274 @@
 import {
+  useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
-import {
-  Link,
-} from "react-router-dom";
+import { Link } from "react-router-dom";
 import AdminLayout from "../../components/admin/AdminLayout";
 import AdminTable from "../../components/admin/AdminTable";
 import {
-  adminSummaryCards,
-  adminCars,
-  adminPendingTasks,
-} from "../../data/adminData";
-import {
-  getCompanyChurnUsers,
-  getDealerChurnUsers,
-} from "../../api/adminChurnApi";
+  getAdminDashboardSummary,
+} from "../../api/adminDashboardApi";
 import "../../css/admin/adminDashboardPage.css";
 
-function SummaryChart({
-  data,
-}) {
+const CAR_STATUS_LABEL_MAP = {
+  REGISTERED: "판매중",
+  ACTIVE: "판매중",
+  SALE: "판매중",
+  ON_SALE: "판매중",
+  AUCTION: "경매중",
+  SOLD: "판매완료",
+  COMPLETED: "판매완료",
+  RESERVED: "예약중",
+  INACTIVE: "비활성",
+  SUSPENDED: "정지",
+};
+
+function formatDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleDateString(
+    "ko-KR",
+    {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }
+  );
+}
+
+function formatPrice(value) {
+  const price = Number(value);
+
+  if (!Number.isFinite(price)) {
+    return "-";
+  }
+
+  return `${price.toLocaleString(
+    "ko-KR"
+  )}만원`;
+}
+
+function getCarName(car) {
+  return (
+    car?.carName ||
+    car?.name ||
+    [
+      car?.manufacturerName,
+      car?.modelName,
+    ]
+      .filter(Boolean)
+      .join(" ") ||
+    [
+      car?.make,
+      car?.model,
+    ]
+      .filter(Boolean)
+      .join(" ") ||
+    `차량 #${car?.id ?? "-"}`
+  );
+}
+
+function getCompanyName(car) {
+  return (
+    car?.companyName ||
+    car?.company?.name ||
+    "-"
+  );
+}
+
+function getAccountType(car) {
+  const normalizedType = String(
+    car?.accountType ||
+    car?.sellerType ||
+    car?.ownerType ||
+    car?.registrationType ||
+    ""
+  ).toUpperCase();
+
+  if (
+    normalizedType === "MEMBER" ||
+    normalizedType === "ROLE_MEMBER"
+  ) {
+    return "일반회원";
+  }
+
+  if (
+    normalizedType === "DEALER" ||
+    normalizedType === "ROLE_DEALER"
+  ) {
+    return "딜러";
+  }
+
+  if (
+    normalizedType === "COMPANY" ||
+    normalizedType === "COMPANY_MASTER" ||
+    normalizedType === "ROLE_COMPANY_MASTER"
+  ) {
+    return "기업";
+  }
+
+  if (
+    car?.dealerId ||
+    car?.dealerName ||
+    car?.dealer?.dealerId ||
+    car?.dealer?.name
+  ) {
+    return "딜러";
+  }
+
+  if (
+    car?.memberId ||
+    car?.memberName ||
+    car?.member?.memberId ||
+    car?.member?.name
+  ) {
+    return "일반회원";
+  }
+
+  if (
+    car?.companyId ||
+    car?.companyName ||
+    car?.company?.companyId ||
+    car?.company?.name
+  ) {
+    return "기업";
+  }
+
+  return "-";
+}
+
+function getCarPrice(car) {
+  return (
+    car?.price ??
+    car?.salePrice ??
+    car?.askingPrice ??
+    0
+  );
+}
+
+function getCarStatus(car) {
+  const statusCode = String(
+    car?.status || "UNKNOWN"
+  ).toUpperCase();
+
+  return {
+    statusCode,
+    statusLabel:
+      CAR_STATUS_LABEL_MAP[statusCode] ||
+      car?.status ||
+      "-",
+  };
+}
+
+function getCarCreatedAt(car) {
+  return (
+    car?.createdAt ||
+    car?.registeredAt ||
+    car?.registrationDate ||
+    null
+  );
+}
+
+function normalizeRecentCar(car) {
+  const {
+    statusCode,
+    statusLabel,
+  } = getCarStatus(car);
+
+  return {
+    ...car,
+    id:
+      car?.id ??
+      car?.carId ??
+      null,
+    companyName:
+      getCompanyName(car),
+    carName:
+      getCarName(car),
+    accountType:
+      getAccountType(car),
+    priceText:
+      formatPrice(
+        getCarPrice(car)
+      ),
+    statusCode,
+    statusLabel,
+    date:
+      formatDate(
+        getCarCreatedAt(car)
+      ),
+  };
+}
+
+function SummaryChart({ data }) {
   const width = 260;
   const height = 80;
   const padding = 8;
 
-  const safeData =
+  const chartData =
     Array.isArray(data) &&
-    data.length > 0
+      data.length > 0
       ? data
       : [0, 0];
 
-  const max = Math.max(
-    ...safeData
+  const max = Math.max(...chartData);
+  const min = Math.min(...chartData);
+
+  const denominator = Math.max(
+    chartData.length - 1,
+    1
   );
 
-  const min = Math.min(
-    ...safeData
+  const points = chartData.map(
+    (value, index) => {
+      const x =
+        padding +
+        (
+          index *
+          (width - padding * 2)
+        ) /
+        denominator;
+
+      const y =
+        height -
+        padding -
+        (
+          (value - min) /
+          (max - min || 1)
+        ) *
+        (height - padding * 2);
+
+      return {
+        x,
+        y,
+      };
+    }
   );
 
-  const points =
-    safeData.map(
-      (value, index) => {
-        const denominator =
-          Math.max(
-            1,
-            safeData.length - 1
-          );
-
-        const x =
-          padding +
-          (
-            index *
-            (
-              width -
-              padding * 2
-            )
-          ) /
-            denominator;
-
-        const y =
-          height -
-          padding -
-          (
-            (value - min) /
-            (max - min || 1)
-          ) *
-            (
-              height -
-              padding * 2
-            );
-
-        return {
-          x,
-          y,
-        };
-      }
-    );
-
-  const linePoints =
-    points
-      .map(
-        (point) =>
-          `${point.x},${point.y}`
-      )
-      .join(" ");
+  const linePoints = points
+    .map(
+      (point) =>
+        `${point.x},${point.y}`
+    )
+    .join(" ");
 
   return (
     <svg
       className="summary-chart"
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
-      aria-hidden="true"
+      role="img"
+      aria-label="최근 30일 변화 그래프"
     >
       <polyline
         className="summary-chart-line"
@@ -113,395 +290,496 @@ function SummaryChart({
   );
 }
 
-async function requestDashboardChurnUsers() {
-  const [
-    companyData,
-    dealerData,
-  ] = await Promise.all([
-    getCompanyChurnUsers(),
-    getDealerChurnUsers(),
-  ]);
+function getTrendClass(trend) {
+  if (trend === "UP") {
+    return "up";
+  }
 
-  return {
-    companyUsers:
-      Array.isArray(companyData)
-        ? companyData
-        : [],
+  if (trend === "DOWN") {
+    return "down";
+  }
 
-    dealerUsers:
-      Array.isArray(dealerData)
-        ? dealerData
-        : [],
-  };
+  return "same";
 }
 
-const recentCarColumns = [
-  {
-    key: "carName",
-    label: "차량명",
-  },
-  {
-    key: "company",
-    label: "회사",
-  },
-  {
-    key: "dealer",
-    label: "딜러",
-  },
-  {
-    key: "price",
-    label: "가격",
-  },
-  {
-    key: "status",
-    label: "상태",
+function getTrendSymbol(trend) {
+  if (trend === "UP") {
+    return "↑";
+  }
 
-    render: (car) => (
-      <span
-        className={`admin-status ${car.status}`}
-      >
-        {car.status}
-      </span>
-    ),
-  },
-  {
-    key: "date",
-    label: "등록일",
-  },
-];
+  if (trend === "DOWN") {
+    return "↓";
+  }
 
-const companyChurnColumns = [
-  {
-    key: "memberType",
-    label: "회원유형",
+  return "−";
+}
 
-    render: (member) =>
-      member.memberType ||
-      member.type,
-  },
-  {
-    key: "name",
-    label: "회사명",
-  },
-  {
-    key: "recentActivity",
-    label: "최근활동",
-  },
-  {
-    key: "churnRate",
-    label: "이탈확률",
-  },
-  {
-    key: "risk",
-    label: "위험등급",
+function formatChangeRate(changeRate) {
+  const rate = Math.abs(
+    Number(changeRate || 0)
+  );
 
-    render: (member) => (
-      <span
-        className={`admin-risk ${member.risk}`}
-      >
-        {member.risk}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    label: "관리상태",
-  },
-];
-
-const dealerChurnColumns = [
-  {
-    key: "memberType",
-    label: "회원유형",
-
-    render: (member) =>
-      member.memberType ||
-      member.type,
-  },
-  {
-    key: "name",
-    label: "딜러명",
-  },
-  {
-    key: "recentActivity",
-    label: "최근활동",
-  },
-  {
-    key: "churnRate",
-    label: "이탈확률",
-  },
-  {
-    key: "risk",
-    label: "위험등급",
-
-    render: (member) => (
-      <span
-        className={`admin-risk ${member.risk}`}
-      >
-        {member.risk}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    label: "관리상태",
-  },
-];
+  return `${rate.toLocaleString(
+    "ko-KR",
+    {
+      maximumFractionDigits: 1,
+    }
+  )}%`;
+}
 
 function AdminDashboardPage() {
   const [
-    companyChurnUsers,
-    setCompanyChurnUsers,
-  ] = useState([]);
+    dashboard,
+    setDashboard,
+  ] = useState(null);
 
   const [
-    dealerChurnUsers,
-    setDealerChurnUsers,
-  ] = useState([]);
-
-  const [
-    churnLoading,
-    setChurnLoading,
+    isLoading,
+    setIsLoading,
   ] = useState(true);
 
   const [
-    churnError,
-    setChurnError,
+    isRefreshing,
+    setIsRefreshing,
+  ] = useState(false);
+
+  const [
+    errorMessage,
+    setErrorMessage,
   ] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadDashboard =
+    useCallback(async ({
+      showLoading = false,
+    } = {}) => {
+      if (showLoading) {
+        setIsRefreshing(true);
+      }
 
-    async function loadDashboardChurnUsers() {
+      setErrorMessage("");
+
       try {
-        const {
-          companyUsers,
-          dealerUsers,
-        } =
-          await requestDashboardChurnUsers();
+        const dashboardResult =
+          await getAdminDashboardSummary();
 
-        if (cancelled) {
+        setDashboard(
+          dashboardResult
+        );
+      } catch (error) {
+        console.error(
+          "관리자 대시보드 조회 실패:",
+          error
+        );
+
+        setErrorMessage(
+          error?.message ||
+          "관리자 대시보드 정보를 불러오지 못했습니다."
+        );
+      } finally {
+        if (showLoading) {
+          setIsRefreshing(false);
+        }
+      }
+    }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    getAdminDashboardSummary()
+      .then((dashboardResult) => {
+        if (isCancelled) {
           return;
         }
 
-        setCompanyChurnUsers(
-          companyUsers
+        setDashboard(
+          dashboardResult
         );
-
-        setDealerChurnUsers(
-          dealerUsers
-        );
-
-        setChurnError("");
-      } catch (error) {
-        if (cancelled) {
+      })
+      .catch((error) => {
+        if (isCancelled) {
           return;
         }
 
         console.error(
-          "관리자 대시보드 이탈 위험 데이터 조회 실패:",
+          "관리자 대시보드 조회 실패:",
           error
         );
 
-        setCompanyChurnUsers([]);
-        setDealerChurnUsers([]);
-
-        setChurnError(
-          "이탈 위험 데이터를 불러오지 못했습니다."
+        setErrorMessage(
+          error?.message ||
+          "관리자 대시보드 정보를 불러오지 못했습니다."
         );
-      } finally {
-        if (!cancelled) {
-          setChurnLoading(false);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false);
         }
-      }
-    }
-
-    loadDashboardChurnUsers();
+      });
 
     return () => {
-      cancelled = true;
+      isCancelled = true;
     };
   }, []);
+
+  const summaryCards =
+    useMemo(() => {
+      return Array.isArray(
+        dashboard?.summaryCards
+      )
+        ? dashboard.summaryCards
+        : [];
+    }, [dashboard]);
+
+  const recentCars =
+    useMemo(() => {
+      const cars = Array.isArray(
+        dashboard?.recentCars
+      )
+        ? dashboard.recentCars
+        : [];
+
+      return cars
+        .map(normalizeRecentCar)
+        .slice(0, 5);
+    }, [dashboard]);
+
+  const recentCarColumns =
+    useMemo(
+      () => [
+        {
+          key: "companyName",
+          label: "회사명",
+          render: (car) => (
+            <span className="recent-car-company">
+              {car.companyName}
+            </span>
+          ),
+        },
+        {
+          key: "carName",
+          label: "차량명",
+          render: (car) => {
+            if (!car.id) {
+              return (
+                <strong className="recent-car-name">
+                  {car.carName}
+                </strong>
+              );
+            }
+
+            return (
+              <Link
+                to={`/cars/${car.id}`}
+                className="recent-car-link"
+              >
+                {car.carName}
+              </Link>
+            );
+          },
+        },
+        {
+          key: "accountType",
+          label: "계정유형",
+          render: (car) => (
+            <span
+              className={`recent-account-type ${car.accountType === "일반회원"
+                ? "member"
+                : car.accountType === "딜러"
+                  ? "dealer"
+                  : "company"
+                }`}
+            >
+              {car.accountType}
+            </span>
+          ),
+        },
+        {
+          key: "priceText",
+          label: "가격",
+          render: (car) => (
+            <strong className="recent-car-price">
+              {car.priceText}
+            </strong>
+          ),
+        },
+        {
+          key: "statusLabel",
+          label: "상태",
+          render: (car) => (
+            <span
+              className={`recent-car-status status-${car.statusCode.toLowerCase()}`}
+            >
+              {car.statusLabel}
+            </span>
+          ),
+        },
+        {
+          key: "date",
+          label: "등록일",
+        },
+      ],
+      []
+    );
+
+  /*
+   * 이탈 위험 데이터 연동 전까지
+   * 테이블 구조만 유지합니다.
+   */
+  const companyChurnColumns =
+    useMemo(
+      () => [
+        {
+          key: "memberType",
+          label: "회원유형",
+        },
+        {
+          key: "name",
+          label: "회사명",
+        },
+        {
+          key: "recentActivity",
+          label: "최근활동",
+        },
+        {
+          key: "churnRate",
+          label: "이탈확률",
+        },
+        {
+          key: "risk",
+          label: "위험등급",
+          render: (member) => (
+            <span
+              className={`admin-risk ${member.risk}`}
+            >
+              {member.risk}
+            </span>
+          ),
+        },
+        {
+          key: "action",
+          label: "관리상태",
+        },
+      ],
+      []
+    );
+
+  const dealerChurnColumns =
+    useMemo(
+      () => [
+        {
+          key: "memberType",
+          label: "회원유형",
+        },
+        {
+          key: "name",
+          label: "딜러명",
+        },
+        {
+          key: "recentActivity",
+          label: "최근활동",
+        },
+        {
+          key: "churnRate",
+          label: "이탈확률",
+        },
+        {
+          key: "risk",
+          label: "위험등급",
+          render: (member) => (
+            <span
+              className={`admin-risk ${member.risk}`}
+            >
+              {member.risk}
+            </span>
+          ),
+        },
+        {
+          key: "action",
+          label: "관리상태",
+        },
+      ],
+      []
+    );
 
   return (
     <AdminLayout
       title="관리자 대시보드"
-      description="현재는 백엔드 주소가 없으면 임시데이터를 사용하고, 백엔드 주소가 생기면 API 데이터로 표시됩니다."
+      description="DB에 저장된 회원, 기업, 매물, 완료 거래 현황을 조회합니다."
       actions={
-        <>
-          <button
-            type="button"
-            className="admin-outline-btn"
-          >
-            요약본 다운로드 추가예정
-          </button>
-
-          <button
-            type="button"
-            className="admin-primary-btn"
-          >
-            추가기능 필요한것 넣을위치(없으면 삭제)
-          </button>
-        </>
+        <button
+          type="button"
+          className="admin-primary-btn"
+          onClick={() =>
+            loadDashboard({
+              showLoading: true,
+            })
+          }
+          disabled={
+            isLoading ||
+            isRefreshing
+          }
+        >
+          {isRefreshing
+            ? "새로고침 중"
+            : "새로고침"}
+        </button>
       }
     >
+      {errorMessage && (
+        <section
+          className="admin-panel"
+          role="alert"
+        >
+          <p>{errorMessage}</p>
+        </section>
+      )}
+
       <section className="admin-summary-grid">
-        {adminSummaryCards.map(
-          (card) => (
-            <article
-              className={`admin-summary-card summary-${card.color}`}
-              key={card.title}
-            >
-              <div className="summary-card-header">
-                <div className="summary-icon">
-                  {card.icon}
+        {isLoading ? (
+          <article className="admin-summary-card">
+            <div className="summary-card-body">
+              <h3>
+                대시보드 조회 중
+              </h3>
+
+              <p>
+                DB 통계 정보를 불러오고
+                있습니다.
+              </p>
+            </div>
+          </article>
+        ) : (
+          summaryCards.map((card) => {
+            const trendClass =
+              getTrendClass(
+                card.trend
+              );
+
+            return (
+              <article
+                className={`admin-summary-card summary-${card.color}`}
+                key={card.key}
+              >
+                <div className="summary-card-header">
+                  <div className="summary-icon">
+                    {card.icon}
+                  </div>
+
+                  <div className="summary-trend-box">
+                    <em
+                      className={
+                        trendClass
+                      }
+                    >
+                      {getTrendSymbol(
+                        card.trend
+                      )}{" "}
+                      {formatChangeRate(
+                        card.changeRate
+                      )}
+                    </em>
+
+                    <span>
+                      직전 30일 대비
+                    </span>
+                  </div>
                 </div>
 
-                <div className="summary-trend-box">
-                  <em
-                    className={
-                      card.trend
-                    }
-                  >
-                    {card.trend ===
-                    "up"
-                      ? "↑"
-                      : "↓"}{" "}
-                    {card.change}
-                  </em>
+                <div className="summary-card-body">
+                  <h3>
+                    {card.title}
+                  </h3>
 
-                  <span>
-                    {
-                      card.changeText
-                    }
-                  </span>
+                  <div className="summary-value">
+                    <strong>
+                      {Number(
+                        card.value || 0
+                      ).toLocaleString(
+                        "ko-KR"
+                      )}
+                    </strong>
+
+                    <span>
+                      {card.unit}
+                    </span>
+                  </div>
+
+                  <p>
+                    {card.description}
+                  </p>
+
+                  <small>
+                    최근 30일{" "}
+                    {Number(
+                      card
+                        .currentPeriodCount ||
+                      0
+                    ).toLocaleString(
+                      "ko-KR"
+                    )}
+                    건 · 직전 30일{" "}
+                    {Number(
+                      card
+                        .previousPeriodCount ||
+                      0
+                    ).toLocaleString(
+                      "ko-KR"
+                    )}
+                    건
+                  </small>
                 </div>
-              </div>
 
-              <div className="summary-card-body">
-                <h3>
-                  {card.title}
-                </h3>
-
-                <div className="summary-value">
-                  <strong>
-                    {card.value}
-                  </strong>
-
-                  <span>
-                    {card.unit}
-                  </span>
-                </div>
-
-                <p>
-                  {
-                    card.description
-                  }
-                </p>
-              </div>
-
-              <SummaryChart
-                data={
-                  card.chartData
-                }
-              />
-            </article>
-          )
+                <SummaryChart
+                  data={card.chartData}
+                />
+              </article>
+            );
+          })
         )}
       </section>
 
-      <section className="admin-content-grid">
-        <article className="admin-panel admin-large-panel">
-          <div className="admin-panel-header">
+      <section className="admin-recent-cars-section">
+        <article className="admin-panel admin-recent-cars-panel">
+          <div className="admin-panel-header recent-cars-header">
             <div>
-              <h3>
-                최근 등록 매물
-              </h3>
+              <span className="recent-cars-label">
+                RECENT LISTINGS
+              </span>
+
+              <h3>최근 등록 매물</h3>
 
               <p>
-                현재날짜 or 전체 목록
-                내림차순(DESC)정렬후
-                상위 몇건만 끊을예정
+                DB에 최근 등록된 차량 5건을
+                조회합니다.
               </p>
             </div>
 
-            <button type="button">
-              전체보기(내림차순으로 전체
-              list?)
-            </button>
+            <Link
+              to="/cars"
+              className="admin-panel-link-btn"
+            >
+              전체 매물 보기
+            </Link>
           </div>
 
-          <AdminTable
-            columns={
-              recentCarColumns
-            }
-            data={adminCars.slice(
-              0,
-              4
-            )}
-          />
-        </article>
-
-        <article className="admin-panel">
-          <div className="admin-panel-header">
-            <div>
-              <h3>
-                처리 대기 업무
-              </h3>
-
-              <p>
-                관리자 확인이 필요한
-                항목입니다.
-              </p>
-            </div>
+          <div className="recent-cars-table-area">
+            <AdminTable
+              columns={recentCarColumns}
+              data={
+                isLoading
+                  ? []
+                  : recentCars
+              }
+              pageSize={5}
+              emptyMessage={
+                isLoading
+                  ? "최근 등록 매물을 불러오는 중입니다."
+                  : "최근 등록된 매물이 없습니다."
+              }
+            />
           </div>
-
-          <ul className="pending-list">
-            {adminPendingTasks.map(
-              (task) => (
-                <li key={task.id}>
-                  <span>
-                    {task.title}
-                  </span>
-
-                  <strong>
-                    {task.count}건
-                  </strong>
-                </li>
-              )
-            )}
-          </ul>
         </article>
       </section>
-
-      <section>
-        <article className="admin-panel">
-          <h3>
-            Api 연결 경로 :
-            src/api/adminChurnApi.js
-          </h3>
-
-          <p>54번째줄 부터</p>
-          <p>추가할게....</p>
-        </article>
-      </section>
-
-      {churnError && (
-        <div
-          style={{
-            marginTop: "1rem",
-            padding: "0.9rem 1rem",
-            border:
-              "1px solid #fca5a5",
-            borderRadius: "10px",
-            background: "#fef2f2",
-            color: "#b91c1c",
-            fontSize: "14px",
-          }}
-        >
-          {churnError}
-        </div>
-      )}
 
       <section className="admin-churn-dashboard-grid">
         <article className="admin-panel">
@@ -512,8 +790,8 @@ function AdminDashboardPage() {
               </h3>
 
               <p>
-                회사 계정 기준 이탈 위험
-                예측 결과입니다.
+                이탈 위험 예측 데이터 연동
+                전입니다.
               </p>
             </div>
 
@@ -525,28 +803,13 @@ function AdminDashboardPage() {
             </Link>
           </div>
 
-          {churnLoading ? (
-            <div
-              style={{
-                padding: "40px 20px",
-                textAlign: "center",
-                color: "#64748b",
-              }}
-            >
-              회사 이탈 위험 데이터를
-              불러오는 중입니다.
-            </div>
-          ) : (
-            <AdminTable
-              columns={
-                companyChurnColumns
-              }
-              data={
-                companyChurnUsers
-              }
-              emptyMessage="조회된 회사 이탈 위험 데이터가 없습니다."
-            />
-          )}
+          <AdminTable
+            columns={
+              companyChurnColumns
+            }
+            data={[]}
+            emptyMessage="조회된 회사 이탈 위험 데이터가 없습니다."
+          />
         </article>
 
         <article className="admin-panel">
@@ -557,8 +820,8 @@ function AdminDashboardPage() {
               </h3>
 
               <p>
-                회사 소속 딜러 기준 이탈
-                위험 예측 결과입니다.
+                이탈 위험 예측 데이터 연동
+                전입니다.
               </p>
             </div>
 
@@ -570,28 +833,13 @@ function AdminDashboardPage() {
             </Link>
           </div>
 
-          {churnLoading ? (
-            <div
-              style={{
-                padding: "40px 20px",
-                textAlign: "center",
-                color: "#64748b",
-              }}
-            >
-              딜러 이탈 위험 데이터를
-              불러오는 중입니다.
-            </div>
-          ) : (
-            <AdminTable
-              columns={
-                dealerChurnColumns
-              }
-              data={
-                dealerChurnUsers
-              }
-              emptyMessage="조회된 딜러 이탈 위험 데이터가 없습니다."
-            />
-          )}
+          <AdminTable
+            columns={
+              dealerChurnColumns
+            }
+            data={[]}
+            emptyMessage="조회된 딜러 이탈 위험 데이터가 없습니다."
+          />
         </article>
       </section>
     </AdminLayout>

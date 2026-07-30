@@ -757,16 +757,6 @@ function CarDetailPage() {
     "NORMAL" ||
     isDealerCar;
 
-  const loginMemberId =
-    Number(
-      loginUser?.memberId
-    );
-
-  const loginDealerId =
-    Number(
-      loginUser?.dealerId
-    );
-
   const isOwner =
     (
       isMemberCar &&

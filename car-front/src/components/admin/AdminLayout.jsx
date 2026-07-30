@@ -31,7 +31,7 @@ const adminMenus = [
   },
   {
     id: 4,
-    name: "최종 거래 관리",
+    name: "매출 관리",
     path: "/admin/final-deals",
   },
   {

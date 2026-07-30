@@ -415,6 +415,279 @@
 }
 
 /* =========================
+   최근 등록 매물
+========================= */
+
+.admin-recent-cars-section {
+  width: 100%;
+  margin-bottom: 22px;
+}
+
+.admin-recent-cars-panel {
+  width: 100%;
+  min-width: 0;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.recent-cars-header {
+  align-items: center;
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e8f0f8;
+}
+
+.recent-cars-label {
+  display: inline-block;
+  margin-bottom: 7px;
+  color: var(--main-blue);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+}
+
+.recent-cars-header h3 {
+  font-size: 23px;
+  letter-spacing: -0.5px;
+}
+
+.recent-cars-header p {
+  margin-top: 7px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.recent-cars-table-area {
+  width: 100%;
+  overflow: hidden;
+}
+
+/*
+ * AdminTable 실제 클래스 기준
+ */
+.admin-recent-cars-panel .admin-table-area {
+  width: 100%;
+}
+
+.admin-recent-cars-panel .admin-table-top {
+  margin-bottom: 12px;
+}
+
+.admin-recent-cars-panel .admin-table-count {
+  color: #475569;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-recent-cars-panel .admin-manage-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e4edf7;
+  border-radius: 18px;
+  background-color: #ffffff;
+}
+
+.admin-recent-cars-panel .admin-manage-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.admin-recent-cars-panel .admin-manage-table th {
+  padding: 17px 20px;
+  border-bottom: 1px solid #dfeaf5;
+  background-color: #f4f8fd;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.admin-recent-cars-panel .admin-manage-table td {
+  height: 68px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #edf3f8;
+  color: #334155;
+  font-size: 14px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-recent-cars-panel .admin-manage-table tbody tr {
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.admin-recent-cars-panel .admin-manage-table tbody tr:hover {
+  background-color: #f7fbff;
+}
+
+.admin-recent-cars-panel .admin-manage-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* 회사명 */
+.recent-car-company {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  color: #475569;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 차량명 */
+.recent-car-name,
+.recent-car-link {
+  display: inline-block;
+  max-width: 230px;
+  overflow: hidden;
+  color: #172033;
+  font-size: 15px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.recent-car-link:hover {
+  color: var(--main-blue);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* 계정 유형 */
+.recent-account-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.recent-account-type.member {
+  background-color: #eef4ff;
+  color: #2563eb;
+}
+
+.recent-account-type.dealer {
+  background-color: #edf9f2;
+  color: #16834c;
+}
+
+.recent-account-type.company {
+  background-color: #f3efff;
+  color: #7048c7;
+}
+
+/* 가격 */
+.recent-car-price {
+  color: #172033;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+/* 상태 */
+.recent-car-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.recent-car-status.status-registered {
+  background-color: #edf4ff;
+  color: #2563eb;
+}
+
+.recent-car-status.status-active,
+.recent-car-status.status-sale,
+.recent-car-status.status-on_sale {
+  background-color: #eaf8ef;
+  color: #20864c;
+}
+
+.recent-car-status.status-auction {
+  background-color: #f4efff;
+  color: #7048c7;
+}
+
+.recent-car-status.status-reserved {
+  background-color: #fff7df;
+  color: #b7791f;
+}
+
+.recent-car-status.status-sold,
+.recent-car-status.status-completed {
+  background-color: #eef2f6;
+  color: #475569;
+}
+
+.recent-car-status.status-inactive,
+.recent-car-status.status-suspended {
+  background-color: #fff0f0;
+  color: #d64545;
+}
+
+/* 컬럼 폭 */
+.admin-recent-cars-panel .admin-manage-table th:nth-child(1),
+.admin-recent-cars-panel .admin-manage-table td:nth-child(1) {
+  width: 18%;
+}
+
+.admin-recent-cars-panel .admin-manage-table th:nth-child(2),
+.admin-recent-cars-panel .admin-manage-table td:nth-child(2) {
+  width: 25%;
+}
+
+.admin-recent-cars-panel .admin-manage-table th:nth-child(3),
+.admin-recent-cars-panel .admin-manage-table td:nth-child(3) {
+  width: 14%;
+}
+
+.admin-recent-cars-panel .admin-manage-table th:nth-child(4),
+.admin-recent-cars-panel .admin-manage-table td:nth-child(4) {
+  width: 15%;
+}
+
+.admin-recent-cars-panel .admin-manage-table th:nth-child(5),
+.admin-recent-cars-panel .admin-manage-table td:nth-child(5) {
+  width: 14%;
+}
+
+.admin-recent-cars-panel .admin-manage-table th:nth-child(6),
+.admin-recent-cars-panel .admin-manage-table td:nth-child(6) {
+  width: 14%;
+}
+
+@media (max-width: 900px) {
+  .admin-recent-cars-panel {
+    padding: 20px;
+  }
+
+  .recent-cars-header {
+    align-items: flex-start;
+  }
+
+  .recent-cars-header .admin-panel-link-btn {
+    width: 100%;
+  }
+}
+
+/* =========================
    반응형
 ========================= */
 
@@ -450,35 +723,35 @@
   }
 
   .admin-churn-dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 22px;
-}
-
-.admin-panel-link-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  padding: 0 16px;
-  border: 1px solid #cfe3fb;
-  border-radius: 13px;
-  background-color: #ffffff;
-  color: var(--main-blue);
-  font-size: 14px;
-  font-weight: 900;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.admin-panel-link-btn:hover {
-  background-color: #f0f7ff;
-  text-decoration: none;
-}
-
-@media (max-width: 900px) {
-  .admin-churn-dashboard-grid {
+    display: grid;
     grid-template-columns: 1fr;
+    gap: 22px;
   }
-}
+
+  .admin-panel-link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid #cfe3fb;
+    border-radius: 13px;
+    background-color: #ffffff;
+    color: var(--main-blue);
+    font-size: 14px;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .admin-panel-link-btn:hover {
+    background-color: #f0f7ff;
+    text-decoration: none;
+  }
+
+  @media (max-width: 900px) {
+    .admin-churn-dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 }
