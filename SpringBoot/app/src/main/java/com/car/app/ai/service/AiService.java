@@ -278,7 +278,7 @@ public class AiService {
                         double riskScore = pred.getChurnProbability() * 100.0;
                         company.setRiskScore(riskScore);
                         // tier: 기존 TOP_5 여부와 무관하게 1차적으로 이탈 위험도(70점 이상 CARE_REQUIRED, 70점 미만 NORMAL)로 지정
-                        // (이후 updateCompanyTiersAndBadges에서 상위 5% 실적 상사만 TOP_5로 덮어쓰고, 탈락 상사는 CARE_REQUIRED/NORMAL을 보존)
+                        // (이후 updateCompanyTiersAndBadges에서 이탈 위험이 낮은 상위 5% 회사만 TOP_5로 덮어씁니다.)
                         company.setTier(riskScore >= 70.0 ? "CARE_REQUIRED" : "NORMAL");
                         company.setRiskGrade(pred.getRiskGrade());
                         companyUpdates.add(company);
@@ -310,10 +310,10 @@ public class AiService {
 
             // 이탈 방지 쿠폰은 관리자 화면에서 수동으로만 발급합니다.
             try {
-                log.info("상위 5% 상사 골든 뱃지 갱신 배치 실행...");
+                log.info("AI 이탈 위험이 낮은 상위 5% 회사 골든 뱃지 갱신 배치 실행...");
                 couponService.updateCompanyTiersAndBadges();
             } catch (Exception e) {
-                log.error("상위 5% 상사 골든 뱃지 갱신 중 오류 발생: {}", e.getMessage());
+                log.error("AI 이탈 안정도 상위 5% 회사 골든 뱃지 갱신 중 오류 발생: {}", e.getMessage());
             }
 
         } else {

@@ -17,8 +17,10 @@ import com.car.app.company.repository.CompanyRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import com.car.app.notification.service.NotificationService;
 import java.util.Optional;
 
@@ -28,6 +30,7 @@ public class CouponService {
 
     private static final String CHURN_COUPON_TYPE = "COMMISSION_DISCOUNT";
     private static final double CHURN_COUPON_RISK_THRESHOLD = 70.0;
+    private static final double COMPANY_CARE_RISK_THRESHOLD = 70.0;
 
     private final CouponRepository couponRepository;
     private final DealerRepository dealerRepository;
@@ -267,8 +270,8 @@ public class CouponService {
     }
 
     /**
-     * 상위 5% 최우수 상사를 실적(소속 딜러들의 거래 건수) 기준 정렬하여 식별하고
-     * 골든 뱃지 상태를 갱신하며 멤버십 가입 할인 쿠폰을 자동 발급합니다.
+     * FastAPI가 계산해 companies.risk_score에 저장한 이탈 확률을 기준으로
+     * 이탈 위험이 가장 낮은 상위 5% 회사를 선정해 골든 뱃지를 갱신합니다.
      */
     @Transactional
     public void updateCompanyTiersAndBadges() {
@@ -277,50 +280,36 @@ public class CouponService {
             return;
         }
 
-        // 1. 각 상사의 소속 딜러 실적(성사 거래 건수)을 취합합니다.
-        class CompanyScore implements Comparable<CompanyScore> {
-            Company company;
-            int score;
+        List<Company> rankedCompanies = companies.stream()
+                .filter(this::hasFastApiChurnPrediction)
+                .sorted(Comparator
+                        .comparingDouble(Company::getRiskScore)
+                        .thenComparing(Company::getCompanyId))
+                .toList();
 
-            CompanyScore(Company company, int score) {
-                this.company = company;
-                this.score = score;
-            }
-
-            @Override
-            public int compareTo(CompanyScore o) {
-                return Integer.compare(o.score, this.score); // 성적 내림차순 정렬
-            }
+        if (rankedCompanies.isEmpty()) {
+            return;
         }
 
-        List<CompanyScore> scores = new ArrayList<>();
+        // FastAPI 예측이 완료된 회사 중 이탈 위험이 낮은 상위 5%를 선정합니다.
+        int topCount = Math.max(1, (int) Math.ceil(rankedCompanies.size() * 0.05));
+        Set<Long> topCompanyIds = new HashSet<>();
+        for (int i = 0; i < topCount; i++) {
+            topCompanyIds.add(rankedCompanies.get(i).getCompanyId());
+        }
+
         for (Company company : companies) {
-            List<Dealer> dealers = dealerRepository.findByCompanyCompanyId(company.getCompanyId());
-            int totalDeals = 0;
-            for (Dealer dealer : dealers) {
-                totalDeals += transactionRepository.findBySellerTypeAndSellerId("DEALER", dealer.getDealerId()).size();
-                totalDeals += transactionRepository.findByBuyerTypeAndBuyerId("DEALER", dealer.getDealerId()).size();
-            }
-            scores.add(new CompanyScore(company, totalDeals));
-        }
-
-        Collections.sort(scores);
-
-        // 상위 5% 상사 개수 결정 (최소 1개 상사 보장)
-        int topCount = (int) Math.ceil(companies.size() * 0.05);
-
-        for (int i = 0; i < scores.size(); i++) {
-            Company company = scores.get(i).company;
             boolean previousBadge = Boolean.TRUE.equals(company.getGoldenBadgeStatus());
+            boolean isTopCompany = topCompanyIds.contains(company.getCompanyId());
 
-            if (i < topCount) {
-                // 상위 5% 상사 지정
+            if (isTopCompany) {
+                // 이탈 위험이 낮은 상위 5% 회사로 지정
                 company.setTier("TOP_5");
                 company.setGoldenBadgeStatus(true);
 
                 // 골든 뱃지 신규 획득 알림 전송 🏆
                 if (!previousBadge) {
-                    String badgeMsg = String.format("🏆 축하합니다! [%s]이(가) 상위 5%% 최우수 상사로 선정되어 [골든 뱃지]가 부여되었습니다.", company.getName());
+                    String badgeMsg = String.format("🏆 축하합니다! [%s]이(가) AI 이탈 안정도 상위 5%% 회사로 선정되어 [골든 뱃지]가 부여되었습니다.", company.getName());
                     notificationService.sendNotification("COMPANY_MASTER", company.getCompanyId(), "GOLDEN_BADGE_AWARDED", badgeMsg, company.getCompanyId());
                 }
 
@@ -330,7 +319,7 @@ public class CouponService {
                 );
                 if (!hasUnusedCoupon) {
                     Coupon coupon = Coupon.builder()
-                            .name("최우수 상사 5% 멤버십 가입 20% 할인 쿠폰")
+                            .name("AI 이탈 안정도 상위 5% 멤버십 가입 20% 할인 쿠폰")
                             .couponType("MEMBERSHIP_DISCOUNT")
                             .discountRate(new BigDecimal("0.2000")) // 20% 할인
                             .company(company)
@@ -339,7 +328,7 @@ public class CouponService {
                             .expiredAt(LocalDateTime.now().plusDays(90)) // 90일 유효
                             .build();
                     Coupon savedCoupon = couponRepository.save(coupon);
-                    String alertMessage = String.format("🏆 상위 5%% 최우수 상사 선정! [%s]이 발급되었습니다.", savedCoupon.getName());
+                    String alertMessage = String.format("🏆 AI 이탈 안정도 상위 5%% 회사 선정! [%s]이 발급되었습니다.", savedCoupon.getName());
                     notificationService.sendNotification(
                             "COMPANY_MASTER",
                             company.getCompanyId(),
@@ -350,19 +339,31 @@ public class CouponService {
                 }
             } else {
                 // 상위 5% 외 상사들 강등 및 골든 뱃지 박탈
-                if (!"CARE_REQUIRED".equals(company.getTier())) {
-                    company.setTier("NORMAL");
+                if ("TOP_5".equals(company.getTier())) {
+                    boolean careRequired = company.getRiskScore() != null
+                            && company.getRiskScore() >= COMPANY_CARE_RISK_THRESHOLD;
+                    company.setTier(careRequired ? "CARE_REQUIRED" : "NORMAL");
                 }
                 company.setGoldenBadgeStatus(false);
 
                 // 골든 뱃지 탈락 알림 전송 📢
                 if (previousBadge) {
-                    String revokeMsg = String.format("📢 [%s]의 이번 달 실적이 상위 5%% 미달로 [골든 뱃지]가 해제되었습니다. 다음 달 재도전을 응원합니다!", company.getName());
+                    String revokeMsg = String.format("📢 [%s]이(가) AI 이탈 안정도 상위 5%%에서 제외되어 [골든 뱃지]가 해제되었습니다.", company.getName());
                     notificationService.sendNotification("COMPANY_MASTER", company.getCompanyId(), "GOLDEN_BADGE_REVOKED", revokeMsg, company.getCompanyId());
                 }
             }
             companyRepository.save(company);
         }
+    }
+
+    private boolean hasFastApiChurnPrediction(Company company) {
+        Double riskScore = company.getRiskScore();
+        return riskScore != null
+                && Double.isFinite(riskScore)
+                && riskScore >= 0.0
+                && riskScore <= 100.0
+                && company.getRiskGrade() != null
+                && !company.getRiskGrade().isBlank();
     }
 
     @Transactional(readOnly = true)
