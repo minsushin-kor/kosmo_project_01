@@ -130,7 +130,7 @@ function CarCard({
 
       try {
         const carIds =
-          await getWishlistCarIds();
+          await getWishlistCarIds({ force: true });
 
         if (isMounted) {
           setIsWished(
@@ -150,6 +150,11 @@ function CarCard({
     function handleWishlistChange(
       event
     ) {
+      const eventUserId = event.detail?.userLoginId;
+      if (eventUserId && loginUser?.loginId && eventUserId !== loginUser.loginId) {
+        return;
+      }
+
       if (
         Number(
           event.detail?.carId
@@ -183,6 +188,7 @@ function CarCard({
   }, [
     canUseWishlist,
     viewCar.id,
+    loginUser?.loginId,
   ]);
 
   async function handleWishlistClick(

@@ -55,26 +55,31 @@ export const MYPAGE_MENU_DATA = {
     },
     {
       id: 2,
+      name: "❤️ 관심 차량 (찜한 매물)",
+      path: "/member/wishlist",
+    },
+    {
+      id: 3,
       name: "🎟️ 보유 쿠폰함",
       path: "/company/coupons",
     },
     {
-      id: 3,
+      id: 4,
       name: "🔨 입찰 중인 경매",
       path: "/dealer/bids",
     },
     {
-      id: 4,
+      id: 5,
       name: "🏆 낙찰받은 경매",
       path: "/dealer/won-auctions",
     },
     {
-      id: 5,
+      id: 6,
       name: "내 매물 관리",
       path: "/dealer/cars",
     },
     {
-      id: 6,
+      id: 7,
       name: "매물 등록",
       path: "/dealer/register-car",
     },

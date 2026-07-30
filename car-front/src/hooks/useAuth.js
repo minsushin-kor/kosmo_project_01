@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAuthUser, removeAuthUser } from "../data/authUser";
+import { clearWishlistCache } from "../api/wishlistApi";
 
 function useAuth() {
   const [loginUser, setLoginUser] = useState(getAuthUser());
@@ -7,10 +8,12 @@ function useAuth() {
   const isLogin = loginUser !== null;
 
   const refreshAuthUser = () => {
+    clearWishlistCache();
     setLoginUser(getAuthUser());
   };
 
   const logout = () => {
+    clearWishlistCache();
     removeAuthUser();
     setLoginUser(null);
   };

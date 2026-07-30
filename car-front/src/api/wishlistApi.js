@@ -1,10 +1,16 @@
 import apiClient from "./apiClient";
+import { getAuthUser } from "../data/authUser";
 
 export const WISHLIST_CHANGE_EVENT =
   "wishlist-change";
 
 let cachedCarIds = null;
 let pendingCarIdsRequest = null;
+
+export function clearWishlistCache() {
+  cachedCarIds = null;
+  pendingCarIdsRequest = null;
+}
 
 function normalizeCarIds(value) {
   if (!Array.isArray(value)) {
@@ -185,6 +191,7 @@ export async function toggleWishlist(
     isWished,
   };
 
+  const authUser = getAuthUser();
   window.dispatchEvent(
     new CustomEvent(
       WISHLIST_CHANGE_EVENT,
@@ -193,15 +200,12 @@ export async function toggleWishlist(
           carId:
             normalizedCarId,
           isWished,
+          userLoginId: authUser?.loginId || null,
+          userRole: authUser?.role || null,
         },
       }
     )
   );
 
   return normalizedResult;
-}
-
-export function clearWishlistCache() {
-  cachedCarIds = null;
-  pendingCarIdsRequest = null;
 }

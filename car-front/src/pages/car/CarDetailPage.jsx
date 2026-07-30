@@ -433,7 +433,7 @@ function CarDetailPage() {
 
       try {
         const carIds =
-          await getWishlistCarIds();
+          await getWishlistCarIds({ force: true });
 
         if (isMounted) {
           setIsWished(
@@ -453,6 +453,11 @@ function CarDetailPage() {
     function handleWishlistChange(
       event
     ) {
+      const eventUserId = event.detail?.userLoginId;
+      if (eventUserId && loginUser?.loginId && eventUserId !== loginUser.loginId) {
+        return;
+      }
+
       if (
         Number(
           event.detail?.carId

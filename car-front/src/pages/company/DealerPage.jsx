@@ -34,6 +34,7 @@ import {
 } from "../../utils/normalTradeStorage";
 import { getMyCommissionCoupons } from "../../api/couponApi";
 import { getMyAuctionBids } from "../../api/auctionApi";
+import { getMyWishlists } from "../../api/wishlistApi";
 import "../../css/common/page.css";
 import "../../css/company/dealerPage.css";
 
@@ -263,6 +264,7 @@ function DealerPage() {
   ] = useState("");
 
   const [myCoupons, setMyCoupons] = useState([]);
+  const [wishlistCars, setWishlistCars] = useState([]);
 
   useEffect(() => {
     if (isOwnPage) {
@@ -272,6 +274,14 @@ function DealerPage() {
           setMyCoupons(list);
         })
         .catch(() => setMyCoupons([]));
+
+      getMyWishlists()
+        .then((res) => {
+          const list = Array.isArray(res) ? res : (res?.data || []);
+          const normalized = list.map(mapServerCarToClientCar).filter(Boolean);
+          setWishlistCars(normalized);
+        })
+        .catch(() => setWishlistCars([]));
     }
   }, [isOwnPage]);
 
@@ -1438,6 +1448,25 @@ function DealerPage() {
           </div>
         )}
       </section>
+
+      {isOwnPage && (
+        <section className="page-section dealer-car-section" style={{ marginTop: "40px" }}>
+          <div className="section-header">
+            <h2>❤️ 관심 차량 (내가 찜한 경매 매물)</h2>
+          </div>
+          {wishlistCars.length === 0 ? (
+            <div className="dealer-car-empty">
+              찜한 관심 차량이 없습니다.
+            </div>
+          ) : (
+            <div className="dealer-public-car-grid">
+              {wishlistCars.map((car) => (
+                <CarCard key={car.carId || car.id} car={car} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {loginUser?.role ===
         AUTH_ROLES.MEMBER &&
