@@ -148,6 +148,9 @@ function mapCompanyChurnUser(company) {
     churnRate: formatRiskScore(
       company.riskScore
     ),
+    goldenBadgeStatus: Boolean(
+      company.goldenBadgeStatus
+    ),
     risk: mapRiskGrade(
       company.riskGrade,
       company.riskScore,

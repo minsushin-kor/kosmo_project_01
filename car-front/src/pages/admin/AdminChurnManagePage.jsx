@@ -58,6 +58,20 @@ const companyChurnColumns = [
     label: "이탈확률",
   },
   {
+    key: "goldenBadgeStatus",
+    label: "골든 배지",
+    render: (company) =>
+      company.goldenBadgeStatus ? (
+        <span className="admin-golden-badge">
+          🏆 골든 배지
+        </span>
+      ) : (
+        <span className="admin-golden-badge-empty">
+          -
+        </span>
+      ),
+  },
+  {
     key: "risk",
     label: "위험등급",
     render: (company) => (

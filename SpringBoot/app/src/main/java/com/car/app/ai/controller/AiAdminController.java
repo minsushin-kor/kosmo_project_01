@@ -74,6 +74,7 @@ public class AiAdminController {
         private String businessNumber;
         private Double riskScore;
         private String tier;
+        private Boolean goldenBadgeStatus;
         private String riskGrade;
         private String riskReasons;
         private String action;
@@ -218,6 +219,7 @@ public class AiAdminController {
                     .businessNumber(company.getBusinessNumber())
                     .riskScore(company.getRiskScore())
                     .tier(company.getTier())
+                    .goldenBadgeStatus(Boolean.TRUE.equals(company.getGoldenBadgeStatus()))
                     .riskGrade(churnOpt.map(CompanyChurn::getRiskGrade).orElse(company.getRiskScore() != null && company.getRiskScore() >= 70.0 ? "CARE_REQUIRED" : "NORMAL"))
                     .riskReasons(churnOpt.map(CompanyChurn::getRiskReasons).orElse(null))
                     .action(churnOpt.map(CompanyChurn::getAction).orElse(null))

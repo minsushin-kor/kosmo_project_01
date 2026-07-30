@@ -381,6 +381,25 @@
   color: #64748b;
 }
 
+.admin-golden-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 6px 10px;
+  border: 1px solid #f5c542;
+  border-radius: 999px;
+  background-color: #fff8dc;
+  color: #9a6700;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.admin-golden-badge-empty {
+  color: #94a3b8;
+}
+
 .admin-churn-reason-list {
   min-width: 260px;
   max-width: 420px;
