@@ -14,10 +14,12 @@ function CompanyCouponPage() {
       try {
         if (loginUser?.role === "ROLE_DEALER") {
           const res = await getMyCommissionCoupons();
-          setCoupons(Array.isArray(res) ? res : res?.data || []);
+          const list = Array.isArray(res) ? res : res?.data || [];
+          setCoupons(list.filter((c) => String(c.status || "UNUSED").toUpperCase() === "UNUSED"));
         } else if (loginUser?.role === "ROLE_COMPANY") {
           const res = await getMyCompanyCoupons();
-          setCoupons(Array.isArray(res) ? res : res?.data || []);
+          const list = Array.isArray(res) ? res : res?.data || [];
+          setCoupons(list.filter((c) => String(c.status || "UNUSED").toUpperCase() === "UNUSED"));
         }
       } catch (err) {
         console.error("쿠폰 조회 실패:", err);

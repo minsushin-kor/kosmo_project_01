@@ -627,7 +627,8 @@ function CarDetailPage() {
       .then((result) => {
         if (!isMounted) return;
         const list = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
-        setCouponList(list);
+        const unusedOnly = list.filter((c) => String(c.status || "UNUSED").toUpperCase() === "UNUSED");
+        setCouponList(unusedOnly);
       })
       .catch(() => {
         if (isMounted) setCouponList([]);

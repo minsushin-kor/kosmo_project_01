@@ -11,6 +11,7 @@ import {
   issueChurnRiskCoupons,
   runChurnBatch,
 } from "../../api/adminChurnApi";
+import { issueRiskCouponToDealer } from "../../api/couponApi";
 import "../../css/admin/adminDashboardPage.css";
 
 const companyChurnColumns = [
@@ -98,6 +99,38 @@ const dealerChurnColumns = [
   {
     key: "action",
     label: "추천 조치",
+    render: (dealer) => (
+      <button
+        type="button"
+        style={{
+          padding: "4px 10px",
+          fontSize: "12px",
+          fontWeight: "600",
+          color: "#ffffff",
+          backgroundColor: "#2563eb",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          whiteSpace: "nowrap"
+        }}
+        onClick={async (e) => {
+          e.stopPropagation();
+          if (!dealer?.id) return;
+          if (!window.confirm(`[${dealer.name || "딜러"}] 딜러에게 수수료 50% 감면 쿠폰을 1건 직접 발급하시겠습니까?`)) {
+            return;
+          }
+          try {
+            await issueRiskCouponToDealer(dealer.id);
+            alert(`🎉 [${dealer.name || "딜러"}] 딜러에게 쿠폰 발급 및 실시간 알림 전송이 완료되었습니다!`);
+            window.location.reload();
+          } catch (err) {
+            alert(err?.response?.data?.message || err?.message || "30일 내 이미 쿠폰이 발급된 딜러이거나 쿠폰 발급에 실패했습니다.");
+          }
+        }}
+      >
+        🎟️ 쿠폰 1건 발급
+      </button>
+    ),
   },
   {
     key: "reason",
