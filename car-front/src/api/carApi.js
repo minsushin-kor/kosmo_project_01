@@ -1,5 +1,23 @@
 import apiClient from "./apiClient";
 
+const WON_PRICE_THRESHOLD = 100000;
+
+/**
+ * 기존 등록 차량은 만원, 더미 차량은 원 단위로 저장되어 있어
+ * 화면에서 사용하는 만원 단위로 통일합니다.
+ */
+function normalizePriceToManwon(value) {
+  const price = Number(value);
+
+  if (!Number.isFinite(price)) {
+    return 0;
+  }
+
+  return price >= WON_PRICE_THRESHOLD
+    ? Math.round(price / 10000)
+    : price;
+}
+
 /**
  * 백엔드 차량 상태를 프론트 화면 문구로 변환합니다.
  */
@@ -87,11 +105,16 @@ export function mapServerCarToClientCar(
     ownerType === "DEALER" ||
     saleType === "NORMAL";
 
-  const sellingPrice = Number(
+  const rawSellingPrice = Number(
     serverCar.sellingPrice ??
     serverCar.price ??
     0
   );
+
+  const sellingPrice =
+    normalizePriceToManwon(
+      rawSellingPrice
+    );
 
   const mileage = Number(
     serverCar.odometer ??
@@ -236,11 +259,9 @@ export function mapServerCarToClientCar(
     sellingprice:
       sellingPrice,
 
-    /*
-     * 현재 기존 화면은 가격 뒤에 '만원'을 표시합니다.
-     * 백엔드 sellingPrice도 현재 입력 폼과 동일하게
-     * 만원 단위로 사용합니다.
-     */
+    rawSellingPrice,
+
+    // 기존 화면의 가격 표시와 검색 조건은 만원 단위를 사용합니다.
     price:
       sellingPrice,
 
