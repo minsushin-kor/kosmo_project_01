@@ -1013,6 +1013,13 @@
   grid-column: 1 / -1;
 }
 
+.member-edit-field-help {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .member-edit-car-section {
   margin-top: 22px;
   padding: 20px;

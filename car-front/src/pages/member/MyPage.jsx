@@ -157,6 +157,9 @@ function createMemberEditForm(
     phone:
       loginUser?.phone || "",
 
+    preferredCar:
+      loginUser?.preferredCar || "",
+
     hasCar:
       Boolean(loginUser?.hasCar),
 
@@ -338,6 +341,11 @@ function MyPage() {
     const phone =
       memberEditForm.phone.trim();
 
+    const preferredCar =
+      memberEditForm
+        .preferredCar
+        .trim();
+
     if (!name) {
       setMemberEditMessage(
         "이름을 입력해주세요."
@@ -457,6 +465,8 @@ function MyPage() {
           name,
           email,
           phone,
+          preferredCar:
+            preferredCar || null,
 
           hasCar:
             memberEditForm.hasCar,
@@ -553,6 +563,10 @@ function MyPage() {
 
         phone:
           updatedProfile.phone,
+
+        preferredCar:
+          updatedProfile
+            .preferredCar || "",
 
         hasCar:
           Boolean(
@@ -992,6 +1006,20 @@ function MyPage() {
                 "-"}
             </strong>
           </div>
+
+          {isMember && (
+            <div className="info-row">
+              <span>
+                선호 차량
+              </span>
+
+              <strong>
+                {loginUser
+                  .preferredCar ||
+                  "등록되지 않음"}
+              </strong>
+            </div>
+          )}
 
           {isDealer && (
             <div className="info-row">
@@ -1608,6 +1636,35 @@ function MyPage() {
                       }
                       maxLength={20}
                     />
+                  </label>
+
+                  <label className="member-edit-full-field">
+                    <span>
+                      선호 차량
+                    </span>
+
+                    <input
+                      type="text"
+                      name="preferredCar"
+                      value={
+                        memberEditForm
+                          .preferredCar
+                      }
+                      onChange={
+                        handleMemberEditChange
+                      }
+                      disabled={
+                        isMemberEditSubmitting
+                      }
+                      maxLength={200}
+                      placeholder="예: 현대 투싼 2022년 5만km"
+                    />
+
+                    <small className="member-edit-field-help">
+                      제조사, 모델, 연식, 주행거리 등을
+                      입력해주시면 더 정확한 차량을
+                      추천해 드릴 수 있어요.
+                    </small>
                   </label>
                 </div>
 

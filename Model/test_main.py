@@ -22,15 +22,24 @@ class SequencePredictionModel:
         return self.values[: len(input_frame)]
 
 
-def vehicle(car_id, status="REGISTERED", owner_type="MEMBER"):
+def vehicle(
+    car_id,
+    status="REGISTERED",
+    owner_type="MEMBER",
+    make="Hyundai",
+    model=None,
+    body="SUV",
+    year=2022,
+    odometer=25000,
+):
     return api.BuyerRecommendationVehicle(
         carId=car_id,
-        year=2022,
-        make="Hyundai",
-        model=f"Model-{car_id}",
-        odometer=25000,
+        year=year,
+        make=make,
+        model=model or f"Model-{car_id}",
+        odometer=odometer,
         option="내비게이션, 열선시트",
-        body="SUV",
+        body=body,
         color="Black",
         sellingPrice=25000000,
         state="SEOUL",
@@ -48,16 +57,176 @@ class FastApiContractTest(unittest.TestCase):
         self.assertEqual(parsed["preferredBody"], "SUV")
         self.assertEqual(parsed["preferredFuel"], "가솔린")
 
-    def test_preferred_car_parser_keeps_two_basic_condition_rule(self):
-        preferences = api.VehicleRecommendationRequest(
-            preferredCar="현대 SUV 가솔린"
+    def test_preferred_car_parser_reads_year_and_odometer(self):
+        parsed = api.parse_preferred_car(
+            "현대 아반떼 2022년 5만km"
         )
+
+        self.assertEqual(parsed["preferredYear"], 2022)
+        self.assertEqual(parsed["maxOdometer"], 50000)
+
+    def test_preferred_car_filters_count_toward_two_condition_rule(self):
+        preferences = api.VehicleRecommendationRequest(
+            preferredCar="현대 SUV"
+        )
+
+        cleaned, active_keys = api.validate_vehicle_recommendation_request(
+            preferences
+        )
+
+        self.assertEqual(cleaned["preferredMake"], "현대")
+        self.assertEqual(cleaned["preferredBody"], "SUV")
+        self.assertEqual(active_keys, ["preferredMake"])
+
+    def test_single_preferred_car_condition_is_rejected(self):
+        preferences = api.VehicleRecommendationRequest(preferredCar="현대")
 
         with self.assertRaises(HTTPException) as raised:
             api.validate_vehicle_recommendation_request(preferences)
 
         self.assertEqual(raised.exception.status_code, 422)
         self.assertIn("기본 조건을 2개 이상", raised.exception.detail)
+
+    def test_preferred_car_priority_ignores_recent_search_values(self):
+        preferences = api.VehicleRecommendationRequest(
+            recommendationPriority="preferred_car",
+            preferredCar="현대 SUV",
+            preferredMake="BMW",
+            preferredModel="X5",
+            preferredYear=2024,
+            expectedPrice=50000000,
+            preferredRegion="SEOUL",
+        )
+
+        cleaned, active_keys = api.validate_vehicle_recommendation_request(
+            preferences
+        )
+
+        self.assertEqual(cleaned["preferredMake"], "현대")
+        self.assertEqual(cleaned["preferredBody"], "SUV")
+        self.assertIsNone(cleaned["preferredModel"])
+        self.assertIsNone(cleaned["preferredYear"])
+        self.assertIsNone(cleaned["expectedPrice"])
+        self.assertIsNone(cleaned["preferredRegion"])
+        self.assertEqual(active_keys, ["preferredMake"])
+
+    def test_recent_search_priority_ignores_saved_preferred_car(self):
+        preferences = api.VehicleRecommendationRequest(
+            recommendationPriority="recent_search",
+            preferredCar="현대 SUV",
+            preferredMake="BMW",
+            preferredModel="X5",
+        )
+
+        cleaned, active_keys = api.validate_vehicle_recommendation_request(
+            preferences
+        )
+
+        self.assertIsNone(cleaned["preferredCar"])
+        self.assertEqual(cleaned["preferredMake"], "BMW")
+        self.assertEqual(cleaned["preferredModel"], "X5")
+        self.assertIsNone(cleaned["preferredBody"])
+        self.assertEqual(cleaned["preferredCarTokens"], [])
+        self.assertEqual(active_keys, ["preferredMake", "preferredModel"])
+
+    def test_each_priority_ranks_only_its_selected_values(self):
+        candidates = [
+            vehicle(
+                1,
+                owner_type="DEALER",
+                make="Hyundai",
+                model="Tucson",
+            ),
+            vehicle(
+                2,
+                owner_type="DEALER",
+                make="BMW",
+                model="X5",
+            ),
+        ]
+
+        preferred_request = api.BuyerVehicleRecommendationRequest(
+            preferences=api.VehicleRecommendationRequest(
+                recommendationPriority="preferred_car",
+                preferredCar="현대 SUV",
+                preferredMake="BMW",
+                preferredModel="X5",
+            ),
+            vehicles=candidates,
+        )
+        recent_request = api.BuyerVehicleRecommendationRequest(
+            preferences=api.VehicleRecommendationRequest(
+                recommendationPriority="recent_search",
+                preferredCar="현대 SUV",
+                preferredMake="BMW",
+                preferredModel="X5",
+            ),
+            vehicles=candidates,
+        )
+
+        with (
+            patch.object(
+                api,
+                "model_vehicle_condition",
+                SequencePredictionModel([4.0, 4.0]),
+            ),
+            patch.object(
+                api,
+                "model_vehicle_mmr",
+                SequencePredictionModel([30000000, 30000000]),
+            ),
+        ):
+            preferred_result = api.recommend_vehicles_for_buyer(
+                preferred_request
+            )
+            recent_result = api.recommend_vehicles_for_buyer(recent_request)
+
+        self.assertEqual(preferred_result["recommendations"][0]["carId"], 1)
+        self.assertEqual(recent_result["recommendations"][0]["carId"], 2)
+
+    def test_preferred_year_and_odometer_affect_recommendation_order(self):
+        request = api.BuyerVehicleRecommendationRequest(
+            preferences=api.VehicleRecommendationRequest(
+                recommendationPriority="preferred_car",
+                preferredCar="현대 아반떼 2022년 5만km",
+            ),
+            vehicles=[
+                vehicle(
+                    1,
+                    owner_type="DEALER",
+                    model="Elantra",
+                    year=2022,
+                    odometer=40000,
+                ),
+                vehicle(
+                    2,
+                    owner_type="DEALER",
+                    model="Elantra",
+                    year=2012,
+                    odometer=90000,
+                ),
+            ],
+        )
+
+        with (
+            patch.object(
+                api,
+                "model_vehicle_condition",
+                SequencePredictionModel([4.0, 4.0]),
+            ),
+            patch.object(
+                api,
+                "model_vehicle_mmr",
+                SequencePredictionModel([30000000, 30000000]),
+            ),
+        ):
+            result = api.recommend_vehicles_for_buyer(request)
+
+        self.assertEqual(result["recommendations"][0]["carId"], 1)
+        self.assertEqual(
+            result["recommendations"][0]["match_score"],
+            100.0,
+        )
 
     def test_preferred_body_filters_candidates_without_changing_model_score(self):
         preferences = api.VehicleRecommendationRequest(
@@ -204,6 +373,7 @@ class FastApiContractTest(unittest.TestCase):
     def test_buyer_recommendation_has_explicit_response_contract(self):
         request = api.BuyerVehicleRecommendationRequest(
             preferences=api.VehicleRecommendationRequest(
+                recommendationPriority="recent_search",
                 preferredMake="Hyundai",
                 expectedPrice=20000000,
             ),

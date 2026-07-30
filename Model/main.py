@@ -622,6 +622,15 @@ VEHICLE_FUEL_ALIASES = {
 }
 
 PREFERRED_CAR_TOKEN_SEPARATOR = re.compile(r"[\s,;/|]+")
+PREFERRED_CAR_YEAR_PATTERN = re.compile(
+    r"^(?P<year>(?:19|20)\d{2})(?:년|year)?$",
+    re.IGNORECASE,
+)
+PREFERRED_CAR_ODOMETER_PATTERN = re.compile(
+    r"^(?P<prefix>주행거리)?(?P<value>\d+(?:\.\d+)?)"
+    r"(?P<ten_thousand>만)?(?P<unit>km|킬로미터|킬로)?$",
+    re.IGNORECASE,
+)
 
 
 def clean_optional_text(value: str | None) -> str | None:
@@ -654,6 +663,7 @@ def split_preferred_car_tokens(value: str | None) -> list[str]:
     if cleaned is None:
         return []
 
+    cleaned = re.sub(r"(?<=\d),(?=\d{3}(?:\D|$))", "", cleaned)
     tokens = []
     seen = set()
     for token in PREFERRED_CAR_TOKEN_SEPARATOR.split(cleaned):
@@ -680,10 +690,38 @@ def parse_preferred_car(value: str | None) -> dict:
         "preferredModel": None,
         "preferredBody": None,
         "preferredFuel": None,
+        "preferredYear": None,
+        "maxOdometer": None,
         "remainingKeywords": [],
     }
 
     for token in tokens:
+        normalized_token = normalize_vehicle_text(token)
+        year_match = PREFERRED_CAR_YEAR_PATTERN.fullmatch(normalized_token)
+        if year_match:
+            year = int(year_match.group("year"))
+            if 1990 <= year <= 2030:
+                parsed["preferredYear"] = year
+            continue
+
+        odometer_match = PREFERRED_CAR_ODOMETER_PATTERN.fullmatch(
+            normalized_token
+        )
+        if odometer_match:
+            odometer = float(odometer_match.group("value"))
+            has_mileage_marker = any(
+                odometer_match.group(group_name)
+                for group_name in ("prefix", "ten_thousand", "unit")
+            )
+            if odometer_match.group("ten_thousand"):
+                odometer *= 10000
+            if odometer > 0 and (has_mileage_marker or odometer >= 1000):
+                parsed["maxOdometer"] = odometer
+                continue
+
+        if normalized_token in {"km", "킬로", "킬로미터", "년"}:
+            continue
+
         if (
             parsed["preferredMake"] is None
             and is_known_alias(token, VEHICLE_MAKE_ALIASES)
@@ -971,50 +1009,86 @@ def validate_vehicle_recommendation_request(
     preferences: VehicleRecommendationRequest,
 ) -> tuple[dict, list[str]]:
     """추천에 사용할 입력값을 정리하고 기본 조건 개수를 검증합니다."""
-    parsed_preferred_car = parse_preferred_car(preferences.preferredCar)
-    explicit_make = clean_optional_text(preferences.preferredMake)
-    explicit_model = clean_optional_text(preferences.preferredModel)
     prefer_saved_car = preferences.recommendationPriority == "preferred_car"
+    parsed_preferred_car = (
+        parse_preferred_car(preferences.preferredCar)
+        if prefer_saved_car
+        else parse_preferred_car(None)
+    )
+    explicit_make = (
+        None
+        if prefer_saved_car
+        else clean_optional_text(preferences.preferredMake)
+    )
+    explicit_model = (
+        None
+        if prefer_saved_car
+        else clean_optional_text(preferences.preferredModel)
+    )
     cleaned_preferences = {
         "recommendationPriority": preferences.recommendationPriority,
-        "preferredCar": clean_optional_text(preferences.preferredCar),
-        "preferredMake": (
-            (
-                parsed_preferred_car["preferredMake"]
-                or explicit_make
-            )
+        "preferredCar": (
+            clean_optional_text(preferences.preferredCar)
             if prefer_saved_car
-            else (
-                explicit_make
-                or parsed_preferred_car["preferredMake"]
-            )
+            else None
+        ),
+        "preferredMake": (
+            parsed_preferred_car["preferredMake"]
+            if prefer_saved_car
+            else explicit_make
         ),
         "preferredModel": (
-            (
-                parsed_preferred_car["preferredModel"]
-                or explicit_model
-            )
+            parsed_preferred_car["preferredModel"]
             if prefer_saved_car
-            else (
-                explicit_model
-                or parsed_preferred_car["preferredModel"]
-            )
+            else explicit_model
         ),
         "preferredBody": (
             parsed_preferred_car["preferredBody"]
-            if prefer_saved_car or explicit_model is None
+            if prefer_saved_car
             else None
         ),
-        "preferredFuel": parsed_preferred_car["preferredFuel"],
-        "preferredCarTokens": parsed_preferred_car["tokens"],
-        "preferredYear": preferences.preferredYear,
-        "maxOdometer": preferences.maxOdometer,
-        "expectedPrice": preferences.expectedPrice,
-        "preferredColor": clean_optional_text(preferences.preferredColor),
-        "preferredRegion": clean_optional_text(preferences.preferredRegion),
-        "minimumCondition": preferences.minimumCondition,
-        "priceTolerance": preferences.priceTolerance,
-        "options": normalize_requested_options(preferences.options),
+        "preferredFuel": (
+            parsed_preferred_car["preferredFuel"]
+            if prefer_saved_car
+            else None
+        ),
+        "preferredCarTokens": (
+            parsed_preferred_car["tokens"]
+            if prefer_saved_car
+            else []
+        ),
+        "preferredYear": (
+            parsed_preferred_car["preferredYear"]
+            if prefer_saved_car
+            else preferences.preferredYear
+        ),
+        "maxOdometer": (
+            parsed_preferred_car["maxOdometer"]
+            if prefer_saved_car
+            else preferences.maxOdometer
+        ),
+        "expectedPrice": None if prefer_saved_car else preferences.expectedPrice,
+        "preferredColor": (
+            None
+            if prefer_saved_car
+            else clean_optional_text(preferences.preferredColor)
+        ),
+        "preferredRegion": (
+            None
+            if prefer_saved_car
+            else clean_optional_text(preferences.preferredRegion)
+        ),
+        "minimumCondition": (
+            None if prefer_saved_car else preferences.minimumCondition
+        ),
+        "priceTolerance": (
+            None if prefer_saved_car else preferences.priceTolerance
+        ),
+        "options": (
+            []
+            if prefer_saved_car
+            else normalize_requested_options(preferences.options)
+        ),
         "exactMake": preferences.exactMake,
         "exactModel": preferences.exactModel,
     }
@@ -1031,7 +1105,17 @@ def validate_vehicle_recommendation_request(
         for key in basic_keys
         if cleaned_preferences[key] is not None
     ]
-    if len(active_basic_keys) < 2:
+    filter_keys = [
+        "preferredBody",
+        "preferredFuel",
+        "preferredRegion",
+    ]
+    active_filter_keys = [
+        key
+        for key in filter_keys
+        if cleaned_preferences[key] is not None
+    ]
+    if len(active_basic_keys) + len(active_filter_keys) < 2:
         raise HTTPException(
             status_code=422,
             detail=(

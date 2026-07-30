@@ -94,6 +94,8 @@ public static class MemberProfileUpdateRequest {
 
     private String phone;
 
+    private String preferredCar;
+
     private Boolean hasCar;
 
     private String ownedCarImageUrl;

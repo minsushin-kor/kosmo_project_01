@@ -109,6 +109,9 @@ public class MyPageService {
                 member.setName(name);
                 member.setEmail(email);
                 member.setPhone(phone);
+                member.setPreferredCar(
+                                trimToNull(
+                                                request.getPreferredCar()));
                 member.setHasCar(hasCar);
 
                 if (hasCar) {
@@ -203,6 +206,12 @@ public class MyPageService {
                                                                 user.getUserId())) {
                         throw new IllegalArgumentException(
                                         "이미 사용 중인 이메일입니다.");
+                }
+
+                if (request.getPreferredCar() != null &&
+                                request.getPreferredCar().trim().length() > 200) {
+                        throw new IllegalArgumentException(
+                                        "선호 차량은 200자 이내로 입력해주세요.");
                 }
 
                 if (Boolean.TRUE.equals(

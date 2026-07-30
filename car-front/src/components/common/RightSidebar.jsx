@@ -121,12 +121,23 @@ function buildBuyerPreferences(
     preferredCar || ""
   ).trim();
 
-  if (normalizedPreferredCar) {
-    preferences.preferredCar =
-      normalizedPreferredCar;
+  if (
+    recommendationPriority ===
+    MEMBER_RECOMMENDATION_PRIORITIES.PREFERRED_CAR
+  ) {
+    if (normalizedPreferredCar) {
+      preferences.preferredCar =
+        normalizedPreferredCar;
+    }
+
+    return preferences;
   }
 
-  if (!searchCondition) {
+  if (
+    recommendationPriority !==
+      MEMBER_RECOMMENDATION_PRIORITIES.RECENT_SEARCH ||
+    !searchCondition
+  ) {
     return preferences;
   }
 
