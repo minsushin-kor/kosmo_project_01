@@ -81,7 +81,18 @@ public class AuctionService {
                 .bidAmount(bidAmount)
                 .build();
 
-        return bidRepository.save(bid);
+        Bid savedBid = bidRepository.save(bid);
+
+        // [알림] 차주(MEMBER)에게 신규 딜러 입찰 참여 알림 푸시 💰
+        Car car = auction.getCar();
+        if (car != null && car.getMember() != null) {
+            String newBidMsg = String.format("💰 등록하신 %d년식 %s %s 경매에 새로운 입찰(%,d만원)이 참여했습니다.",
+                    car.getYear(), car.getMake(), car.getModel(), bidAmount);
+            notificationService.sendNotification("MEMBER", car.getMember().getMemberId(), "NEW_BID", newBidMsg,
+                    car.getCarId());
+        }
+
+        return savedBid;
     }
 
     /**
@@ -276,10 +287,20 @@ public class AuctionService {
             }
 
             // [알림 2] 낙찰 딜러에게 최종 낙찰 축하 알림 생성 및 푸시
-            String dealerMsg = String.format("입찰에 참여하신 %d년식 %s %s 매물 경매가 %,d원에 최종 낙찰되었습니다.",
+            String dealerMsg = String.format("🏆 축하합니다! 입찰하신 %d년식 %s %s 매물 경매가 %,d원에 최종 낙찰되었습니다.",
                     car.getYear(), car.getMake(), car.getModel(), dealPrice);
             notificationService.sendNotification("DEALER", winningBid.getDealer().getDealerId(), "BID_WIN", dealerMsg,
                     car.getCarId());
+
+            // [알림 2-1] 낙찰받지 못한 나머지 입찰 딜러들에게 BID_LOST 알림 생성 및 푸시
+            for (Bid b : bids) {
+                if (!b.getBidId().equals(winningBid.getBidId()) && b.getDealer() != null) {
+                    String lostMsg = String.format("📢 입찰에 참여하셨던 %d년식 %s %s 경매가 타 딜러에게 낙찰되었습니다.",
+                            car.getYear(), car.getMake(), car.getModel());
+                    notificationService.sendNotification("DEALER", b.getDealer().getDealerId(), "BID_LOST", lostMsg,
+                            car.getCarId());
+                }
+            }
 
         } else {
             // 입찰자가 없어 유찰된 경우 차량 상태를 다시 REGISTERED로 세팅하여 재경매 가능하도록 처리

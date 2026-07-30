@@ -106,7 +106,19 @@ public class CouponService {
         }
 
         if (!couponsToIssue.isEmpty()) {
-            couponRepository.saveAll(couponsToIssue);
+            List<Coupon> savedCoupons = couponRepository.saveAll(couponsToIssue);
+            for (Coupon coupon : savedCoupons) {
+                if (coupon.getDealer() != null) {
+                    String alertMessage = String.format("🎁 [%s]이 발급되었습니다! 경매 낙찰 시 수수료 할인 혜택을 받아보세요.", coupon.getName());
+                    notificationService.sendNotification(
+                            "DEALER",
+                            coupon.getDealer().getDealerId(),
+                            "COUPON_ISSUED",
+                            alertMessage,
+                            coupon.getCouponId()
+                    );
+                }
+            }
         }
 
         return RiskCouponIssueResult.builder()
@@ -215,6 +227,43 @@ public class CouponService {
     }
 
     /**
+     * 경매 낙찰 건에 대해 딜러가 보유한 쿠폰을 사용 처리합니다.
+     * 거래(Transaction) 없이 쿠폰만 USED 처리합니다.
+     *
+     * @param couponId      사용할 쿠폰 ID
+     * @param dealerLoginId 요청 딜러 로그인 ID
+     */
+    @Transactional
+    public void useAuctionCoupon(Long couponId, String dealerLoginId) {
+        Dealer dealer = dealerRepository.findByLoginId(dealerLoginId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
+
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 쿠폰입니다."));
+
+        if (coupon.getDealer() == null || !coupon.getDealer().getDealerId().equals(dealer.getDealerId())) {
+            throw new IllegalArgumentException("본인이 보유한 쿠폰만 사용할 수 있습니다.");
+        }
+
+        if (!"COMMISSION_DISCOUNT".equalsIgnoreCase(coupon.getCouponType())) {
+            throw new IllegalArgumentException("수수료 감면 전용 쿠폰만 사용 가능합니다.");
+        }
+
+        if (!"UNUSED".equalsIgnoreCase(coupon.getStatus())) {
+            throw new IllegalArgumentException("이미 사용 완료되었거나 사용할 수 없는 쿠폰입니다.");
+        }
+
+        if (coupon.getExpiredAt().isBefore(LocalDateTime.now())) {
+            coupon.setStatus("EXPIRED");
+            couponRepository.save(coupon);
+            throw new IllegalArgumentException("만료 기한이 경과한 쿠폰입니다.");
+        }
+
+        // 쿠폰 사용 완료 처리 후 삭제
+        couponRepository.delete(coupon);
+    }
+
+    /**
      * 상위 5% 최우수 상사를 실적(소속 딜러들의 거래 건수) 기준 정렬하여 식별하고
      * 골든 뱃지 상태를 갱신하며 멤버십 가입 할인 쿠폰을 자동 발급합니다.
      */
@@ -259,10 +308,18 @@ public class CouponService {
 
         for (int i = 0; i < scores.size(); i++) {
             Company company = scores.get(i).company;
+            boolean previousBadge = Boolean.TRUE.equals(company.getGoldenBadgeStatus());
+
             if (i < topCount) {
                 // 상위 5% 상사 지정
                 company.setTier("TOP_5");
                 company.setGoldenBadgeStatus(true);
+
+                // 골든 뱃지 신규 획득 알림 전송 🏆
+                if (!previousBadge) {
+                    String badgeMsg = String.format("🏆 축하합니다! [%s]이(가) 상위 5%% 최우수 상사로 선정되어 [골든 뱃지]가 부여되었습니다.", company.getName());
+                    notificationService.sendNotification("COMPANY_MASTER", company.getCompanyId(), "GOLDEN_BADGE_AWARDED", badgeMsg, company.getCompanyId());
+                }
 
                 // 멤버십 20% 할인 쿠폰 자동 발급 (중복 발급 방지: 이미 UNUSED 상태의 MEMBERSHIP_DISCOUNT 쿠폰이 있는지 검사)
                 boolean hasUnusedCoupon = couponRepository.existsByCompanyCompanyIdAndCouponTypeAndStatus(
@@ -278,15 +335,28 @@ public class CouponService {
                             .issuedAt(LocalDateTime.now())
                             .expiredAt(LocalDateTime.now().plusDays(90)) // 90일 유효
                             .build();
-                    couponRepository.save(coupon);
+                    Coupon savedCoupon = couponRepository.save(coupon);
+                    String alertMessage = String.format("🏆 상위 5%% 최우수 상사 선정! [%s]이 발급되었습니다.", savedCoupon.getName());
+                    notificationService.sendNotification(
+                            "COMPANY_MASTER",
+                            company.getCompanyId(),
+                            "COUPON_ISSUED",
+                            alertMessage,
+                            savedCoupon.getCouponId()
+                    );
                 }
             } else {
                 // 상위 5% 외 상사들 강등 및 골든 뱃지 박탈
-                // 단, 자정 배치에서 이탈 관리 대상(CARE_REQUIRED)으로 지정된 상사는 등급 유실을 방지하기 위해 덮어쓰지 않습니다.
                 if (!"CARE_REQUIRED".equals(company.getTier())) {
                     company.setTier("NORMAL");
                 }
                 company.setGoldenBadgeStatus(false);
+
+                // 골든 뱃지 탈락 알림 전송 📢
+                if (previousBadge) {
+                    String revokeMsg = String.format("📢 [%s]의 이번 달 실적이 상위 5%% 미달로 [골든 뱃지]가 해제되었습니다. 다음 달 재도전을 응원합니다!", company.getName());
+                    notificationService.sendNotification("COMPANY_MASTER", company.getCompanyId(), "GOLDEN_BADGE_REVOKED", revokeMsg, company.getCompanyId());
+                }
             }
             companyRepository.save(company);
         }
@@ -297,5 +367,70 @@ public class CouponService {
         Company company = companyRepository.findByLoginId(masterLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회사 계정입니다."));
         return couponRepository.findByCompanyCompanyId(company.getCompanyId());
+    }
+
+    /**
+     * 특정 딜러에게 수수료 감면 쿠폰을 발급하고 즉시 알림을 전송합니다.
+     */
+    @Transactional
+    public Coupon issueCouponToDealer(Long dealerId, String couponName, BigDecimal discountRate) {
+        Dealer dealer = dealerRepository.findById(dealerId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러입니다."));
+
+        Coupon coupon = Coupon.builder()
+                .name(couponName != null ? couponName : "낙찰 수수료 50% 감면 쿠폰")
+                .couponType(CHURN_COUPON_TYPE)
+                .discountRate(discountRate != null ? discountRate : new BigDecimal("0.5000"))
+                .dealer(dealer)
+                .status("UNUSED")
+                .issuedAt(LocalDateTime.now())
+                .expiredAt(LocalDateTime.now().plusDays(30))
+                .build();
+
+        Coupon saved = couponRepository.save(coupon);
+
+        // 딜러에게 즉시 알림 🔔 발송
+        String alertMessage = String.format("🎁 [%s]이 발급되었습니다! 경매 낙찰 시 수수료 할인 혜택을 받아보세요.", saved.getName());
+        notificationService.sendNotification(
+                "DEALER",
+                dealer.getDealerId(),
+                "COUPON_ISSUED",
+                alertMessage,
+                saved.getCouponId()
+        );
+
+        return saved;
+    }
+
+    /**
+     * 관리자가 특정 이탈위험 딜러 1명을 지정하여 수수료 50% 감면 쿠폰을 수동으로 발급하고 알림을 보냅니다.
+     */
+    @Transactional
+    public Coupon issueRiskCouponToDealer(Long dealerId) {
+        Dealer dealer = dealerRepository.findById(dealerId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
+
+        Coupon coupon = Coupon.builder()
+                .name("이탈 방지 딜러 수수료 50% 감면 쿠폰")
+                .couponType(CHURN_COUPON_TYPE)
+                .discountRate(new BigDecimal("0.5000"))
+                .dealer(dealer)
+                .status("UNUSED")
+                .issuedAt(LocalDateTime.now())
+                .expiredAt(LocalDateTime.now().plusDays(30))
+                .build();
+
+        Coupon saved = couponRepository.save(coupon);
+
+        String alertMessage = "🎁 [이탈 방지 딜러 수수료 50% 감면 쿠폰]이 발급되었습니다! 경매 낙찰 시 수수료 할인 혜택을 받아보세요.";
+        notificationService.sendNotification(
+                "DEALER",
+                dealer.getDealerId(),
+                "COUPON_ISSUED",
+                alertMessage,
+                saved.getCouponId()
+        );
+
+        return saved;
     }
 }

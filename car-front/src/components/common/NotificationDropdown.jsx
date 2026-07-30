@@ -1,195 +1,149 @@
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { prefetchRoute } from "../../data/routeLoaders";
 import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  Link,
-} from "react-router-dom";
-import {
-  getNotificationsByRole,
-} from "../../data/notificationData";
-import {
-  prefetchRoute,
-} from "../../data/routeLoaders";
+  getMyNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+} from "../../api/notificationApi";
 
-import { getUnusedCouponCount } from "../../api/couponApi";
+function NotificationDropdown({ loginUser }) {
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-function NotificationDropdown({
-  loginUser,
-}) {
-  const [
-    isNotificationOpen,
-    setIsNotificationOpen,
-  ] = useState(false);
-  const [couponCount, setCouponCount] = useState(0);
+  const notificationRef = useRef(null);
 
-  const notificationRef =
-    useRef(null);
+  // 알림 데이터 불러오기 (DB 실시간 알림)
+  const fetchNotifications = () => {
+    if (!loginUser) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    // 안 읽은 개수 및 알림 목록 조회
+    getUnreadNotificationCount()
+      .then((res) => {
+        const count = typeof res === "number" ? res : (res?.unreadCount || res?.data?.unreadCount || 0);
+        setUnreadCount(count);
+      })
+      .catch(() => setUnreadCount(0));
+
+    getMyNotifications()
+      .then((res) => {
+        const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+        setNotifications(list);
+      })
+      .catch(() => setNotifications([]));
+  };
 
   useEffect(() => {
-    if (loginUser && loginUser.role === "ROLE_DEALER") {
-      getUnusedCouponCount()
-        .then((res) => {
-          if (typeof res === "number") setCouponCount(res);
-          else if (res && typeof res.data === "number") setCouponCount(res.data);
-          else if (res && typeof res.unusedCount === "number") setCouponCount(res.unusedCount);
-        })
-        .catch(() => setCouponCount(0));
-    }
+    fetchNotifications();
+    // 30초마다 알림 자동 갱신
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
   }, [loginUser]);
 
-  const baseNotifications = loginUser
-    ? getNotificationsByRole(
-        loginUser.role
-      )
-    : [];
+  const handleNotificationClick = () => {
+    setIsNotificationOpen((prev) => !prev);
+    if (!isNotificationOpen) {
+      fetchNotifications();
+    }
+  };
 
-  const notifications = couponCount > 0 && loginUser?.role === "ROLE_DEALER"
-    ? [
-        {
-          id: "coupon-notif-1",
-          text: `🎁 [쿠폰함] 이탈 방지 수수료 50% 감면 쿠폰 ${couponCount}장이 보유 중입니다.`,
-          path: "/company/my-page",
-        },
-        ...baseNotifications
-      ]
-    : baseNotifications;
-
-  const handleNotificationClick =
-    () => {
-      setIsNotificationOpen(
-        (prev) => !prev
-      );
-    };
-
-  const handleNotificationLinkClick =
-    () => {
-      setIsNotificationOpen(false);
-    };
+  const handleNotificationLinkClick = async (notif) => {
+    setIsNotificationOpen(false);
+    if (notif?.notificationId && !notif.isRead) {
+      try {
+        await markNotificationAsRead(notif.notificationId);
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  };
 
   useEffect(() => {
-    if (!isNotificationOpen) {
-      return undefined;
-    }
+    if (!isNotificationOpen) return undefined;
 
-    const handleClickOutside = (
-      event
-    ) => {
-      if (
-        notificationRef.current &&
-        !notificationRef.current.contains(
-          event.target
-        )
-      ) {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setIsNotificationOpen(false);
       }
     };
 
-    const handleKeyDown = (
-      event
-    ) => {
+    const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         setIsNotificationOpen(false);
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
-
-    window.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
-
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isNotificationOpen]);
 
+  // 알림 클릭 시 이동할 페이지 URL 매핑
+  const getTargetLink = (notif) => {
+    if (notif.type === "COUPON_ISSUED" || notif.type === "GOLDEN_BADGE_AWARDED" || notif.type === "GOLDEN_BADGE_REVOKED") {
+      return loginUser?.role === "ROLE_DEALER" ? "/dealer/cars" : "/company/my-page";
+    }
+    if (notif.referenceId) {
+      return `/cars/${notif.referenceId}`;
+    }
+    return "/";
+  };
+
   return (
-    <div
-      className="notification-wrap"
-      ref={notificationRef}
-    >
+    <div className="notification-wrap" ref={notificationRef}>
       <button
         type="button"
         className="notification-btn"
-        onClick={
-          handleNotificationClick
-        }
+        onClick={handleNotificationClick}
         aria-label="알림 목록"
-        aria-expanded={
-          isNotificationOpen
-        }
+        aria-expanded={isNotificationOpen}
         aria-haspopup="menu"
       >
         알림
-
-        {notifications.length > 0 && (
+        {unreadCount > 0 && (
           <span className="notification-badge">
-            {notifications.length > 99
-              ? "99+"
-              : notifications.length}
+            {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
       {isNotificationOpen && (
-        <div
-          className="notification-list"
-          role="menu"
-        >
-          <p className="notification-title">
-            알림 리스트
-          </p>
+        <div className="notification-list" role="menu">
+          <p className="notification-title">알림 리스트</p>
 
           {notifications.length === 0 ? (
-            <p className="notification-empty">
-              알림 없음
-            </p>
+            <p className="notification-empty">새로운 알림이 없습니다.</p>
           ) : (
-            notifications.map(
-              (notification) => (
+            notifications.map((notif) => {
+              const targetPath = getTargetLink(notif);
+              return (
                 <Link
-                  key={notification.id}
-                  to={notification.path}
+                  key={notif.notificationId || notif.id}
+                  to={targetPath}
                   role="menuitem"
-                  onMouseEnter={() =>
-                    prefetchRoute(
-                      notification.path
-                    )
-                  }
-                  onFocus={() =>
-                    prefetchRoute(
-                      notification.path
-                    )
-                  }
-                  onTouchStart={() =>
-                    prefetchRoute(
-                      notification.path
-                    )
-                  }
-                  onClick={
-                    handleNotificationLinkClick
-                  }
+                  style={{
+                    fontWeight: notif.isRead ? "normal" : "bold",
+                    opacity: notif.isRead ? 0.7 : 1,
+                  }}
+                  onMouseEnter={() => prefetchRoute(targetPath)}
+                  onFocus={() => prefetchRoute(targetPath)}
+                  onTouchStart={() => prefetchRoute(targetPath)}
+                  onClick={() => handleNotificationLinkClick(notif)}
                 >
-                  {
-                    notification.message
-                  }
+                  {notif.message || notif.text}
                 </Link>
-              )
-            )
+              );
+            })
           )}
         </div>
       )}

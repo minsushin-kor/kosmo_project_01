@@ -52,7 +52,25 @@ public class CarService {
     private final BidRepository bidRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
+    private final com.car.app.wishlist.repository.WishlistRepository wishlistRepository;
     private final com.car.app.ai.service.AiService aiService;
+
+    /**
+     * 차량 상태가 변경되었을 때 해당 차량을 찜(Wishlist)한 유저들에게 알림을 전송합니다.
+     */
+    private void notifyWishlistUsersOnStatusChange(Car car, String newStatusText) {
+        if (car == null) return;
+        List<com.car.app.wishlist.entity.Wishlist> wishlists = wishlistRepository.findByCarCarId(car.getCarId());
+        for (com.car.app.wishlist.entity.Wishlist w : wishlists) {
+            String msg = String.format("❤️ 찜하신 %d년식 %s %s 차량의 상태가 [%s](으)로 변경되었습니다.",
+                    car.getYear(), car.getMake(), car.getModel(), newStatusText);
+            if (w.getMember() != null) {
+                notificationService.sendNotification("MEMBER", w.getMember().getMemberId(), "WISHLIST_STATUS", msg, car.getCarId());
+            } else if (w.getDealer() != null) {
+                notificationService.sendNotification("DEALER", w.getDealer().getDealerId(), "WISHLIST_STATUS", msg, car.getCarId());
+            }
+        }
+    }
 
     /**
      * 중고차 매물 및 차량 이미지들을 등록하는 트랜잭션 메서드입니다.
@@ -560,6 +578,9 @@ public class CarService {
                 car.getYear(), car.getMake(), car.getModel(), buyer.getName(), dealPrice);
         notificationService.sendNotification("DEALER", car.getDealer().getDealerId(), "CAR_SOLD", dealerMsg,
                 car.getCarId());
+
+        // [알림] 해당 매물을 찜해둔 유저들에게 차량 판매 완료 상태 변경 알림 전송 ❤️
+        notifyWishlistUsersOnStatusChange(car, "판매완료");
 
         return transactionRepository.save(transaction);
     }

@@ -283,6 +283,28 @@ function CarCard({
         className="car-card-link"
       >
         <div className="car-card-image">
+          {viewCar.goldenBadgeStatus && (
+            <span
+              style={{
+                position: "absolute",
+                top: "10px",
+                left: "10px",
+                zIndex: 2,
+                background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                color: "#ffffff",
+                fontSize: "0.72rem",
+                fontWeight: "bold",
+                padding: "3px 8px",
+                borderRadius: "12px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                display: "flex",
+                alignItems: "center",
+                gap: "3px"
+              }}
+            >
+              🏆 Top 5%
+            </span>
+          )}
           {imageUrl ? (
             <img
               src={imageUrl}

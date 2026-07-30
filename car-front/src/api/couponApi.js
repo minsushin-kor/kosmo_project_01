@@ -19,3 +19,18 @@ export function applyCouponToTransaction(transactionId, couponId) {
 export function getMyCompanyCoupons() {
   return apiClient.get("/coupons/my-company-coupons");
 }
+
+// 경매 낙찰 건에 쿠폰 사용 처리 (쿠폰 삭제)
+export function useAuctionCoupon(couponId) {
+  return apiClient.post(`/auctions/use-coupon?couponId=${couponId}`);
+}
+
+// 관리자: 이탈 위험 딜러 전체에게 수수료 50% 감면 쿠폰 수동 일괄 발송
+export function issueRiskCouponsManually() {
+  return apiClient.post("/coupons/issue-risk-coupons");
+}
+
+// 관리자: 특정 이탈 위험 딜러 1명에게 수수료 50% 감면 쿠폰 수동 발송
+export function issueRiskCouponToDealer(dealerId) {
+  return apiClient.post(`/coupons/issue-risk-coupon/dealer/${dealerId}`);
+}

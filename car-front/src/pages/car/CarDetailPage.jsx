@@ -28,6 +28,10 @@ import {
   placeAuctionBid,
 } from "../../api/auctionApi";
 import {
+  getMyCommissionCoupons,
+  useAuctionCoupon,
+} from "../../api/couponApi";
+import {
   useAuth,
 } from "../../hooks/useAuth";
 import {
@@ -273,12 +277,39 @@ function CarDetailPage() {
     setBidList,
   ] = useState([]);
 
+  const [
+    couponList,
+    setCouponList,
+  ] = useState([]);
+
+  const [
+    useCoupon,
+    setUseCoupon,
+  ] = useState(false);
+
+  const [
+    couponApplied,
+    setCouponApplied,
+  ] = useState(false);
+
+  const [
+    appliedCouponInfo,
+    setAppliedCouponInfo,
+  ] = useState(null);
+
+  const [
+    isCouponApplying,
+    setIsCouponApplying,
+  ] = useState(false);
+
   const normalizedLoginRole =
     String(
       loginUser?.role ||
       loginUser?.serverRole ||
       ""
     ).toUpperCase();
+
+  const isDealer = normalizedLoginRole === AUTH_ROLES.DEALER;
 
   const canUseWishlist =
     [
@@ -363,7 +394,7 @@ function CarDetailPage() {
 
     async function loadAuctionBids() {
       const targetCarId = car?.id || id;
-      if (!targetCarId || !loginUser) return;
+      if (!targetCarId || !loginUser || !isDealer) return;
 
       try {
         // 딜러 본인의 전체 입찰 목록을 가져와 해당 차량으로 필터링
@@ -381,7 +412,7 @@ function CarDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [car?.id, id, loginUser]);
+  }, [car?.id, id, loginUser, isDealer]);
 
   useEffect(() => {
     let isMounted = true;
@@ -526,6 +557,84 @@ function CarDetailPage() {
     // myBid가 있으면 입찰 완료
     return Boolean(myBid);
   }, [alreadyBidFromState, car?.id, id, myBid]);
+
+  const winningFeeDetails = useMemo(() => {
+    const winAmount = Number(myBid?.bidAmount || bidAmountFromState || 0);
+    const feeRate = 0.03;
+    const fee = Math.round(winAmount * feeRate * 10) / 10;
+    const total = Math.round((winAmount + fee) * 10) / 10;
+    return { winAmount, fee, total };
+  }, [myBid?.bidAmount, bidAmountFromState]);
+
+  const activeCoupon = couponList[0] || null;
+  const isCouponDiscounted = (useCoupon && Boolean(activeCoupon)) || couponApplied;
+  const effectiveDiscountRate = isCouponDiscounted ? Number((activeCoupon || appliedCouponInfo)?.discountRate || 0.5) : 0;
+  const discountedFee = Math.round(winningFeeDetails.fee * (1 - effectiveDiscountRate) * 10) / 10;
+  const finalTotalWithCoupon = Math.round((winningFeeDetails.winAmount + discountedFee) * 10) / 10;
+
+  const handleApplyCoupon = async () => {
+    if (!activeCoupon || isCouponApplying) return;
+    setIsCouponApplying(true);
+    try {
+      await useAuctionCoupon(activeCoupon.couponId);
+      setAppliedCouponInfo(activeCoupon);
+      setCouponApplied(true);
+      setCouponList([]);
+      setUseCoupon(false);
+
+      const targetCarId = Number(car?.id || id || 0);
+      if (targetCarId > 0) {
+        localStorage.setItem(
+          `dealer_coupon_applied_car_${targetCarId}`,
+          JSON.stringify({
+            applied: true,
+            discountRate: activeCoupon.discountRate || 0.5,
+            couponName: activeCoupon.name
+          })
+        );
+      }
+    } catch (err) {
+      alert("쿠폰 적용에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsCouponApplying(false);
+    }
+  };
+
+  // 기존 쿠폰 적용 이력 복원 (페이지 재진입/새로고침 대응)
+  useEffect(() => {
+    const targetCarId = Number(car?.id || id || 0);
+    if (targetCarId > 0) {
+      const saved = localStorage.getItem(`dealer_coupon_applied_car_${targetCarId}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.applied) {
+            setCouponApplied(true);
+            setAppliedCouponInfo(parsed);
+          }
+        } catch (e) { /* ignore */ }
+      }
+    }
+  }, [car?.id, id]);
+
+  // 낙찰된 딜러인 경우 보유 쿠폰 조회
+  useEffect(() => {
+    let isMounted = true;
+    const isWinner = myBid?.winner || winnerFromState;
+    if (!loginUser || !isDealer || !isWinner) return;
+
+    getMyCommissionCoupons()
+      .then((result) => {
+        if (!isMounted) return;
+        const list = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
+        setCouponList(list);
+      })
+      .catch(() => {
+        if (isMounted) setCouponList([]);
+      });
+
+    return () => { isMounted = false; };
+  }, [loginUser, isDealer, myBid?.winner, winnerFromState]);
 
   const carImages =
     Array.isArray(
@@ -1623,10 +1732,7 @@ function CarDetailPage() {
           {isAuctionCar && (
             <div className="auction-summary-grid">
               <div>
-                <span>
-                  남은 시간
-                </span>
-
+                <span>남은 시간</span>
                 <strong>
                   {auctionWinner
                     ? "낙찰 처리 완료"
@@ -1635,78 +1741,43 @@ function CarDetailPage() {
               </div>
 
               <div>
-                <span>
-                  입찰 수
-                </span>
-
-                <strong>
-                  {totalBidCount}건
-                </strong>
+                <span>입찰 수</span>
+                <strong>{totalBidCount}건</strong>
               </div>
 
               <div>
-                <span>
-                  입찰 시작일
-                </span>
-
-                <strong>
-                  {formatDateTime(
-                    auction.startDate
-                  )}
-                </strong>
+                <span>입찰 시작일</span>
+                <strong>{formatDateTime(auction.startDate)}</strong>
               </div>
 
               <div>
-                <span>
-                  입찰 마감일
-                </span>
-
-                <strong>
-                  {formatDateTime(
-                    auction.endDate
-                  )}
-                </strong>
+                <span>입찰 마감일</span>
+                <strong>{formatDateTime(auction.endDate)}</strong>
               </div>
             </div>
           )}
 
           {isOwner ? (
             <div className="bid-form">
-              <p className="bid-message">
-                본인이 등록한 매물입니다.
-              </p>
-
+              <p className="bid-message">본인이 등록한 매물입니다.</p>
               {ownerActionMessage && (
-                <p className="bid-message">
-                  {ownerActionMessage}
-                </p>
+                <p className="bid-message">{ownerActionMessage}</p>
               )}
-
               <div className="detail-action-buttons">
                 {isAuctionCar && (
-                  <Link
-                    to={ownerManagePath}
-                    className="outline-button"
-                  >
+                  <Link to={ownerManagePath} className="outline-button">
                     입찰 내역 관리
                   </Link>
                 )}
-
-                <Link
-                  to={ownerEditPath}
-                  className="outline-button"
-                >
+                <Link to={ownerEditPath} className="outline-button">
                   매물 수정
                 </Link>
-
                 <button
                   type="button"
                   onClick={handleDeleteCar}
                   disabled={isDeleting}
                 >
-                  {isDeleting
-                    ? "삭제 중..."
-                    : "매물 삭제"}
+                  {isDeleting ? "삭제 중..." : "매물 삭제"}
                 </button>
               </div>
             </div>
@@ -1721,40 +1792,71 @@ function CarDetailPage() {
                   border: `1px solid ${myBid?.winner ? "#86efac" : "#cbd5e1"}`
                 }}
               >
-                {myBid?.winner ? (() => {
-                  const winAmount = Number(myBid?.bidAmount || bidAmountFromState || 0);
-                  const feeRate = 0.03;
-                  const fee = Math.round(winAmount * feeRate * 10) / 10;
-                  const total = Math.round((winAmount + fee) * 10) / 10;
-                  return (
-                    <>
-                      <h3 style={{ color: "#15803d", marginBottom: "12px", fontSize: "1.1rem" }}>
-                        🏆 축하합니다! 낙찰이 완료되었습니다
-                      </h3>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", borderTop: "1px solid #bbf7d0", paddingTop: "12px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", color: "#166534", fontSize: "0.95rem" }}>
-                          <span>낙찰 금액</span>
-                          <strong>{winAmount.toLocaleString()}만원</strong>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", color: "#166534", fontSize: "0.95rem" }}>
-                          <span>수수료 <span style={{ color: "#4ade80", fontSize: "0.8rem" }}>(낙찰가의 3%)</span></span>
-                          <strong>{fee.toLocaleString()}만원</strong>
-                        </div>
-                        <div style={{
-                          display: "flex", justifyContent: "space-between",
-                          borderTop: "1px dashed #86efac", marginTop: "4px", paddingTop: "8px",
-                          color: "#14532d", fontSize: "1.05rem", fontWeight: "bold"
-                        }}>
-                          <span>최종 납부 금액</span>
-                          <span style={{ color: "#15803d", fontSize: "1.2rem" }}>{total.toLocaleString()}만원</span>
-                        </div>
+                {myBid?.winner ? (
+                  <>
+                    <h3 style={{ color: "#15803d", marginBottom: "12px", fontSize: "1.1rem" }}>
+                      🏆 축하합니다! 낙찰이 완료되었습니다
+                    </h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", borderTop: "1px solid #bbf7d0", paddingTop: "12px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "#166534", fontSize: "0.95rem" }}>
+                        <span>낙찰 금액</span>
+                        <strong>{winningFeeDetails.winAmount.toLocaleString()}만원</strong>
                       </div>
-                      <p style={{ margin: "10px 0 0 0", color: "#16a34a", fontSize: "0.8rem" }}>
-                        * 차량 인도 및 결제 관련 사항은 판매자에게 문의하세요.
-                      </p>
-                    </>
-                  );
-                })()
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "#166534", fontSize: "0.95rem" }}>
+                        <span>수수료 <span style={{ color: "#16a34a", fontSize: "0.8rem" }}>(낙찰가의 3%)</span></span>
+                        <strong style={{ textDecoration: isCouponDiscounted ? "line-through" : "none", color: isCouponDiscounted ? "#94a3b8" : "#166534" }}>
+                          {winningFeeDetails.fee.toLocaleString()}만원
+                        </strong>
+                      </div>
+                      {isCouponDiscounted && (
+                        <div style={{ display: "flex", justifyContent: "space-between", color: "#15803d", fontSize: "0.95rem" }}>
+                          <span>쿠폰 할인 <span style={{ color: "#4ade80", fontSize: "0.8rem" }}>({Math.round(effectiveDiscountRate * 100)}% 감면)</span></span>
+                          <strong style={{ color: "#15803d" }}>-{(winningFeeDetails.fee - discountedFee).toLocaleString()}만원</strong>
+                        </div>
+                      )}
+                      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #86efac", marginTop: "4px", paddingTop: "8px", color: "#14532d", fontSize: "1.05rem", fontWeight: "bold" }}>
+                        <span>최종 납부 금액</span>
+                        <span style={{ color: "#15803d", fontSize: "1.2rem" }}>
+                          {(isCouponDiscounted ? finalTotalWithCoupon : winningFeeDetails.total).toLocaleString()}만원
+                        </span>
+                      </div>
+                    </div>
+                    {couponApplied ? (
+                      <div style={{ marginTop: "12px", padding: "10px 14px", background: "#dcfce7", borderRadius: "8px", color: "#15803d", fontSize: "0.9rem", fontWeight: "bold" }}>
+                        ✅ 쿠폰이 적용되었습니다. 수수료가 감면되었습니다.
+                      </div>
+                    ) : activeCoupon ? (
+                      <div style={{ marginTop: "12px", padding: "12px 14px", background: "#f0fdf4", borderRadius: "8px", border: "1px dashed #86efac" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#166534", fontSize: "0.95rem" }}>
+                          <input
+                            type="checkbox"
+                            checked={useCoupon}
+                            onChange={(e) => setUseCoupon(e.target.checked)}
+                            style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                          />
+                          <span>
+                            🎟️ <strong>{activeCoupon.name}</strong> 사용하기
+                            <span style={{ marginLeft: "6px", color: "#4ade80", fontSize: "0.8rem" }}>
+                              (수수료 {Math.round(Number(activeCoupon.discountRate || 0.5) * 100)}% 감면)
+                            </span>
+                          </span>
+                        </label>
+                        {useCoupon && (
+                          <button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            disabled={isCouponApplying}
+                            style={{ marginTop: "10px", width: "100%", padding: "10px", background: isCouponApplying ? "#86efac" : "#15803d", color: "#fff", border: "none", borderRadius: "8px", cursor: isCouponApplying ? "not-allowed" : "pointer", fontSize: "0.95rem", fontWeight: "bold" }}
+                          >
+                            {isCouponApplying ? "쿠폰 적용 중..." : "쿠폰 적용하기"}
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
+                    <p style={{ margin: "10px 0 0 0", color: "#16a34a", fontSize: "0.8rem" }}>
+                      * 차량 인도 및 결제 관련 사항은 판매자에게 문의하세요.
+                    </p>
+                  </>
                 ) : (
                   <>
                     <h3 style={{ color: "#0f172a", marginBottom: "8px", fontSize: "1.1rem" }}>
@@ -2001,16 +2103,34 @@ function CarDetailPage() {
               </span>
 
               {isDealerCar ? (
-                <Link
-                  to={
-                    companyId
-                      ? `/company/${companyId}`
-                      : "/company"
-                  }
-                  className="seller-info-link"
-                >
-                  {companyName}
-                </Link>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Link
+                    to={
+                      companyId
+                        ? `/company/${companyId}`
+                        : "/company"
+                    }
+                    className="seller-info-link"
+                  >
+                    {companyName}
+                  </Link>
+                  {car.goldenBadgeStatus && (
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                      color: "#ffffff",
+                      fontSize: "0.75rem",
+                      fontWeight: "bold",
+                      padding: "2px 8px",
+                      borderRadius: "12px",
+                      boxShadow: "0 2px 4px rgba(245, 158, 11, 0.3)"
+                    }}>
+                      🏆 Top 5% 골든 뱃지
+                    </span>
+                  )}
+                </div>
               ) : (
                 <strong>
                   개인 판매

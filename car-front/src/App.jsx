@@ -8,6 +8,7 @@ import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import RouteErrorBoundary from "./components/common/RouteErrorBoundary";
+import ScrollToTop from "./components/common/ScrollToTop";
 
 import {
   PUBLIC_ROUTES,
@@ -39,6 +40,7 @@ function RouteLoading() {
 function App() {
   return (
     <>
+      <ScrollToTop />
       <Header />
 
       <RouteErrorBoundary>

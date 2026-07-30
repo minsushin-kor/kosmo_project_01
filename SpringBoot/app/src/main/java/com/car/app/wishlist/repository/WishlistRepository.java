@@ -28,6 +28,8 @@ public interface WishlistRepository
     List<Wishlist> findByDealerDealerIdOrderByCreatedAtDesc(
             Long dealerId);
 
+    List<Wishlist> findByCarCarId(Long carId);
+
     /*
      * 특정 차량의 찜 등록 여부 확인 및 토글 처리에 사용합니다.
      */

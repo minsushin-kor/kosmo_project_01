@@ -104,6 +104,24 @@ public class CouponController {
     }
 
     /**
+     * 경매 낙찰 건에 쿠폰을 사용 처리합니다 (거래 ID 없이 쿠폰만 삭제).
+     */
+    @PostMapping("/auctions/use-coupon")
+    @PreAuthorize("hasRole('DEALER')")
+    public ResponseEntity<ApiResponse<Void>> useAuctionCoupon(@RequestParam Long couponId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String dealerLoginId = authentication.getName();
+            couponService.useAuctionCoupon(couponId, dealerLoginId);
+            return ResponseEntity.ok(ApiResponse.success(null, "쿠폰이 성공적으로 사용되었습니다."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(ApiResponse.fail("ERR_UNAUTHORIZED", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
      * 현재 로그인한 상사가 보유한 전체 쿠폰 목록을 조회합니다.
      */
     @GetMapping("/coupons/my-company-coupons")
@@ -125,6 +143,66 @@ public class CouponController {
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(ApiResponse.success(responseList, "상사 보유 쿠폰 목록 조회가 완료되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
+     * 특정 딜러에게 수수료 감면 쿠폰을 직접 발급하고 실시간 알림을 보냅니다.
+     */
+    @PostMapping("/coupons/issue-to-dealer")
+    public ResponseEntity<ApiResponse<CouponResponse>> issueCouponToDealer(
+            @RequestParam Long dealerId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) BigDecimal discountRate) {
+        try {
+            Coupon coupon = couponService.issueCouponToDealer(dealerId, name, discountRate);
+            CouponResponse response = CouponResponse.builder()
+                    .couponId(coupon.getCouponId())
+                    .name(coupon.getName())
+                    .couponType(coupon.getCouponType())
+                    .discountRate(coupon.getDiscountRate())
+                    .status(coupon.getStatus())
+                    .expiredAt(coupon.getExpiredAt())
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(response, "딜러에게 쿠폰 발급 및 알림 전송이 성공적으로 완료되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
+     * 관리자가 이탈 위험 딜러 전체에게 50% 수수료 감면 쿠폰을 수동으로 일괄 발급하고 알림을 발송합니다.
+     */
+    @PostMapping("/coupons/issue-risk-coupons")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CouponService.RiskCouponIssueResult>> issueRiskCouponsManually() {
+        try {
+            CouponService.RiskCouponIssueResult result = couponService.issueRiskCouponsManually();
+            return ResponseEntity.ok(ApiResponse.success(result, "이탈 위험 딜러 수수료 50% 쿠폰 수동 일괄 발송 및 알림 전송이 완료되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
+     * 관리자가 특정 이탈 위험 딜러에게 수수료 50% 감면 쿠폰을 수동으로 발급하고 알림을 발송합니다.
+     */
+    @PostMapping("/coupons/issue-risk-coupon/dealer/{dealerId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CouponResponse>> issueRiskCouponToDealer(@PathVariable Long dealerId) {
+        try {
+            Coupon coupon = couponService.issueRiskCouponToDealer(dealerId);
+            CouponResponse response = CouponResponse.builder()
+                    .couponId(coupon.getCouponId())
+                    .name(coupon.getName())
+                    .couponType(coupon.getCouponType())
+                    .discountRate(coupon.getDiscountRate())
+                    .status(coupon.getStatus())
+                    .expiredAt(coupon.getExpiredAt())
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(response, "해당 딜러에게 이탈 방지 수수료 50% 쿠폰 발급 및 알림 전송이 완료되었습니다."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
         }
