@@ -106,6 +106,23 @@ function normalizeReason(riskReasons) {
   );
 }
 
+function mapCouponStatus(couponStatus) {
+  const status = String(
+    couponStatus || ""
+  ).toUpperCase();
+
+  const statusLabels = {
+    ELIGIBLE: "지급 가능",
+    UNUSED: "보유 중",
+    USED: "사용 완료",
+    EXPIRED: "기간 만료",
+    NOT_ELIGIBLE: "대상 아님",
+  };
+
+  return statusLabels[status] ||
+    "정보 없음";
+}
+
 function mapCompanyChurnUser(company) {
   return {
     id: company.companyId,
@@ -158,6 +175,12 @@ function mapDealerChurnUser(dealer) {
     reason: normalizeReason(
       dealer.riskReasons
     ),
+    couponStatus: mapCouponStatus(
+      dealer.couponStatus
+    ),
+    couponEligible: Boolean(
+      dealer.couponEligible
+    ),
   };
 }
 
@@ -199,6 +222,16 @@ export async function runChurnBatch() {
     null,
     {
       timeout: 120000,
+    }
+  );
+}
+
+export async function issueChurnRiskCoupons() {
+  return apiClient.post(
+    "/admin/coupons/churn-risk/batch",
+    null,
+    {
+      timeout: 60000,
     }
   );
 }

@@ -8,6 +8,7 @@ import AdminTable from "../../components/admin/AdminTable";
 import {
   getCompanyChurnUsers,
   getDealerChurnUsers,
+  issueChurnRiskCoupons,
   runChurnBatch,
 } from "../../api/adminChurnApi";
 import "../../css/admin/adminDashboardPage.css";
@@ -79,6 +80,22 @@ const dealerChurnColumns = [
     ),
   },
   {
+    key: "couponStatus",
+    label: "쿠폰 상태",
+    render: (dealer) => (
+      <strong
+        style={{
+          color: dealer.couponEligible
+            ? "#2563eb"
+            : "#475569",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {dealer.couponStatus}
+      </strong>
+    ),
+  },
+  {
     key: "action",
     label: "추천 조치",
   },
@@ -111,9 +128,13 @@ function AdminChurnManagePage({
     useState(false);
   const [batchRunning, setBatchRunning] =
     useState(false);
+  const [couponRunning, setCouponRunning] =
+    useState(false);
   const [loadError, setLoadError] =
     useState("");
   const [batchMessage, setBatchMessage] =
+    useState("");
+  const [couponMessage, setCouponMessage] =
     useState("");
 
   const isCompany =
@@ -187,13 +208,18 @@ function AdminChurnManagePage({
   }, [churnType, applyChurnUsers]);
 
   const handleRefresh = async () => {
-    if (refreshing || batchRunning) {
+    if (
+      refreshing ||
+      batchRunning ||
+      couponRunning
+    ) {
       return;
     }
 
     setRefreshing(true);
     setLoadError("");
     setBatchMessage("");
+    setCouponMessage("");
 
     try {
       const churnUsers =
@@ -221,12 +247,16 @@ function AdminChurnManagePage({
   };
 
   const handleRunBatch = async () => {
-    if (batchRunning || refreshing) {
+    if (
+      batchRunning ||
+      refreshing ||
+      couponRunning
+    ) {
       return;
     }
 
     const confirmed = window.confirm(
-      "현재 DB의 거래·입찰 정보를 기준으로 회사와 딜러의 이탈률을 다시 계산합니다. 위험 등급과 이탈 방지 혜택도 함께 갱신될 수 있습니다. 계속하시겠습니까?"
+      "현재 DB의 거래·입찰 정보를 기준으로 회사와 딜러의 이탈률과 위험 등급을 다시 계산합니다. 쿠폰은 자동 지급되지 않습니다. 계속하시겠습니까?"
     );
 
     if (!confirmed) {
@@ -235,6 +265,7 @@ function AdminChurnManagePage({
 
     setBatchRunning(true);
     setLoadError("");
+    setCouponMessage("");
     setBatchMessage(
       "EC2 FastAPI 모델로 이탈률을 계산하는 중입니다."
     );
@@ -267,6 +298,66 @@ function AdminChurnManagePage({
       );
     } finally {
       setBatchRunning(false);
+    }
+  };
+
+  const handleIssueCoupons = async () => {
+    if (
+      isCompany ||
+      couponRunning ||
+      refreshing ||
+      batchRunning
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "현재 저장된 이탈 확률이 70% 이상인 활성 딜러에게 쿠폰을 일괄 지급합니다. 쿠폰을 이미 받았거나 사용한 딜러에게는 추가 지급되지 않습니다. 계속하시겠습니까?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setCouponRunning(true);
+    setLoadError("");
+    setBatchMessage("");
+    setCouponMessage(
+      "이탈 위험 딜러의 쿠폰 지급 대상을 확인하는 중입니다."
+    );
+
+    try {
+      const result =
+        await issueChurnRiskCoupons();
+
+      const churnUsers =
+        await getDealerChurnUsers();
+
+      applyChurnUsers(
+        "dealer",
+        churnUsers
+      );
+
+      setCouponMessage(
+        `쿠폰 ${result.issuedCount ?? 0}건 지급 완료 · ` +
+          `보유 중 제외 ${result.skippedUnusedCount ?? 0}건 · ` +
+          `사용 완료 제외 ${result.skippedUsedCount ?? 0}건 · ` +
+          `과거 발급 이력 제외 ${result.skippedExpiredOrOtherCount ?? 0}건 · ` +
+          `비활성 제외 ${result.skippedInactiveCount ?? 0}건`
+      );
+    } catch (error) {
+      console.error(
+        "이탈 위험 쿠폰 일괄 지급 실패:",
+        error
+      );
+      setCouponMessage("");
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "쿠폰 일괄 지급을 실행하지 못했습니다."
+      );
+    } finally {
+      setCouponRunning(false);
     }
   };
 
@@ -303,7 +394,8 @@ function AdminChurnManagePage({
             onClick={handleRefresh}
             disabled={
               refreshing ||
-              batchRunning
+              batchRunning ||
+              couponRunning
             }
           >
             {refreshing
@@ -317,13 +409,34 @@ function AdminChurnManagePage({
             onClick={handleRunBatch}
             disabled={
               batchRunning ||
-              refreshing
+              refreshing ||
+              couponRunning
             }
           >
             {batchRunning
               ? "이탈률 계산 중..."
               : "AI 이탈률 다시 계산"}
           </button>
+
+          {!isCompany && (
+            <button
+              type="button"
+              className="admin-primary-btn"
+              onClick={handleIssueCoupons}
+              disabled={
+                couponRunning ||
+                refreshing ||
+                batchRunning
+              }
+              style={{
+                background: "#0f766e",
+              }}
+            >
+              {couponRunning
+                ? "쿠폰 지급 중..."
+                : "70% 이상 쿠폰 일괄 지급"}
+            </button>
+          )}
         </div>
       }
     >
@@ -356,6 +469,22 @@ function AdminChurnManagePage({
           }}
         >
           {batchMessage}
+        </div>
+      )}
+
+      {!isCompany && couponMessage && (
+        <div
+          style={{
+            marginBottom: "1rem",
+            padding: "0.85rem 1rem",
+            border: "1px solid #5eead4",
+            borderRadius: "8px",
+            background: "#f0fdfa",
+            color: "#0f766e",
+            fontSize: "0.88rem",
+          }}
+        >
+          {couponMessage}
         </div>
       )}
 
