@@ -120,7 +120,8 @@ public class AiService {
 
     /**
      * 매일 자정 실행되는 이탈 위험도 예측 및 등급 업데이트 배치 처리 메소드입니다.
-     * SQL GROUP BY 단일 집계 쿼리로 DB 조회를 최소화(2회)하고 FastAPI 뱃치 API를 호출 후 saveAll()로 일괄 저장합니다.
+     * churn 테이블의 최신 집계값을 기준으로 실제 거래·입찰 정보가 있는 항목만 갱신한 뒤
+     * FastAPI 뱃치 API를 호출하고 예측 결과를 일괄 저장합니다.
      */
     @Transactional
     public void runChurnPredictionBatch() {
@@ -134,35 +135,76 @@ public class AiService {
             return;
         }
 
-        // 1. 매일 자정 원본 DB(거래, 입찰)에서 실시간 최신 지표 집계
+        // 1. churn 테이블에 저장된 최신 활동 요약을 FastAPI 입력으로 사용합니다.
+        // 아직 예측되지 않은 입력 행을 우선 선택하여 과거 배치가 만든 초기값 행이
+        // 더미데이터나 새 집계값을 가리는 문제를 방지합니다.
+        Map<Long, DealerChurn> latestDealerChurnMap = selectDealerChurnInputs(
+                dealerChurnRepository.findAllByOrderByCalculatedAtDesc());
+        Map<Long, CompanyChurn> latestCompanyChurnMap = selectCompanyChurnInputs(
+                companyChurnRepository.findAllByOrderByCalculatedAtDesc());
+
         LocalDateTime sixtyDaysAgo = LocalDateTime.now().minusDays(60);
-
-        List<TransactionRepository.DealerTradeSummary> tradeSummaries = transactionRepository.getDealerTradeSummaries(sixtyDaysAgo);
-        Map<Long, TransactionRepository.DealerTradeSummary> tradeMap = tradeSummaries.stream()
-                .collect(Collectors.toMap(TransactionRepository.DealerTradeSummary::getDealerId, t -> t, (t1, t2) -> t1));
-
-        List<BidRepository.DealerBidSummary> bidSummaries = bidRepository.getDealerBidSummaries();
-        Map<Long, BidRepository.DealerBidSummary> bidMap = bidSummaries.stream()
-                .collect(Collectors.toMap(BidRepository.DealerBidSummary::getDealerId, b -> b, (b1, b2) -> b1));
-
+        Map<Long, TransactionRepository.DealerTradeSummary> tradeMap = transactionRepository
+                .getDealerTradeSummaries(sixtyDaysAgo)
+                .stream()
+                .collect(Collectors.toMap(
+                        TransactionRepository.DealerTradeSummary::getDealerId,
+                        summary -> summary,
+                        (first, ignored) -> first));
+        Map<Long, BidRepository.DealerBidSummary> bidMap = bidRepository
+                .getDealerBidSummaries()
+                .stream()
+                .collect(Collectors.toMap(
+                        BidRepository.DealerBidSummary::getDealerId,
+                        summary -> summary,
+                        (first, ignored) -> first));
         long totalAuctionsCount = auctionRepository.count();
 
-        // 2. 실시간 집계 지표로 FastAPI 송신용 뱃치 아이템 조립
+        // 2. 저장된 churn 값만 사용합니다. 데이터가 없을 때 0이나 180일 같은
+        // 초기값으로 생성하지 않고 해당 대상만 건너뜁니다.
         Map<Long, AiClient.DealerBatchItem> dealerItemMap = new HashMap<>();
         List<AiClient.DealerBatchItem> dealerBatchItems = new ArrayList<>();
 
         for (Dealer dealer : dealers) {
-            AiClient.DealerBatchItem item = createDealerBatchItemInMemory(dealer, tradeMap.get(dealer.getDealerId()), bidMap.get(dealer.getDealerId()), totalAuctionsCount);
+            DealerChurn churn = latestDealerChurnMap.get(dealer.getDealerId());
+            if (churn == null) {
+                log.warn("dealer_churn 데이터가 없어 딜러 {}의 이탈 예측을 건너뜁니다.", dealer.getDealerId());
+                continue;
+            }
+
+            TransactionRepository.DealerTradeSummary tradeSummary = tradeMap.get(dealer.getDealerId());
+            BidRepository.DealerBidSummary bidSummary = bidMap.get(dealer.getDealerId());
+            refreshDealerChurnFromActivity(churn, tradeSummary, bidSummary, totalAuctionsCount);
+
+            AiClient.DealerBatchItem item = createDealerBatchItemFromChurn(dealer, churn, tradeSummary);
             dealerBatchItems.add(item);
             dealerItemMap.put(dealer.getDealerId(), item);
         }
 
         Map<Long, AiClient.CompanyBatchItem> companyItemMap = new HashMap<>();
         List<AiClient.CompanyBatchItem> companyBatchItems = new ArrayList<>();
+        Map<Long, List<Dealer>> dealersByCompanyId = dealers.stream()
+                .filter(dealer -> dealer.getCompany() != null)
+                .collect(Collectors.groupingBy(dealer -> dealer.getCompany().getCompanyId()));
         for (Company company : companies) {
-            AiClient.CompanyBatchItem item = createCompanyBatchItemInMemory(company, dealerItemMap);
+            CompanyChurn churn = latestCompanyChurnMap.get(company.getCompanyId());
+            if (churn == null) {
+                log.warn("company_churn 데이터가 없어 회사 {}의 이탈 예측을 건너뜁니다.", company.getCompanyId());
+                continue;
+            }
+
+            refreshCompanyChurnFromDealers(
+                    churn,
+                    dealersByCompanyId.getOrDefault(company.getCompanyId(), Collections.emptyList()),
+                    latestDealerChurnMap);
+            AiClient.CompanyBatchItem item = createCompanyBatchItemFromChurn(company, churn);
             companyBatchItems.add(item);
             companyItemMap.put(company.getCompanyId(), item);
+        }
+
+        if (dealerBatchItems.isEmpty() && companyBatchItems.isEmpty()) {
+            log.warn("이탈 예측에 사용할 churn 데이터가 없어 배치를 종료합니다.");
+            return;
         }
 
         AiClient.BatchChurnRequest batchRequest = AiClient.BatchChurnRequest.builder()
@@ -176,10 +218,12 @@ public class AiService {
         LocalDateTime now = LocalDateTime.now();
 
         if (batchResponse != null && "success".equalsIgnoreCase(batchResponse.getStatus())) {
-            List<DealerChurn> dealerChurnSnapshots = new ArrayList<>();
-            List<CompanyChurn> companyChurnSnapshots = new ArrayList<>();
+            List<Dealer> dealerUpdates = new ArrayList<>();
+            List<Company> companyUpdates = new ArrayList<>();
+            List<DealerChurn> dealerChurnUpdates = new ArrayList<>();
+            List<CompanyChurn> companyChurnUpdates = new ArrayList<>();
 
-            // 4. 딜러 이탈 예측 결과 DB 반영 및 dealer_churn 스냅샷 저장
+            // 4. 딜러 이탈 예측 결과를 회원 정보와 기존 최신 churn 행에 반영합니다.
             if (batchResponse.getDealerPredictions() != null) {
                 Map<Long, AiClient.DealerPredictionResult> dealerPredMap = batchResponse.getDealerPredictions().stream()
                         .collect(Collectors.toMap(AiClient.DealerPredictionResult::getDealerId, p -> p, (p1, p2) -> p1));
@@ -194,34 +238,34 @@ public class AiService {
                         // tier: 기존 시스템 등급(NORMAL, CARE_REQUIRED), riskGrade: FastAPI 상세 등급(Critical, High, Medium, Low, Safe) 분리
                         dealer.setTier(riskScore >= 75.0 ? "CARE_REQUIRED" : "NORMAL");
                         dealer.setRiskGrade(pred.getRiskGrade());
+                        dealerUpdates.add(dealer);
 
                         String reasonsStr = (pred.getRiskReasons() != null && !pred.getRiskReasons().isEmpty())
                                 ? String.join(", ", pred.getRiskReasons())
                                 : "활동 특이사항 없음";
 
                         if (item != null) {
-                            dealerChurnSnapshots.add(DealerChurn.builder()
-                                    .dealer(dealer)
-                                    .lastActivityDays((long) item.getLastActivityDays())
-                                    .recent60dTradeCount((long) item.getRecent60dTradeCount())
-                                    .previousTradeCount((long) item.getPreviousTradeCount())
-                                    .siteUsageRate(item.getSiteUsageRate())
-                                    .riskGrade(pred.getRiskGrade())
-                                    .riskReasons(reasonsStr)
-                                    .action(pred.getAction())
-                                    .calculatedAt(now)
-                                    .build());
+                            DealerChurn churn = latestDealerChurnMap.get(dealer.getDealerId());
+                            if (churn != null) {
+                                churn.setRiskGrade(pred.getRiskGrade());
+                                churn.setRiskReasons(reasonsStr);
+                                churn.setAction(pred.getAction());
+                                churn.setCalculatedAt(now);
+                                dealerChurnUpdates.add(churn);
+                            }
                         }
                     }
                 }
-                dealerRepository.saveAll(dealers);
-                if (!dealerChurnSnapshots.isEmpty()) {
-                    dealerChurnRepository.saveAll(dealerChurnSnapshots);
+                if (!dealerUpdates.isEmpty()) {
+                    dealerRepository.saveAll(dealerUpdates);
                 }
-                log.info("딜러 전체 {}명의 이탈 위험도 점수, 등급 및 스냅샷 일괄 저장 완료.", dealers.size());
+                if (!dealerChurnUpdates.isEmpty()) {
+                    dealerChurnRepository.saveAll(dealerChurnUpdates);
+                }
+                log.info("딜러 {}명의 이탈 위험도와 최신 churn 분석 결과 저장 완료.", dealerUpdates.size());
             }
 
-            // 5. 상사 이탈 예측 결과 DB 반영 및 company_churn 스냅샷 저장
+            // 5. 회사 이탈 예측 결과를 회사 정보와 기존 최신 churn 행에 반영합니다.
             if (batchResponse.getCompanyPredictions() != null) {
                 Map<Long, AiClient.CompanyPredictionResult> companyPredMap = batchResponse.getCompanyPredictions().stream()
                         .collect(Collectors.toMap(AiClient.CompanyPredictionResult::getCompanyId, p -> p, (p1, p2) -> p1));
@@ -237,32 +281,31 @@ public class AiService {
                         // (이후 updateCompanyTiersAndBadges에서 상위 5% 실적 상사만 TOP_5로 덮어쓰고, 탈락 상사는 CARE_REQUIRED/NORMAL을 보존)
                         company.setTier(riskScore >= 70.0 ? "CARE_REQUIRED" : "NORMAL");
                         company.setRiskGrade(pred.getRiskGrade());
+                        companyUpdates.add(company);
 
                         String reasonsStr = (pred.getRiskReasons() != null && !pred.getRiskReasons().isEmpty())
                                 ? String.join(", ", pred.getRiskReasons())
                                 : "활동 특이사항 없음";
 
                         if (item != null) {
-                            companyChurnSnapshots.add(CompanyChurn.builder()
-                                    .company(company)
-                                    .dealerCount((long) item.getDealerCount())
-                                    .activeDealerRatio(item.getActiveDealerRatio())
-                                    .recentTradeCount((long) item.getRecentTradeCount())
-                                    .previousTradeCount((long) item.getPreviousTradeCount())
-                                    .siteUsageRateAvg(item.getSiteUsageRateAvg())
-                                    .riskGrade(pred.getRiskGrade())
-                                    .riskReasons(reasonsStr)
-                                    .action(pred.getAction())
-                                    .calculatedAt(now)
-                                    .build());
+                            CompanyChurn churn = latestCompanyChurnMap.get(company.getCompanyId());
+                            if (churn != null) {
+                                churn.setRiskGrade(pred.getRiskGrade());
+                                churn.setRiskReasons(reasonsStr);
+                                churn.setAction(pred.getAction());
+                                churn.setCalculatedAt(now);
+                                companyChurnUpdates.add(churn);
+                            }
                         }
                     }
                 }
-                companyRepository.saveAll(companies);
-                if (!companyChurnSnapshots.isEmpty()) {
-                    companyChurnRepository.saveAll(companyChurnSnapshots);
+                if (!companyUpdates.isEmpty()) {
+                    companyRepository.saveAll(companyUpdates);
                 }
-                log.info("상사 전체 {}개의 이탈 위험도 점수, 등급 및 스냅샷 일괄 저장 완료.", companies.size());
+                if (!companyChurnUpdates.isEmpty()) {
+                    companyChurnRepository.saveAll(companyChurnUpdates);
+                }
+                log.info("회사 {}곳의 이탈 위험도와 최신 churn 분석 결과 저장 완료.", companyUpdates.size());
             }
 
             // 이탈 방지 쿠폰은 관리자 화면에서 수동으로만 발급합니다.
@@ -281,84 +324,155 @@ public class AiService {
     }
 
     /**
-     * DB 추가 쿼리 없이 메모리 상의 집계 요약 정보(Projection Map)로 딜러 요약 아이템을 조립합니다.
+     * 실제 거래나 입찰 요약이 조회된 항목만 갱신합니다.
+     * 조회되지 않은 항목은 기존 churn 값을 유지하여 초기값으로 되돌아가지 않게 합니다.
      */
-    private AiClient.DealerBatchItem createDealerBatchItemInMemory(Dealer dealer,
-                                                                   TransactionRepository.DealerTradeSummary tradeSummary,
-                                                                   BidRepository.DealerBidSummary bidSummary,
-                                                                   long totalAuctionsCount) {
-        int recent60dTradeCount = (tradeSummary != null && tradeSummary.getRecent60dTradeCount() != null) ? tradeSummary.getRecent60dTradeCount().intValue() : 0;
-        int previousTradeCount = (tradeSummary != null && tradeSummary.getPreviousTradeCount() != null) ? tradeSummary.getPreviousTradeCount().intValue() : 0;
-        double avgSellingPrice = (tradeSummary != null && tradeSummary.getAvgDealPrice() != null) ? tradeSummary.getAvgDealPrice() : 13000000.0;
-
-        long bidsCount = (bidSummary != null && bidSummary.getBidCount() != null) ? bidSummary.getBidCount() : 0L;
-        double siteUsageRate = totalAuctionsCount > 0 ? (double) bidsCount / totalAuctionsCount : 0.5;
-        siteUsageRate = Math.min(1.0, Math.max(0.0, siteUsageRate));
-
-        LocalDateTime latestActivity = null;
-        if (bidSummary != null && bidSummary.getLatestBidTime() != null) {
-            latestActivity = bidSummary.getLatestBidTime();
-        }
-        if (tradeSummary != null && tradeSummary.getLatestTradeTime() != null) {
-            if (latestActivity == null || tradeSummary.getLatestTradeTime().isAfter(latestActivity)) {
-                latestActivity = tradeSummary.getLatestTradeTime();
+    private void refreshDealerChurnFromActivity(
+            DealerChurn churn,
+            TransactionRepository.DealerTradeSummary tradeSummary,
+            BidRepository.DealerBidSummary bidSummary,
+            long totalAuctionsCount) {
+        if (tradeSummary != null) {
+            if (tradeSummary.getRecent60dTradeCount() != null) {
+                churn.setRecent60dTradeCount(tradeSummary.getRecent60dTradeCount());
+            }
+            if (tradeSummary.getPreviousTradeCount() != null) {
+                churn.setPreviousTradeCount(tradeSummary.getPreviousTradeCount());
             }
         }
 
-        int lastActivityDays = 180;
+        if (bidSummary != null && bidSummary.getBidCount() != null && totalAuctionsCount > 0) {
+            double siteUsageRate = (double) bidSummary.getBidCount() / totalAuctionsCount;
+            churn.setSiteUsageRate(Math.min(1.0, Math.max(0.0, siteUsageRate)));
+        }
+
+        LocalDateTime latestActivity = null;
+        if (tradeSummary != null && tradeSummary.getLatestTradeTime() != null) {
+            latestActivity = tradeSummary.getLatestTradeTime();
+        }
+        if (bidSummary != null && bidSummary.getLatestBidTime() != null
+                && (latestActivity == null || bidSummary.getLatestBidTime().isAfter(latestActivity))) {
+            latestActivity = bidSummary.getLatestBidTime();
+        }
         if (latestActivity != null) {
             long days = ChronoUnit.DAYS.between(latestActivity, LocalDateTime.now());
-            lastActivityDays = (int) Math.max(0, days);
+            churn.setLastActivityDays(Math.max(0, days));
         }
+    }
+
+    /**
+     * 모든 소속 딜러에게 churn 데이터가 있을 때만 회사 집계값을 갱신합니다.
+     * 일부 데이터가 누락된 상태에서는 기존 회사 값을 보존합니다.
+     */
+    private void refreshCompanyChurnFromDealers(
+            CompanyChurn churn,
+            List<Dealer> companyDealers,
+            Map<Long, DealerChurn> dealerChurnMap) {
+        if (companyDealers.isEmpty()) {
+            return;
+        }
+
+        List<DealerChurn> dealerChurns = companyDealers.stream()
+                .map(dealer -> dealerChurnMap.get(dealer.getDealerId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (dealerChurns.size() != companyDealers.size()) {
+            return;
+        }
+
+        long activeDealerCount = companyDealers.stream()
+                .filter(dealer -> "ACTIVE".equalsIgnoreCase(dealer.getStatus()))
+                .count();
+        long recentTradeCount = dealerChurns.stream()
+                .mapToLong(DealerChurn::getRecent60dTradeCount)
+                .sum();
+        long previousTradeCount = dealerChurns.stream()
+                .mapToLong(DealerChurn::getPreviousTradeCount)
+                .sum();
+        double siteUsageRateAvg = dealerChurns.stream()
+                .mapToDouble(DealerChurn::getSiteUsageRate)
+                .average()
+                .orElse(churn.getSiteUsageRateAvg());
+
+        churn.setDealerCount((long) companyDealers.size());
+        churn.setActiveDealerRatio((double) activeDealerCount / companyDealers.size());
+        churn.setRecentTradeCount(recentTradeCount);
+        churn.setPreviousTradeCount(previousTradeCount);
+        churn.setSiteUsageRateAvg(siteUsageRateAvg);
+    }
+
+    /**
+     * dealer_churn에 저장된 활동 요약값을 FastAPI 요청으로 변환합니다.
+     */
+    private AiClient.DealerBatchItem createDealerBatchItemFromChurn(
+            Dealer dealer,
+            DealerChurn churn,
+            TransactionRepository.DealerTradeSummary tradeSummary) {
+        double avgSellingPrice = tradeSummary != null && tradeSummary.getAvgDealPrice() != null
+                ? tradeSummary.getAvgDealPrice()
+                : 0.0;
 
         return AiClient.DealerBatchItem.builder()
                 .dealerId(dealer.getDealerId())
-                .lastActivityDays(lastActivityDays)
-                .recent60dTradeCount(recent60dTradeCount)
-                .previousTradeCount(previousTradeCount)
-                .siteUsageRate(siteUsageRate)
+                .lastActivityDays(churn.getLastActivityDays().intValue())
+                .recent60dTradeCount(churn.getRecent60dTradeCount().intValue())
+                .previousTradeCount(churn.getPreviousTradeCount().intValue())
+                .siteUsageRate(churn.getSiteUsageRate())
                 .avgSellingPrice(avgSellingPrice)
                 .build();
     }
 
     /**
-     * DB 추가 쿼리 없이 소속 딜러들의 맵 항목으로 상사 요약 아이템을 조립합니다.
+     * company_churn에 저장된 활동 요약값을 변경하지 않고 FastAPI 요청으로 변환합니다.
      */
-    private AiClient.CompanyBatchItem createCompanyBatchItemInMemory(Company company, Map<Long, AiClient.DealerBatchItem> dealerItemMap) {
-        List<Dealer> companyDealers = dealerRepository.findByCompanyCompanyId(company.getCompanyId());
-        int dealerCount = companyDealers.size();
-        long activeCount = companyDealers.stream()
-                .filter(d -> "ACTIVE".equalsIgnoreCase(d.getStatus()))
-                .count();
-        double activeDealerRatio = dealerCount > 0 ? (double) activeCount / dealerCount : 0.0;
+    private AiClient.CompanyBatchItem createCompanyBatchItemFromChurn(Company company, CompanyChurn churn) {
+        return AiClient.CompanyBatchItem.builder()
+                .companyId(company.getCompanyId())
+                .dealerCount(churn.getDealerCount().intValue())
+                .activeDealerRatio(churn.getActiveDealerRatio())
+                .recentTradeCount(churn.getRecentTradeCount().intValue())
+                .previousTradeCount(churn.getPreviousTradeCount().intValue())
+                .siteUsageRateAvg(churn.getSiteUsageRateAvg())
+                .avgSellingPriceAvg(0.0)
+                .build();
+    }
 
-        int totalRecentTrade = 0;
-        int totalPreviousTrade = 0;
-        double sumSiteUsageRate = 0.0;
-        double sumAvgSellingPrice = 0.0;
+    private Map<Long, DealerChurn> selectDealerChurnInputs(List<DealerChurn> orderedChurnRows) {
+        Map<Long, DealerChurn> latestRows = new LinkedHashMap<>();
+        Map<Long, DealerChurn> unprocessedRows = new LinkedHashMap<>();
 
-        for (Dealer d : companyDealers) {
-            AiClient.DealerBatchItem df = dealerItemMap.get(d.getDealerId());
-            if (df != null) {
-                totalRecentTrade += df.getRecent60dTradeCount();
-                totalPreviousTrade += df.getPreviousTradeCount();
-                sumSiteUsageRate += df.getSiteUsageRate();
-                sumAvgSellingPrice += df.getAvgSellingPrice();
+        for (DealerChurn churn : orderedChurnRows) {
+            Long dealerId = churn.getDealer().getDealerId();
+            latestRows.putIfAbsent(dealerId, churn);
+            if (!hasPredictionResult(churn.getRiskGrade(), churn.getRiskReasons(), churn.getAction())) {
+                unprocessedRows.putIfAbsent(dealerId, churn);
             }
         }
 
-        double siteUsageRateAvg = dealerCount > 0 ? sumSiteUsageRate / dealerCount : 0.0;
-        double avgSellingPriceAvg = dealerCount > 0 ? sumAvgSellingPrice / dealerCount : 13000000.0;
+        unprocessedRows.forEach(latestRows::put);
+        return latestRows;
+    }
 
-        return AiClient.CompanyBatchItem.builder()
-                .companyId(company.getCompanyId())
-                .dealerCount(dealerCount)
-                .activeDealerRatio(activeDealerRatio)
-                .recentTradeCount(totalRecentTrade)
-                .previousTradeCount(totalPreviousTrade)
-                .siteUsageRateAvg(siteUsageRateAvg)
-                .avgSellingPriceAvg(avgSellingPriceAvg)
-                .build();
+    private Map<Long, CompanyChurn> selectCompanyChurnInputs(List<CompanyChurn> orderedChurnRows) {
+        Map<Long, CompanyChurn> latestRows = new LinkedHashMap<>();
+        Map<Long, CompanyChurn> unprocessedRows = new LinkedHashMap<>();
+
+        for (CompanyChurn churn : orderedChurnRows) {
+            Long companyId = churn.getCompany().getCompanyId();
+            latestRows.putIfAbsent(companyId, churn);
+            if (!hasPredictionResult(churn.getRiskGrade(), churn.getRiskReasons(), churn.getAction())) {
+                unprocessedRows.putIfAbsent(companyId, churn);
+            }
+        }
+
+        unprocessedRows.forEach(latestRows::put);
+        return latestRows;
+    }
+
+    private boolean hasPredictionResult(String riskGrade, String riskReasons, String action) {
+        return (riskGrade != null && !riskGrade.isBlank())
+                || (riskReasons != null && !riskReasons.isBlank())
+                || (action != null && !action.isBlank());
     }
 
     /**
