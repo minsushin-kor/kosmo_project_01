@@ -233,14 +233,7 @@ public class AiService {
                 log.info("상사 전체 {}개의 이탈 위험도 점수, 등급 및 스냅샷 일괄 저장 완료.", companies.size());
             }
 
-            // 6. FastAPI 요청이 성공한 경우에만 이탈 방지 쿠폰 자동 발급 및 골든 뱃지 갱신 연쇄 실행
-            try {
-                log.info("이탈 방지 쿠폰 자동 발급 배치 실행...");
-                couponService.issueRiskCoupons();
-            } catch (Exception e) {
-                log.error("이탈 방지 쿠폰 자동 발급 중 오류 발생: {}", e.getMessage());
-            }
-
+            // 이탈 방지 쿠폰은 관리자 화면에서 수동으로만 발급합니다.
             try {
                 log.info("상위 5% 상사 골든 뱃지 갱신 배치 실행...");
                 couponService.updateCompanyTiersAndBadges();
@@ -249,7 +242,7 @@ public class AiService {
             }
 
         } else {
-            log.warn("FastAPI 이탈 예측 뱃치 응답이 비어있거나 실패하여 이탈 등급 업데이트 및 후속 쿠폰 발급을 보류합니다.");
+            log.warn("FastAPI 이탈 예측 뱃치 응답이 비어있거나 실패하여 이탈 등급과 골든 뱃지 갱신을 보류합니다.");
         }
 
         log.info("자정 이탈 위험도 예측 뱃치 연산 완료.");

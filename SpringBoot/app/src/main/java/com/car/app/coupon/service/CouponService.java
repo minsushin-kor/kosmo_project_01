@@ -7,6 +7,8 @@ import com.car.app.dealer.repository.DealerRepository;
 import com.car.app.transaction.entity.Transaction;
 import com.car.app.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,63 +26,97 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CouponService {
 
+    private static final String CHURN_COUPON_TYPE = "COMMISSION_DISCOUNT";
+    private static final double CHURN_COUPON_RISK_THRESHOLD = 70.0;
+
     private final CouponRepository couponRepository;
     private final DealerRepository dealerRepository;
     private final TransactionRepository transactionRepository;
     private final CompanyRepository companyRepository;
     private final NotificationService notificationService;
 
+    @Getter
+    @Builder
+    public static class RiskCouponIssueResult {
+        private int riskTargetCount;
+        private int issuedCount;
+        private int skippedUnusedCount;
+        private int skippedUsedCount;
+        private int skippedExpiredOrOtherCount;
+        private int skippedInactiveCount;
+    }
+
     /**
-     * 이탈위험 점수가 75점 이상인 활성 딜러에게 50% 수수료 감면 쿠폰을 자동 발행합니다.
-     * 중복 발급 방지: 이미 미사용 상태의 COMMISSION_DISCOUNT 쿠폰을 가진 딜러는 제외합니다.
+     * 관리자가 요청한 경우에만 이탈위험 점수가 70점 이상인 활성 딜러에게
+     * 50% 수수료 감면 쿠폰을 발급합니다.
+     * 동일한 쿠폰을 한 번이라도 발급받은 딜러는 상태와 관계없이 재발급하지 않습니다.
      */
     @Transactional
-    public void issueRiskCoupons() {
-        List<Dealer> activeDealers = dealerRepository.findAll(); // 이탈점수가 존재하므로 전체 조회 후 필터링
-        for (Dealer dealer : activeDealers) {
-            if ("ACTIVE".equalsIgnoreCase(dealer.getStatus()) && dealer.getRiskScore() != null && dealer.getRiskScore() >= 75.0) {
-                // 1. 중복 발행 방지: 이미 미사용 상태의 감면 쿠폰을 소유하고 있다면 패스
-                boolean hasUnusedCoupon = couponRepository.existsByDealerDealerIdAndCouponTypeAndStatus(
-                        dealer.getDealerId(), "COMMISSION_DISCOUNT", "UNUSED"
-                );
-                if (hasUnusedCoupon) {
-                    continue;
-                }
+    public synchronized RiskCouponIssueResult issueRiskCouponsManually() {
+        List<Dealer> dealers = dealerRepository.findAll();
+        List<Coupon> couponsToIssue = new ArrayList<>();
+        LocalDateTime issuedAt = LocalDateTime.now();
 
-                // 2. 1달(30일) 재발급 기한 제약: 최근 30일 이내에 동일한 타입의 쿠폰을 이미 발급받았었다면 패스
-                Optional<Coupon> latestCouponOpt = couponRepository.findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(
-                        dealer.getDealerId(), "COMMISSION_DISCOUNT"
-                );
-                if (latestCouponOpt.isPresent()) {
-                    Coupon latest = latestCouponOpt.get();
-                    if (latest.getIssuedAt().isAfter(LocalDateTime.now().minusDays(30))) {
-                        continue;
-                    }
-                }
+        int riskTargetCount = 0;
+        int skippedUnusedCount = 0;
+        int skippedUsedCount = 0;
+        int skippedExpiredOrOtherCount = 0;
+        int skippedInactiveCount = 0;
 
-                // 3. 신규 50% 감면 쿠폰 발행
-                Coupon coupon = Coupon.builder()
-                        .name("이탈 방지 딜러 수수료 50% 감면 쿠폰")
-                        .couponType("COMMISSION_DISCOUNT")
-                        .discountRate(new BigDecimal("0.5000")) // 50% 감면
-                        .dealer(dealer)
-                        .status("UNUSED")
-                        .issuedAt(LocalDateTime.now())
-                        .expiredAt(LocalDateTime.now().plusDays(30)) // 30일 유효
-                        .build();
-                couponRepository.save(coupon);
-
-                // 4. 알림 전송 (딜러 쿠폰함 연동)
-                if (notificationService != null) {
-                    try {
-                        notificationService.sendNotification("DEALER", dealer.getDealerId(), "COUPON",
-                                "이탈 방지 수수료 50% 감면 쿠폰이 쿠폰함에 지급되었습니다. (유효기간 30일)", null);
-                    } catch (Exception e) {
-                        // 알림 생성 오류 시 쿠폰 발급은 유지
-                    }
-                }
+        for (Dealer dealer : dealers) {
+            if (dealer.getRiskScore() == null || dealer.getRiskScore() < CHURN_COUPON_RISK_THRESHOLD) {
+                continue;
             }
+
+            riskTargetCount++;
+
+            if (!"ACTIVE".equalsIgnoreCase(dealer.getStatus())) {
+                skippedInactiveCount++;
+                continue;
+            }
+
+            Optional<Coupon> previousCoupon = couponRepository
+                    .findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(
+                            dealer.getDealerId(),
+                            CHURN_COUPON_TYPE
+                    );
+
+            if (previousCoupon.isPresent()) {
+                String status = previousCoupon.get().getStatus();
+                if ("UNUSED".equalsIgnoreCase(status)
+                        && previousCoupon.get().getExpiredAt().isAfter(issuedAt)) {
+                    skippedUnusedCount++;
+                } else if ("USED".equalsIgnoreCase(status)) {
+                    skippedUsedCount++;
+                } else {
+                    skippedExpiredOrOtherCount++;
+                }
+                continue;
+            }
+
+            couponsToIssue.add(Coupon.builder()
+                    .name("이탈 방지 딜러 수수료 50% 감면 쿠폰")
+                    .couponType(CHURN_COUPON_TYPE)
+                    .discountRate(new BigDecimal("0.5000"))
+                    .dealer(dealer)
+                    .status("UNUSED")
+                    .issuedAt(issuedAt)
+                    .expiredAt(issuedAt.plusDays(30))
+                    .build());
         }
+
+        if (!couponsToIssue.isEmpty()) {
+            couponRepository.saveAll(couponsToIssue);
+        }
+
+        return RiskCouponIssueResult.builder()
+                .riskTargetCount(riskTargetCount)
+                .issuedCount(couponsToIssue.size())
+                .skippedUnusedCount(skippedUnusedCount)
+                .skippedUsedCount(skippedUsedCount)
+                .skippedExpiredOrOtherCount(skippedExpiredOrOtherCount)
+                .skippedInactiveCount(skippedInactiveCount)
+                .build();
     }
 
     /**
@@ -170,8 +206,11 @@ public class CouponService {
     public List<Coupon> getMyUnusedCommissionCoupons(String dealerLoginId) {
         Dealer dealer = dealerRepository.findByLoginId(dealerLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
-        return couponRepository.findByDealerDealerIdAndCouponTypeAndStatus(
-                dealer.getDealerId(), "COMMISSION_DISCOUNT", "UNUSED"
+        return couponRepository.findByDealerDealerIdAndCouponTypeAndStatusAndExpiredAtAfter(
+                dealer.getDealerId(),
+                CHURN_COUPON_TYPE,
+                "UNUSED",
+                LocalDateTime.now()
         );
     }
 

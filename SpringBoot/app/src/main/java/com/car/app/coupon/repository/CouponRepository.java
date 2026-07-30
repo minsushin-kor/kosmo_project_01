@@ -4,6 +4,7 @@ import com.car.app.coupon.entity.Coupon;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface CouponRepository extends JpaRepository<Coupon, Long> {
@@ -11,6 +12,12 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     List<Coupon> findByCompanyCompanyId(Long companyId);
     boolean existsByUsedTransactionTransactionId(Long transactionId);
     List<Coupon> findByDealerDealerIdAndCouponTypeAndStatus(Long dealerId, String couponType, String status);
+    List<Coupon> findByDealerDealerIdAndCouponTypeAndStatusAndExpiredAtAfter(
+            Long dealerId,
+            String couponType,
+            String status,
+            LocalDateTime now
+    );
     boolean existsByDealerDealerIdAndCouponTypeAndStatus(Long dealerId, String couponType, String status);
     boolean existsByCompanyCompanyIdAndCouponTypeAndStatus(Long companyId, String couponType, String status);
     Optional<Coupon> findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(Long dealerId, String couponType);

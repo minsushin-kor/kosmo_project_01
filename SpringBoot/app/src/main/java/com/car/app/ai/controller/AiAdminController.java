@@ -5,6 +5,8 @@ import com.car.app.company.entity.Company;
 import com.car.app.company.entity.CompanyChurn;
 import com.car.app.company.repository.CompanyChurnRepository;
 import com.car.app.company.repository.CompanyRepository;
+import com.car.app.coupon.entity.Coupon;
+import com.car.app.coupon.repository.CouponRepository;
 import com.car.app.dealer.entity.Dealer;
 import com.car.app.dealer.entity.DealerChurn;
 import com.car.app.dealer.repository.DealerChurnRepository;
@@ -30,11 +32,15 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AiAdminController {
 
+    private static final String CHURN_COUPON_TYPE = "COMMISSION_DISCOUNT";
+    private static final double CHURN_COUPON_RISK_THRESHOLD = 70.0;
+
     private final AiService aiService;
     private final DealerRepository dealerRepository;
     private final CompanyRepository companyRepository;
     private final DealerChurnRepository dealerChurnRepository;
     private final CompanyChurnRepository companyChurnRepository;
+    private final CouponRepository couponRepository;
 
     @Getter
     @Builder
@@ -51,6 +57,8 @@ public class AiAdminController {
         private String riskReasons;
         private String action;
         private LocalDateTime calculatedAt;
+        private String couponStatus;
+        private boolean couponEligible;
     }
 
     @Getter
@@ -81,7 +89,7 @@ public class AiAdminController {
     }
 
     /**
-     * 이탈 위험도 예측 및 혜택 발급 배치를 즉시(수동) 실행합니다.
+     * 이탈 위험도 예측 배치를 즉시(수동) 실행합니다.
      */
     @PostMapping("/churn-batch")
     @PreAuthorize("hasRole('ADMIN')")
@@ -101,9 +109,15 @@ public class AiAdminController {
     public ResponseEntity<ApiResponse<List<AdminDealerChurnResponse>>> getDealerChurnList() {
         List<Dealer> dealers = dealerRepository.findAll();
         List<AdminDealerChurnResponse> result = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
 
         for (Dealer dealer : dealers) {
             Optional<DealerChurn> churnOpt = dealerChurnRepository.findFirstByDealerDealerIdOrderByCalculatedAtDesc(dealer.getDealerId());
+            Optional<Coupon> couponOpt = couponRepository.findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(
+                    dealer.getDealerId(),
+                    CHURN_COUPON_TYPE
+            );
+            boolean couponEligible = isCouponEligible(dealer, couponOpt);
 
             result.add(AdminDealerChurnResponse.builder()
                     .dealerId(dealer.getDealerId())
@@ -116,6 +130,8 @@ public class AiAdminController {
                     .riskReasons(churnOpt.map(DealerChurn::getRiskReasons).orElse("활동 특이사항 없음"))
                     .action(churnOpt.map(DealerChurn::getAction).orElse("모니터링"))
                     .calculatedAt(churnOpt.map(DealerChurn::getCalculatedAt).orElse(null))
+                    .couponStatus(resolveCouponStatus(couponOpt, couponEligible, now))
+                    .couponEligible(couponEligible)
                     .build());
         }
 
@@ -126,6 +142,33 @@ public class AiAdminController {
         });
 
         return ResponseEntity.ok(ApiResponse.success(result, "전체 딜러 이탈 위험도 목록 조회가 완료되었습니다."));
+    }
+
+    private boolean isCouponEligible(Dealer dealer, Optional<Coupon> couponOpt) {
+        return "ACTIVE".equalsIgnoreCase(dealer.getStatus())
+                && dealer.getRiskScore() != null
+                && dealer.getRiskScore() >= CHURN_COUPON_RISK_THRESHOLD
+                && couponOpt.isEmpty();
+    }
+
+    private String resolveCouponStatus(
+            Optional<Coupon> couponOpt,
+            boolean couponEligible,
+            LocalDateTime now
+    ) {
+        if (couponOpt.isEmpty()) {
+            return couponEligible ? "ELIGIBLE" : "NOT_ELIGIBLE";
+        }
+
+        Coupon coupon = couponOpt.get();
+        if ("USED".equalsIgnoreCase(coupon.getStatus())) {
+            return "USED";
+        }
+        if ("EXPIRED".equalsIgnoreCase(coupon.getStatus())
+                || !coupon.getExpiredAt().isAfter(now)) {
+            return "EXPIRED";
+        }
+        return "UNUSED";
     }
 
     /**
