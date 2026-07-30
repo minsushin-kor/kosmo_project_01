@@ -1,52 +1,5 @@
 export const adminSummaryCards = [
-  {
-    title: "전체 회원",
-    value: "1,248",
-    unit: "명",
-    change: "12.5%",
-    changeText: "전월 대비",
-    trend: "up",
-    description: "일반회원, 기업회원, 딜러 포함",
-    icon: "👥",
-    color: "blue",
-    chartData: [20, 20, 26, 24, 31, 34, 25, 32, 30, 42],
-  },
-  {
-    title: "등록 매물",
-    value: "356",
-    unit: "대",
-    change: "8.7%",
-    changeText: "전월 대비",
-    trend: "up",
-    description: "현재 사이트에 등록된 차량",
-    icon: "🚗",
-    color: "green",
-    chartData: [18, 19, 18, 17, 22, 28, 26, 29, 42, 29, 40],
-  },
-  {
-    title: "이번 달 거래",
-    value: "89",
-    unit: "건",
-    change: "15.2%",
-    changeText: "전월 대비",
-    trend: "up",
-    description: "판매 완료 기준 거래 수",
-    icon: "🤝",
-    color: "purple",
-    chartData: [12, 13, 17, 16, 26, 23, 34, 26, 34],
-  },
-  {
-    title: "검토 대기",
-    value: "12",
-    unit: "건",
-    change: "14.3%",
-    changeText: "전월 대비",
-    trend: "down",
-    description: "승인, 신고, 문의 처리 대기",
-    icon: "⏱",
-    color: "orange",
-    chartData: [38, 34, 32, 27, 31, 26, 18, 15, 12, 22],
-  },
+ 
 ];
 
 export const adminCars = [
@@ -206,24 +159,5 @@ export const adminChurnUsers = [
 ];
 
 export const adminPendingTasks = [
-  {
-    id: 1,
-    title: "기업회원 승인 요청",
-    count: 4,
-  },
-  {
-    id: 2,
-    title: "신고된 매물 검토",
-    count: 3,
-  },
-  {
-    id: 3,
-    title: "딜러 계정 발급 대기",
-    count: 5,
-  },
-  {
-    id: 4,
-    title: "고객 문의 답변 대기",
-    count: 8,
-  },
+ 
 ];

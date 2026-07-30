@@ -8,20 +8,18 @@ import { Link } from "react-router-dom";
 import AdminLayout from "../../components/admin/AdminLayout";
 import AdminTable from "../../components/admin/AdminTable";
 import AdminSearchFilter from "../../components/admin/AdminSearchFilter";
-import { getAdminTransactions } from "../../api/transactionApi";
+import {
+  getAdminTransactions,
+} from "../../api/transactionApi";
 import "../../css/admin/adminManagePage.css";
 
-const STATUS_LABEL_MAP = {
-  PENDING_PAYMENT: "결제대기",
-  PAID: "결제완료",
-  COMPLETED: "거래완료",
-  CANCELLED: "거래취소",
-};
-
 function formatParticipant(type, id) {
-  const normalizedType = String(type || "").toUpperCase();
+  const normalizedType = String(
+    type || ""
+  ).toUpperCase();
 
-  let typeLabel = normalizedType || "사용자";
+  let typeLabel =
+    normalizedType || "사용자";
 
   if (normalizedType === "MEMBER") {
     typeLabel = "일반회원";
@@ -39,75 +37,120 @@ function formatParticipant(type, id) {
 }
 
 function normalizeTransaction(transaction) {
-  const dealPrice = Number(transaction.dealPrice || 0);
+  const dealPrice = Number(
+    transaction?.dealPrice || 0
+  );
 
   const commissionAmount = Number(
-    transaction.commissionAmount || 0
+    transaction?.commissionAmount || 0
   );
 
   const status = String(
-    transaction.status || "PENDING_PAYMENT"
+    transaction?.status || ""
   ).toUpperCase();
 
   const carName =
-    [transaction.carMake, transaction.carModel]
+    [
+      transaction?.carMake,
+      transaction?.carModel,
+    ]
       .filter(Boolean)
       .join(" ") ||
-    `차량 #${transaction.carId ?? "-"}`;
+    `차량 #${transaction?.carId ?? "-"}`;
 
   return {
     ...transaction,
-    id: transaction.transactionId,
+    id:
+      transaction?.transactionId ??
+      transaction?.id,
+    transactionId:
+      transaction?.transactionId ??
+      transaction?.id,
     carName,
     buyerName: formatParticipant(
-      transaction.buyerType,
-      transaction.buyerId
+      transaction?.buyerType,
+      transaction?.buyerId
     ),
     sellerName: formatParticipant(
-      transaction.sellerType,
-      transaction.sellerId
+      transaction?.sellerType,
+      transaction?.sellerId
     ),
     winningPrice: dealPrice,
     feePrice: commissionAmount,
-    totalPrice: dealPrice + commissionAmount,
-    status: STATUS_LABEL_MAP[status] || status,
+    totalPrice:
+      dealPrice + commissionAmount,
+    status,
+    statusLabel:
+      status === "COMPLETED"
+        ? "거래완료"
+        : status,
   };
 }
 
+function formatMoney(value) {
+  return Number(
+    value || 0
+  ).toLocaleString("ko-KR");
+}
+
 function AdminFinalDealManagePage() {
-  const [finalDeals, setFinalDeals] = useState([]);
-  const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState("전체");
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [
+    completedDeals,
+    setCompletedDeals,
+  ] = useState([]);
 
-  const loadFinalDeals = useCallback(async () => {
-    setIsLoading(true);
-    setErrorMessage("");
+  const [
+    searchText,
+    setSearchText,
+  ] = useState("");
 
-    try {
-      const transactions =
-        await getAdminTransactions();
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
 
-      setFinalDeals(
-        transactions.map(normalizeTransaction)
-      );
-    } catch (error) {
-      console.error(
-        "관리자 거래 목록 조회 실패:",
-        error
-      );
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
 
-      setErrorMessage(
-        error.message ||
-        "최종 거래 목록을 불러오지 못했습니다."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const loadCompletedDeals =
+    useCallback(async () => {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        const transactions =
+          await getAdminTransactions();
+
+        const normalizedDeals =
+          transactions
+            .map(normalizeTransaction)
+            .filter(
+              (transaction) =>
+                transaction.status ===
+                "COMPLETED"
+            );
+
+        setCompletedDeals(
+          normalizedDeals
+        );
+      } catch (error) {
+        console.error(
+          "관리자 매출 거래 목록 조회 실패:",
+          error
+        );
+
+        setCompletedDeals([]);
+
+        setErrorMessage(
+          error?.message ||
+          "거래완료 목록을 불러오지 못했습니다."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -118,8 +161,17 @@ function AdminFinalDealManagePage() {
           return;
         }
 
-        setFinalDeals(
-          transactions.map(normalizeTransaction)
+        const normalizedDeals =
+          transactions
+            .map(normalizeTransaction)
+            .filter(
+              (transaction) =>
+                transaction.status ===
+                "COMPLETED"
+            );
+
+        setCompletedDeals(
+          normalizedDeals
         );
       })
       .catch((error) => {
@@ -128,13 +180,15 @@ function AdminFinalDealManagePage() {
         }
 
         console.error(
-          "관리자 거래 목록 조회 실패:",
+          "관리자 매출 거래 목록 조회 실패:",
           error
         );
 
+        setCompletedDeals([]);
+
         setErrorMessage(
-          error.message ||
-          "최종 거래 목록을 불러오지 못했습니다."
+          error?.message ||
+          "거래완료 목록을 불러오지 못했습니다."
         );
       })
       .finally(() => {
@@ -150,17 +204,45 @@ function AdminFinalDealManagePage() {
 
   function handleResetFilter() {
     setSearchText("");
-    setStatusFilter("전체");
   }
+
+  const salesSummary = useMemo(() => {
+    return completedDeals.reduce(
+      (summary, deal) => ({
+        totalWinningPrice:
+          summary.totalWinningPrice +
+          Number(
+            deal.winningPrice || 0
+          ),
+        totalCommission:
+          summary.totalCommission +
+          Number(
+            deal.feePrice || 0
+          ),
+      }),
+      {
+        totalWinningPrice: 0,
+        totalCommission: 0,
+      }
+    );
+  }, [completedDeals]);
 
   const filteredDeals = useMemo(() => {
     const keyword = searchText
       .trim()
       .toLowerCase();
 
-    return finalDeals.filter((deal) => {
-      const keywordMatch =
-        keyword === "" ||
+    if (!keyword) {
+      return completedDeals;
+    }
+
+    return completedDeals.filter(
+      (deal) =>
+        String(
+          deal.transactionId || ""
+        )
+          .toLowerCase()
+          .includes(keyword) ||
         deal.carName
           .toLowerCase()
           .includes(keyword) ||
@@ -169,19 +251,12 @@ function AdminFinalDealManagePage() {
           .includes(keyword) ||
         deal.sellerName
           .toLowerCase()
-          .includes(keyword) ||
-        String(deal.carId || "").includes(keyword) ||
-        String(
-          deal.transactionId || ""
-        ).includes(keyword);
-
-      const statusMatch =
-        statusFilter === "전체" ||
-        deal.status === statusFilter;
-
-      return keywordMatch && statusMatch;
-    });
-  }, [finalDeals, searchText, statusFilter]);
+          .includes(keyword)
+    );
+  }, [
+    completedDeals,
+    searchText,
+  ]);
 
   const columns = useMemo(
     () => [
@@ -194,14 +269,20 @@ function AdminFinalDealManagePage() {
       {
         key: "carName",
         label: "차량명",
-        render: (deal) => (
-          <Link
-            to={`/cars/${deal.carId}`}
-            className="admin-post-link"
-          >
-            {deal.carName}
-          </Link>
-        ),
+        render: (deal) => {
+          if (!deal.carId) {
+            return deal.carName;
+          }
+
+          return (
+            <Link
+              to={`/cars/${deal.carId}`}
+              className="admin-post-link"
+            >
+              {deal.carName}
+            </Link>
+          );
+        },
       },
       {
         key: "buyerName",
@@ -215,34 +296,32 @@ function AdminFinalDealManagePage() {
         key: "winningPrice",
         label: "낙찰가",
         render: (deal) =>
-          `${Number(
-            deal.winningPrice || 0
-          ).toLocaleString("ko-KR")}만원`,
+          `${formatMoney(
+            deal.winningPrice
+          )}만원`,
       },
       {
         key: "feePrice",
         label: "수수료",
         render: (deal) =>
-          `${Number(
-            deal.feePrice || 0
-          ).toLocaleString("ko-KR")}만원`,
+          `${formatMoney(
+            deal.feePrice
+          )}만원`,
       },
       {
         key: "totalPrice",
         label: "총액",
         render: (deal) =>
-          `${Number(
-            deal.totalPrice || 0
-          ).toLocaleString("ko-KR")}만원`,
+          `${formatMoney(
+            deal.totalPrice
+          )}만원`,
       },
       {
-        key: "status",
+        key: "statusLabel",
         label: "거래상태",
         render: (deal) => (
-          <span
-            className={`manage-badge ${deal.status}`}
-          >
-            {deal.status}
+          <span className="manage-badge 거래완료">
+            {deal.statusLabel}
           </span>
         ),
       },
@@ -250,62 +329,85 @@ function AdminFinalDealManagePage() {
     []
   );
 
-  const filters = useMemo(
-    () => [
-      {
-        name: "status",
-        value: statusFilter,
-        onChange: setStatusFilter,
-        options: [
-          {
-            label: "전체 상태",
-            value: "전체",
-          },
-          {
-            label: "결제대기",
-            value: "결제대기",
-          },
-          {
-            label: "결제완료",
-            value: "결제완료",
-          },
-          {
-            label: "거래완료",
-            value: "거래완료",
-          },
-          {
-            label: "거래취소",
-            value: "거래취소",
-          },
-        ],
-      },
-    ],
-    [statusFilter]
-  );
-
   return (
     <AdminLayout
-      title="최종 거래 관리"
-      description="경매 낙찰 이후 생성된 최종 거래 목록을 조회합니다."
+      title="매출 관리"
+      description="거래완료 데이터를 기준으로 낙찰 금액과 수수료 매출을 조회합니다."
     >
+      <section className="admin-sales-summary-grid">
+        <article className="admin-sales-summary-card">
+          <div className="admin-sales-summary-icon">
+            ₩
+          </div>
+
+          <div className="admin-sales-summary-content">
+            <span>총 낙찰가</span>
+
+            <strong>
+              {formatMoney(
+                salesSummary.totalWinningPrice
+              )}
+              <small>만원</small>
+            </strong>
+
+            <p>
+              거래완료{" "}
+              {completedDeals.length.toLocaleString(
+                "ko-KR"
+              )}
+              건의 낙찰가 합계
+            </p>
+          </div>
+        </article>
+
+        <article className="admin-sales-summary-card commission">
+          <div className="admin-sales-summary-icon">
+            %
+          </div>
+
+          <div className="admin-sales-summary-content">
+            <span>
+              총 수수료 매출
+            </span>
+
+            <strong>
+              {formatMoney(
+                salesSummary.totalCommission
+              )}
+              <small>만원</small>
+            </strong>
+
+            <p>
+              전체 거래완료 건에서 발생한
+              수수료 합계
+            </p>
+          </div>
+        </article>
+      </section>
+
       <section className="admin-manage-panel">
         <div className="admin-manage-panel-header">
           <div>
-            <h3>최종 거래 목록</h3>
+            <h3>거래완료 목록</h3>
 
             <p className="admin-panel-sub-text">
-              거래 DB에 저장된 낙찰 거래와 현재
-              결제 상태를 조회합니다.
+              DB에 저장된 거래 중
+              거래완료 상태인 목록만
+              조회합니다.
             </p>
           </div>
 
           <button
             type="button"
             className="small-btn"
-            onClick={loadFinalDeals}
+            onClick={
+              loadCompletedDeals
+            }
             disabled={isLoading}
           >
-            {isLoading ? "조회 중" : "새로고침"}
+            {isLoading
+              ? "조회 중"
+              : "새로고침"}
           </button>
         </div>
 
@@ -320,20 +422,31 @@ function AdminFinalDealManagePage() {
 
         <AdminSearchFilter
           searchValue={searchText}
-          onSearchChange={setSearchText}
+          onSearchChange={
+            setSearchText
+          }
           searchPlaceholder="거래번호, 차량명, 구매자, 판매자 검색"
-          filters={filters}
-          onReset={handleResetFilter}
+          filters={[]}
+          checkboxFilters={[]}
+          onReset={
+            handleResetFilter
+          }
         />
 
         <AdminTable
           columns={columns}
-          data={isLoading ? [] : filteredDeals}
-          totalCount={filteredDeals.length}
+          data={
+            isLoading
+              ? []
+              : filteredDeals
+          }
+          totalCount={
+            filteredDeals.length
+          }
           emptyMessage={
             isLoading
-              ? "최종 거래 목록을 불러오는 중입니다."
-              : "조회된 최종 거래가 없습니다."
+              ? "거래완료 목록을 불러오는 중입니다."
+              : "조회된 거래완료 내역이 없습니다."
           }
         />
       </section>

@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -88,16 +89,99 @@ public class AdminController {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class RecentCarResponse {
+
+        private Long id;
+
+        /*
+         * 딜러 매물은 딜러 소속 회사명,
+         * 일반회원 매물은 개인 판매로 반환합니다.
+         */
+        private String companyName;
+
+        /*
+         * 제조사와 모델을 합친 차량명입니다.
+         */
+        private String carName;
+
+        /*
+         * 일반회원 또는 딜러
+         */
+        private String accountType;
+
+        private Long price;
+        private String status;
+        private LocalDateTime createdAt;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DashboardCardResponse {
+
+        private String key;
+        private String title;
+        private long value;
+        private String unit;
+        private String description;
+
+        /*
+         * 최근 30일 동안 새로 증가한 건수
+         */
+        private long currentPeriodCount;
+
+        /*
+         * 직전 30일 동안 새로 증가한 건수
+         */
+        private long previousPeriodCount;
+
+        /*
+         * 직전 30일 대비 최근 30일 증감률
+         */
+        private double changeRate;
+
+        /*
+         * UP, DOWN, SAME
+         */
+        private String trend;
+
+        /*
+         * 최근 30일간 일별 누적 그래프 값
+         */
+        private List<Long> chartData;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class DashboardSummaryResponse {
 
         private long totalMembers;
         private long totalCompanies;
         private long totalDealers;
         private long totalCars;
+
+        /*
+         * 전체 완료 거래 수
+         */
         private long totalCompletedTransactions;
+
+        /*
+         * 이번 달 완료 거래 수
+         */
+        private long currentMonthCompletedTransactions;
+
         private long pendingReportsCount;
+
+        /*
+         * 관리자 대시보드 상단 카드
+         */
+        private List<DashboardCardResponse> summaryCards;
+
         private List<AccountResponse> recentAccounts;
-        private List<CarDto.Response> recentCars;
+        private List<RecentCarResponse> recentCars;
         private Map<String, Object> monthlyStats;
     }
 
@@ -111,18 +195,6 @@ public class AdminController {
 
     /**
      * 관리자 일반회원 목록 조회
-     *
-     * query:
-     * - 회원 이름
-     * - 로그인 ID
-     * - 이메일
-     * - 연락처
-     *
-     * status:
-     * - ACTIVE
-     * - INACTIVE
-     * - SUSPENDED
-     * - WITHDRAWN
      */
     @GetMapping("/members")
     public ResponseEntity<ApiResponse<Page<AccountResponse>>> getMembers(
@@ -141,10 +213,18 @@ public class AdminController {
 
         List<AccountResponse> filteredMembers = allMembers.stream()
                 .filter(member -> normalizedQuery.isBlank()
-                        || containsIgnoreCase(member.getName(), normalizedQuery)
-                        || containsIgnoreCase(member.getLoginId(), normalizedQuery)
-                        || containsIgnoreCase(member.getEmail(), normalizedQuery)
-                        || containsIgnoreCase(member.getPhone(), normalizedQuery))
+                        || containsIgnoreCase(
+                                member.getName(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                member.getLoginId(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                member.getEmail(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                member.getPhone(),
+                                normalizedQuery))
                 .filter(member -> {
                     if (normalizedStatus.isBlank()) {
                         return true;
@@ -195,15 +275,6 @@ public class AdminController {
 
     /**
      * 관리자 기업 목록 조회
-     *
-     * query:
-     * - 기업명
-     * - 로그인 ID
-     * - 대표 이메일
-     * - 연락처
-     *
-     * 기업 상태는 membershipStatus 값을 기준으로
-     * ACTIVE 또는 INACTIVE로 반환합니다.
      */
     @GetMapping("/companies")
     public ResponseEntity<ApiResponse<Page<AccountResponse>>> getCompanies(
@@ -222,10 +293,18 @@ public class AdminController {
 
         List<AccountResponse> filteredCompanies = allCompanies.stream()
                 .filter(company -> normalizedQuery.isBlank()
-                        || containsIgnoreCase(company.getName(), normalizedQuery)
-                        || containsIgnoreCase(company.getLoginId(), normalizedQuery)
-                        || containsIgnoreCase(company.getMasterEmail(), normalizedQuery)
-                        || containsIgnoreCase(company.getPhone(), normalizedQuery))
+                        || containsIgnoreCase(
+                                company.getName(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                company.getLoginId(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                company.getMasterEmail(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                company.getPhone(),
+                                normalizedQuery))
                 .filter(company -> {
                     if (normalizedStatus.isBlank()) {
                         return true;
@@ -256,9 +335,6 @@ public class AdminController {
 
     /**
      * 관리자 기업 상태 변경
-     *
-     * Company 엔티티는 membershipStatus가 Boolean이므로
-     * ACTIVE는 true, 나머지는 false로 저장합니다.
      */
     @PatchMapping("/companies/{companyId}/status")
     public ResponseEntity<ApiResponse<String>> updateCompanyStatus(
@@ -284,12 +360,6 @@ public class AdminController {
 
     /**
      * 관리자 딜러 목록 조회
-     *
-     * query:
-     * - 딜러 이름
-     * - 로그인 ID
-     * - 이메일
-     * - 연락처
      */
     @GetMapping("/dealers")
     public ResponseEntity<ApiResponse<Page<AccountResponse>>> getDealers(
@@ -308,10 +378,18 @@ public class AdminController {
 
         List<AccountResponse> filteredDealers = allDealers.stream()
                 .filter(dealer -> normalizedQuery.isBlank()
-                        || containsIgnoreCase(dealer.getName(), normalizedQuery)
-                        || containsIgnoreCase(dealer.getLoginId(), normalizedQuery)
-                        || containsIgnoreCase(dealer.getEmail(), normalizedQuery)
-                        || containsIgnoreCase(dealer.getPhone(), normalizedQuery))
+                        || containsIgnoreCase(
+                                dealer.getName(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                dealer.getLoginId(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                dealer.getEmail(),
+                                normalizedQuery)
+                        || containsIgnoreCase(
+                                dealer.getPhone(),
+                                normalizedQuery))
                 .filter(dealer -> {
                     if (normalizedStatus.isBlank()) {
                         return true;
@@ -368,15 +446,19 @@ public class AdminController {
             @PathVariable Long carId,
             @RequestBody StatusUpdateRequest request) {
 
-        if (request == null || request.getStatus() == null
+        if (request == null
+                || request.getStatus() == null
                 || request.getStatus().isBlank()) {
+
             throw new IllegalArgumentException(
                     "변경할 차량 상태를 입력해 주세요.");
         }
 
         carService.updateCarStatusByAdmin(
                 carId,
-                request.getStatus().trim().toUpperCase(Locale.ROOT));
+                request.getStatus()
+                        .trim()
+                        .toUpperCase(Locale.ROOT));
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -386,36 +468,93 @@ public class AdminController {
 
     /**
      * 관리자 대시보드 통계 요약 조회
+     *
+     * 회원수:
+     * 현재 등록된 일반회원 전체 수
+     *
+     * 기업수:
+     * 현재 등록된 기업 전체 수
+     *
+     * 등록매물:
+     * 현재 DB에 저장된 차량 전체 수
+     *
+     * 이번 달 거래:
+     * 이번 달에 COMPLETED 상태로 완료된 거래 수
+     *
+     * 증감률:
+     * 최근 30일 신규 건수와 직전 30일 신규 건수를 비교
      */
     @GetMapping("/dashboard/summary")
     public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getDashboardSummary() {
 
-        long totalMembers = memberRepository.count();
-        long totalCompanies = companyRepository.count();
+        List<Member> allMembers = memberRepository.findAll();
+
+        List<Company> allCompanies = companyRepository.findAll();
+
+        List<Car> allCars = carRepository.findAll();
+
+        List<Transaction> allTransactions = transactionRepository.findAll();
+
+        long totalMembers = allMembers.size();
+
+        long totalCompanies = allCompanies.size();
+
         long totalDealers = dealerRepository.count();
-        long totalCars = carRepository.count();
 
-        long totalCompletedTransactions = transactionRepository.countByStatus("COMPLETED");
+        long totalCars = allCars.size();
 
-        long pendingReports = reportRepository.countByStatus("PENDING");
+        long totalCompletedTransactions = allTransactions.stream()
+                .filter(this::isCompletedTransaction)
+                .count();
+
+        LocalDate today = LocalDate.now();
+
+        LocalDateTime monthStart = today.withDayOfMonth(1)
+                .atStartOfDay();
+
+        LocalDateTime tomorrowStart = today.plusDays(1)
+                .atStartOfDay();
+
+        long currentMonthCompletedTransactions = allTransactions.stream()
+                .filter(this::isCompletedTransaction)
+                .filter(transaction -> isBetween(
+                        transaction.getCompletedAt(),
+                        monthStart,
+                        tomorrowStart))
+                .count();
+
+        long pendingReports = reportRepository.countByStatus(
+                "PENDING");
+
+        List<DashboardCardResponse> summaryCards = createDashboardCards(
+                allMembers,
+                allCompanies,
+                allCars,
+                allTransactions);
 
         List<Member> recentMemberList = memberRepository.findAll(
                 PageRequest.of(
                         0,
                         5,
-                        Sort.by(Sort.Direction.DESC, "createdAt")))
+                        Sort.by(
+                                Sort.Direction.DESC,
+                                "createdAt")))
                 .getContent();
 
         List<AccountResponse> recentAccounts = recentMemberList.stream()
                 .map(this::mapMemberToAccountResponse)
                 .collect(Collectors.toList());
 
-        List<CarDto.Response> recentCars = carRepository.findTop5ByOrderByCreatedAtDesc()
+        List<RecentCarResponse> recentCars = carRepository
+                .findTop5ByOrderByCreatedAtDesc()
                 .stream()
-                .map(carService::mapToResponse)
+                .map(this::mapRecentCarResponse)
                 .collect(Collectors.toList());
 
-        Map<String, Object> monthlyStats = calculateMonthlyStatsFromDb();
+        Map<String, Object> monthlyStats = calculateMonthlyStatsFromDb(
+                allMembers,
+                allCars,
+                allTransactions);
 
         DashboardSummaryResponse summary = DashboardSummaryResponse.builder()
                 .totalMembers(totalMembers)
@@ -424,7 +563,11 @@ public class AdminController {
                 .totalCars(totalCars)
                 .totalCompletedTransactions(
                         totalCompletedTransactions)
-                .pendingReportsCount(pendingReports)
+                .currentMonthCompletedTransactions(
+                        currentMonthCompletedTransactions)
+                .pendingReportsCount(
+                        pendingReports)
+                .summaryCards(summaryCards)
                 .recentAccounts(recentAccounts)
                 .recentCars(recentCars)
                 .monthlyStats(monthlyStats)
@@ -437,22 +580,357 @@ public class AdminController {
     }
 
     /**
-     * 최근 6개월의 누적 회원·차량·완료 거래 수를 계산합니다.
+     * 대시보드 상단 카드 4개를 생성합니다.
      */
-    private Map<String, Object> calculateMonthlyStatsFromDb() {
+    private List<DashboardCardResponse> createDashboardCards(
+            List<Member> members,
+            List<Company> companies,
+            List<Car> cars,
+            List<Transaction> transactions) {
+
+        LocalDate today = LocalDate.now();
+
+        /*
+         * 오늘을 포함한 최근 30일
+         */
+        LocalDateTime currentPeriodStart = today.minusDays(29)
+                .atStartOfDay();
+
+        LocalDateTime currentPeriodEnd = today.plusDays(1)
+                .atStartOfDay();
+
+        /*
+         * 최근 30일 직전의 30일
+         */
+        LocalDateTime previousPeriodStart = today.minusDays(59)
+                .atStartOfDay();
+
+        LocalDateTime previousPeriodEnd = currentPeriodStart;
+
+        long currentMemberCount = members.stream()
+                .filter(member -> isBetween(
+                        member.getCreatedAt(),
+                        currentPeriodStart,
+                        currentPeriodEnd))
+                .count();
+
+        long previousMemberCount = members.stream()
+                .filter(member -> isBetween(
+                        member.getCreatedAt(),
+                        previousPeriodStart,
+                        previousPeriodEnd))
+                .count();
+
+        long currentCompanyCount = companies.stream()
+                .filter(company -> isBetween(
+                        company.getCreatedAt(),
+                        currentPeriodStart,
+                        currentPeriodEnd))
+                .count();
+
+        long previousCompanyCount = companies.stream()
+                .filter(company -> isBetween(
+                        company.getCreatedAt(),
+                        previousPeriodStart,
+                        previousPeriodEnd))
+                .count();
+
+        long currentCarCount = cars.stream()
+                .filter(car -> isBetween(
+                        car.getCreatedAt(),
+                        currentPeriodStart,
+                        currentPeriodEnd))
+                .count();
+
+        long previousCarCount = cars.stream()
+                .filter(car -> isBetween(
+                        car.getCreatedAt(),
+                        previousPeriodStart,
+                        previousPeriodEnd))
+                .count();
+
+        long currentTransactionCount = transactions.stream()
+                .filter(this::isCompletedTransaction)
+                .filter(transaction -> isBetween(
+                        transaction.getCompletedAt(),
+                        currentPeriodStart,
+                        currentPeriodEnd))
+                .count();
+
+        long previousTransactionCount = transactions.stream()
+                .filter(this::isCompletedTransaction)
+                .filter(transaction -> isBetween(
+                        transaction.getCompletedAt(),
+                        previousPeriodStart,
+                        previousPeriodEnd))
+                .count();
+
+        LocalDateTime monthStart = today.withDayOfMonth(1)
+                .atStartOfDay();
+
+        long currentMonthCompletedCount = transactions.stream()
+                .filter(this::isCompletedTransaction)
+                .filter(transaction -> isBetween(
+                        transaction.getCompletedAt(),
+                        monthStart,
+                        currentPeriodEnd))
+                .count();
+
+        List<DashboardCardResponse> cards = new ArrayList<>();
+
+        cards.add(
+                createDashboardCard(
+                        "members",
+                        "회원수",
+                        members.size(),
+                        "명",
+                        "현재 가입된 일반회원",
+                        currentMemberCount,
+                        previousMemberCount,
+                        createMemberChart(
+                                members,
+                                currentPeriodStart)));
+
+        cards.add(
+                createDashboardCard(
+                        "companies",
+                        "기업수",
+                        companies.size(),
+                        "곳",
+                        "현재 등록된 기업",
+                        currentCompanyCount,
+                        previousCompanyCount,
+                        createCompanyChart(
+                                companies,
+                                currentPeriodStart)));
+
+        cards.add(
+                createDashboardCard(
+                        "cars",
+                        "등록매물",
+                        cars.size(),
+                        "대",
+                        "현재 DB에 등록된 차량",
+                        currentCarCount,
+                        previousCarCount,
+                        createCarChart(
+                                cars,
+                                currentPeriodStart)));
+
+        cards.add(
+                createDashboardCard(
+                        "transactions",
+                        "이번 달 거래",
+                        currentMonthCompletedCount,
+                        "건",
+                        "거래완료 상태 기준",
+                        currentTransactionCount,
+                        previousTransactionCount,
+                        createTransactionChart(
+                                transactions,
+                                currentPeriodStart)));
+
+        return cards;
+    }
+
+    /**
+     * 대시보드 카드 응답을 생성합니다.
+     */
+    private DashboardCardResponse createDashboardCard(
+            String key,
+            String title,
+            long value,
+            String unit,
+            String description,
+            long currentPeriodCount,
+            long previousPeriodCount,
+            List<Long> chartData) {
+
+        double changeRate = calculateChangeRate(
+                currentPeriodCount,
+                previousPeriodCount);
+
+        return DashboardCardResponse.builder()
+                .key(key)
+                .title(title)
+                .value(value)
+                .unit(unit)
+                .description(description)
+                .currentPeriodCount(
+                        currentPeriodCount)
+                .previousPeriodCount(
+                        previousPeriodCount)
+                .changeRate(changeRate)
+                .trend(
+                        getTrend(
+                                currentPeriodCount,
+                                previousPeriodCount))
+                .chartData(chartData)
+                .build();
+    }
+
+    /**
+     * 직전 기간 대비 현재 기간의 증감률을 계산합니다.
+     *
+     * 직전 기간이 0이고 현재 기간이 0보다 크면
+     * 비교 가능한 기준값이 없으므로 100% 증가로 표시합니다.
+     */
+    private double calculateChangeRate(
+            long currentCount,
+            long previousCount) {
+
+        if (previousCount == 0) {
+            return currentCount == 0
+                    ? 0.0
+                    : 100.0;
+        }
+
+        double rate = ((double) (currentCount
+                - previousCount)
+                / previousCount) * 100.0;
+
+        return Math.round(rate * 10.0) / 10.0;
+    }
+
+    /**
+     * 증감 방향을 반환합니다.
+     */
+    private String getTrend(
+            long currentCount,
+            long previousCount) {
+
+        if (currentCount > previousCount) {
+            return "UP";
+        }
+
+        if (currentCount < previousCount) {
+            return "DOWN";
+        }
+
+        return "SAME";
+    }
+
+    /**
+     * 최근 30일 회원 전체 누적 수 그래프를 생성합니다.
+     */
+    private List<Long> createMemberChart(
+            List<Member> members,
+            LocalDateTime chartStart) {
+
+        List<Long> chartData = new ArrayList<>();
+
+        for (int day = 0; day < 30; day++) {
+
+            LocalDateTime dayEnd = chartStart.plusDays(day + 1);
+
+            long count = members.stream()
+                    .filter(member -> member.getCreatedAt() != null
+                            && member.getCreatedAt()
+                                    .isBefore(dayEnd))
+                    .count();
+
+            chartData.add(count);
+        }
+
+        return chartData;
+    }
+
+    /**
+     * 최근 30일 기업 전체 누적 수 그래프를 생성합니다.
+     */
+    private List<Long> createCompanyChart(
+            List<Company> companies,
+            LocalDateTime chartStart) {
+
+        List<Long> chartData = new ArrayList<>();
+
+        for (int day = 0; day < 30; day++) {
+
+            LocalDateTime dayEnd = chartStart.plusDays(day + 1);
+
+            long count = companies.stream()
+                    .filter(company -> company.getCreatedAt() != null
+                            && company.getCreatedAt()
+                                    .isBefore(dayEnd))
+                    .count();
+
+            chartData.add(count);
+        }
+
+        return chartData;
+    }
+
+    /**
+     * 최근 30일 등록매물 전체 누적 수 그래프를 생성합니다.
+     */
+    private List<Long> createCarChart(
+            List<Car> cars,
+            LocalDateTime chartStart) {
+
+        List<Long> chartData = new ArrayList<>();
+
+        for (int day = 0; day < 30; day++) {
+
+            LocalDateTime dayEnd = chartStart.plusDays(day + 1);
+
+            long count = cars.stream()
+                    .filter(car -> car.getCreatedAt() != null
+                            && car.getCreatedAt()
+                                    .isBefore(dayEnd))
+                    .count();
+
+            chartData.add(count);
+        }
+
+        return chartData;
+    }
+
+    /**
+     * 최근 30일 내 완료된 거래의 누적 수 그래프를 생성합니다.
+     */
+    private List<Long> createTransactionChart(
+            List<Transaction> transactions,
+            LocalDateTime chartStart) {
+
+        List<Long> chartData = new ArrayList<>();
+
+        for (int day = 0; day < 30; day++) {
+
+            LocalDateTime dayEnd = chartStart.plusDays(day + 1);
+
+            long count = transactions.stream()
+                    .filter(this::isCompletedTransaction)
+                    .filter(transaction -> isBetween(
+                            transaction.getCompletedAt(),
+                            chartStart,
+                            dayEnd))
+                    .count();
+
+            chartData.add(count);
+        }
+
+        return chartData;
+    }
+
+    /**
+     * 최근 6개월 누적 회원·차량·완료 거래 수를 계산합니다.
+     */
+    private Map<String, Object> calculateMonthlyStatsFromDb(
+            List<Member> allMembers,
+            List<Car> allCars,
+            List<Transaction> allTransactions) {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
 
         List<String> months = new ArrayList<>();
+
         List<Long> memberCounts = new ArrayList<>();
+
         List<Long> carCounts = new ArrayList<>();
+
         List<Long> transactionCounts = new ArrayList<>();
 
         LocalDateTime now = LocalDateTime.now();
-
-        List<Member> allMembers = memberRepository.findAll();
-        List<Car> allCars = carRepository.findAll();
-        List<Transaction> allTransactions = transactionRepository.findAll();
 
         for (int i = 5; i >= 0; i--) {
 
@@ -463,9 +941,7 @@ public class AdminController {
                     .withSecond(0)
                     .withNano(0);
 
-            LocalDateTime monthEnd = monthStart
-                    .plusMonths(1)
-                    .minusNanos(1);
+            LocalDateTime monthEndExclusive = monthStart.plusMonths(1);
 
             String monthLabel = monthStart.format(formatter);
 
@@ -473,22 +949,23 @@ public class AdminController {
 
             long memberCount = allMembers.stream()
                     .filter(member -> member.getCreatedAt() != null
-                            && !member.getCreatedAt()
-                                    .isAfter(monthEnd))
+                            && member.getCreatedAt()
+                                    .isBefore(
+                                            monthEndExclusive))
                     .count();
 
             long carCount = allCars.stream()
                     .filter(car -> car.getCreatedAt() != null
-                            && !car.getCreatedAt()
-                                    .isAfter(monthEnd))
+                            && car.getCreatedAt()
+                                    .isBefore(
+                                            monthEndExclusive))
                     .count();
 
             long transactionCount = allTransactions.stream()
-                    .filter(transaction -> "COMPLETED".equalsIgnoreCase(
-                            transaction.getStatus())
-                            && transaction.getCreatedAt() != null
-                            && !transaction.getCreatedAt()
-                                    .isAfter(monthEnd))
+                    .filter(this::isCompletedTransaction)
+                    .filter(transaction -> transaction.getCompletedAt()
+                            .isBefore(
+                                    monthEndExclusive))
                     .count();
 
             memberCounts.add(memberCount);
@@ -501,9 +978,106 @@ public class AdminController {
         result.put("months", months);
         result.put("members", memberCounts);
         result.put("cars", carCounts);
-        result.put("transactions", transactionCounts);
+        result.put(
+                "transactions",
+                transactionCounts);
 
         return result;
+    }
+
+    /**
+     * 거래완료 상태이고 완료일이 있는 거래인지 확인합니다.
+     */
+    private boolean isCompletedTransaction(
+            Transaction transaction) {
+
+        return transaction != null
+                && "COMPLETED".equalsIgnoreCase(
+                        transaction.getStatus())
+                && transaction.getCompletedAt() != null;
+    }
+
+    /**
+     * 날짜가 시작 시각 이상이고 종료 시각 미만인지 확인합니다.
+     */
+    private boolean isBetween(
+            LocalDateTime value,
+            LocalDateTime start,
+            LocalDateTime endExclusive) {
+
+        return value != null
+                && !value.isBefore(start)
+                && value.isBefore(endExclusive);
+    }
+
+    /**
+     * 차량 엔티티를 관리자 대시보드 최근 매물 응답으로 변환합니다.
+     */
+    private RecentCarResponse mapRecentCarResponse(
+            Car car) {
+
+        boolean memberListing = car.getMember() != null;
+
+        boolean dealerListing = car.getDealer() != null;
+
+        String companyName = "개인 판매";
+        String accountType = "-";
+
+        if (memberListing) {
+            accountType = "일반회원";
+        } else if (dealerListing) {
+            accountType = "딜러";
+
+            Company company = car.getDealer().getCompany();
+
+            companyName = company != null
+                    && company.getName() != null
+                    && !company.getName().isBlank()
+                            ? company.getName()
+                            : "소속 회사 없음";
+        }
+
+        String carName = createCarName(car);
+
+        return RecentCarResponse.builder()
+                .id(car.getCarId())
+                .companyName(companyName)
+                .carName(carName)
+                .accountType(accountType)
+                .price(
+                        car.getSellingPrice() != null
+                                ? car.getSellingPrice()
+                                : 0L)
+                .status(
+                        car.getStatus() != null
+                                && !car.getStatus().isBlank()
+                                        ? car.getStatus()
+                                        : "REGISTERED")
+                .createdAt(car.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * 제조사와 모델을 결합해 차량명을 생성합니다.
+     */
+    private String createCarName(
+            Car car) {
+
+        String make = car.getMake() != null
+                ? car.getMake().trim()
+                : "";
+
+        String model = car.getModel() != null
+                ? car.getModel().trim()
+                : "";
+
+        String carName = (make + " " + model).trim();
+
+        if (!carName.isBlank()) {
+            return carName;
+        }
+
+        return "차량 #" + car.getCarId();
     }
 
     /**
@@ -536,8 +1110,9 @@ public class AdminController {
         boolean active = Boolean.TRUE.equals(
                 company.getMembershipStatus());
 
-        long dealerCount = dealerRepository.countByCompanyCompanyId(
-                company.getCompanyId());
+        long dealerCount = dealerRepository
+                .countByCompanyCompanyId(
+                        company.getCompanyId());
 
         return AccountResponse.builder()
                 .id(company.getCompanyId())
@@ -619,14 +1194,14 @@ public class AdminController {
     /**
      * 선택적으로 전달된 상태 검색값을 정규화합니다.
      */
-    private String normalizeOptionalStatus(String status) {
+    private String normalizeOptionalStatus(
+            String status) {
 
         if (status == null || status.isBlank()) {
             return "";
         }
 
-        String normalizedStatus = status
-                .trim()
+        String normalizedStatus = status.trim()
                 .toUpperCase(Locale.ROOT);
 
         if ("ALL".equals(normalizedStatus)) {
@@ -644,7 +1219,7 @@ public class AdminController {
     }
 
     /**
-     * DB에 상태가 비어 있을 경우 기본 상태를 반환합니다.
+     * DB 상태값이 비어 있으면 기본 상태를 반환합니다.
      */
     private String normalizeStoredStatus(
             String status,
@@ -654,20 +1229,21 @@ public class AdminController {
             return defaultStatus;
         }
 
-        return status.trim().toUpperCase(Locale.ROOT);
+        return status.trim()
+                .toUpperCase(Locale.ROOT);
     }
 
     /**
-     * 검색어의 앞뒤 공백을 제거하고 소문자로 변환합니다.
+     * 검색어를 소문자로 변환합니다.
      */
-    private String normalizeKeyword(String query) {
+    private String normalizeKeyword(
+            String query) {
 
         if (query == null || query.isBlank()) {
             return "";
         }
 
-        return query
-                .trim()
+        return query.trim()
                 .toLowerCase(Locale.ROOT);
     }
 
@@ -688,9 +1264,11 @@ public class AdminController {
     }
 
     /**
-     * 페이지 번호와 크기를 검증합니다.
+     * 페이지 요청값을 검증합니다.
      */
-    private void validatePageRequest(int page, int size) {
+    private void validatePageRequest(
+            int page,
+            int size) {
 
         if (page < 0) {
             throw new IllegalArgumentException(
