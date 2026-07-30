@@ -311,7 +311,18 @@ function CarDetailPage() {
 
   const isDealer = normalizedLoginRole === AUTH_ROLES.DEALER;
 
+  const loginDealerId = Number(loginUser?.dealerId || loginUser?.id || 0);
+  const loginMemberId = Number(loginUser?.memberId || loginUser?.id || 0);
+
+  const carDealerId = Number(car?.dealerId || car?.dealer?.id || (car?.ownerType === "DEALER" ? car?.ownerId : 0));
+  const carMemberId = Number(car?.memberId || car?.member?.id || (car?.ownerType === "MEMBER" ? car?.ownerId : 0));
+
+  const isMyOwnCar =
+    (isDealer && loginDealerId > 0 && carDealerId > 0 && loginDealerId === carDealerId) ||
+    (!isDealer && loginMemberId > 0 && carMemberId > 0 && loginMemberId === carMemberId);
+
   const canUseWishlist =
+    !isMyOwnCar &&
     [
       AUTH_ROLES.MEMBER,
       AUTH_ROLES.DEALER,
