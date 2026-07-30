@@ -7,11 +7,11 @@ import {
   useState,
 } from "react";
 import {
-  getSavedRooms,
-  getUnreadRoomCount,
-  MESSAGE_CHANGE_EVENT,
+  getMyChatRooms,
+} from "../../api/chatApi";
+import {
   MESSAGE_OPEN_EVENT,
-  MESSAGE_STORAGE_KEY,
+  MESSAGE_REFRESH_EVENT,
 } from "./messageStorage";
 import "../../css/message/messageDropdown.css";
 
@@ -20,34 +20,27 @@ const MessageDropdownPanel = lazy(() =>
 );
 
 function MessageDropdown() {
-  const [isOpen, setIsOpen] =
-    useState(false);
-
-  const [unreadCount, setUnreadCount] =
-    useState(() =>
-      getUnreadRoomCount(getSavedRooms())
-    );
-
-  const [openRoomId, setOpenRoomId] =
-    useState(null);
-
+  const [isOpen, setIsOpen] = useState(false);
+  const [roomCount, setRoomCount] = useState(0);
+  const [openRoomId, setOpenRoomId] = useState(null);
   const messageRef = useRef(null);
 
-  const refreshUnreadCount =
-    useCallback(() => {
-      setUnreadCount(
-        getUnreadRoomCount(getSavedRooms())
-      );
-    }, []);
+  const refreshRoomCount = useCallback(async () => {
+    try {
+      const rooms = await getMyChatRooms();
+      setRoomCount(Array.isArray(rooms) ? rooms.length : 0);
+    } catch (error) {
+      console.error("메시지 개수 조회 실패:", error);
+      setRoomCount(0);
+    }
+  }, []);
 
   const handleToggleOpen = () => {
     setIsOpen((prev) => {
       const nextOpen = !prev;
-
       if (!nextOpen) {
         setOpenRoomId(null);
       }
-
       return nextOpen;
     });
   };
@@ -58,62 +51,38 @@ function MessageDropdown() {
   }, []);
 
   useEffect(() => {
-    const handleMessageChange = () => {
-      refreshUnreadCount();
-    };
-
-    const handleStorageChange = (event) => {
-      if (
-        event.key &&
-        event.key !== MESSAGE_STORAGE_KEY
-      ) {
-        return;
-      }
-
-      refreshUnreadCount();
-    };
+    const initialLoadId = window.setTimeout(
+      refreshRoomCount,
+      0
+    );
 
     const handleOpenMessage = (event) => {
-      setOpenRoomId(
-        event.detail?.roomId ?? null
-      );
-
+      setOpenRoomId(event.detail?.roomId ?? null);
       setIsOpen(true);
-      refreshUnreadCount();
+      refreshRoomCount();
     };
-
-    window.addEventListener(
-      MESSAGE_CHANGE_EVENT,
-      handleMessageChange
-    );
 
     window.addEventListener(
       MESSAGE_OPEN_EVENT,
       handleOpenMessage
     );
-
     window.addEventListener(
-      "storage",
-      handleStorageChange
+      MESSAGE_REFRESH_EVENT,
+      refreshRoomCount
     );
 
     return () => {
-      window.removeEventListener(
-        MESSAGE_CHANGE_EVENT,
-        handleMessageChange
-      );
-
+      window.clearTimeout(initialLoadId);
       window.removeEventListener(
         MESSAGE_OPEN_EVENT,
         handleOpenMessage
       );
-
       window.removeEventListener(
-        "storage",
-        handleStorageChange
+        MESSAGE_REFRESH_EVENT,
+        refreshRoomCount
       );
     };
-  }, [refreshUnreadCount]);
+  }, [refreshRoomCount]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -123,48 +92,31 @@ function MessageDropdown() {
     const handleClickOutside = (event) => {
       if (
         messageRef.current &&
-        !messageRef.current.contains(
-          event.target
-        )
+        !messageRef.current.contains(event.target)
       ) {
         handleClose();
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
-
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [handleClose, isOpen]);
 
   return (
-    <div
-      className="message-dropdown-wrap"
-      ref={messageRef}
-    >
+    <div className="message-dropdown-wrap" ref={messageRef}>
       <button
         type="button"
         className="message-icon-btn"
         onClick={handleToggleOpen}
-        aria-label="메세지"
+        aria-label="메시지"
         aria-expanded={isOpen}
       >
-        <span className="message-icon">
-          💬
-        </span>
-
-        {unreadCount > 0 && (
+        <span className="message-icon">💬</span>
+        {roomCount > 0 && (
           <span className="message-badge">
-            {unreadCount > 99
-              ? "99+"
-              : unreadCount}
+            {roomCount > 99 ? "99+" : roomCount}
           </span>
         )}
       </button>
@@ -174,22 +126,16 @@ function MessageDropdown() {
           fallback={
             <div className="message-dropdown-box">
               <div className="message-empty-box">
-                <p>
-                  메세지를 불러오는 중입니다.
-                </p>
+                <p>메시지를 불러오는 중입니다.</p>
               </div>
             </div>
           }
         >
           <MessageDropdownPanel
-            key={String(
-              openRoomId ?? "room-list"
-            )}
+            key={String(openRoomId ?? "room-list")}
             initialRoomId={openRoomId}
             onClose={handleClose}
-            onRoomsChange={
-              refreshUnreadCount
-            }
+            onRoomsChange={refreshRoomCount}
           />
         </Suspense>
       )}

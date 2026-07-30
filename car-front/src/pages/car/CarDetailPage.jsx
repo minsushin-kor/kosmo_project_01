@@ -13,6 +13,15 @@ import {
   getCarDetail,
 } from "../../api/carApi";
 import {
+  createOrGetChatRoom,
+  getChatRoomMessages,
+  sendChatMessage,
+} from "../../api/chatApi";
+import {
+  openMessageRoom,
+  refreshMessageRooms,
+} from "../../components/message/messageStorage";
+import {
   placeAuctionBid,
 } from "../../api/auctionApi";
 import {
@@ -38,8 +47,6 @@ import {
 const AUCTION_WINNERS_KEY =
   "car_front_auction_winners";
 
-const MESSAGE_STORAGE_KEY =
-  "car_front_messages";
 
 function formatDateTime(dateText) {
   if (!dateText) {
@@ -151,23 +158,6 @@ function getAuctionWinners() {
   } catch (error) {
     console.error(
       "낙찰 정보 조회 실패:",
-      error
-    );
-
-    return [];
-  }
-}
-
-function getSavedMessages() {
-  try {
-    return JSON.parse(
-      localStorage.getItem(
-        MESSAGE_STORAGE_KEY
-      ) || "[]"
-    );
-  } catch (error) {
-    console.error(
-      "메시지 정보 조회 실패:",
       error
     );
 
@@ -802,11 +792,6 @@ function CarDetailPage() {
       ? `/member/cars/${carId}/bids`
       : "/dealer/cars";
 
-  const sellerType =
-    isDealerCar
-      ? AUTH_ROLES.DEALER
-      : AUTH_ROLES.MEMBER;
-
   const sellerId =
     isDealerCar
       ? dealerId
@@ -1293,16 +1278,14 @@ function CarDetailPage() {
     }
   }
 
-  function handleMessageClick() {
+  async function handleMessageClick() {
     if (!loginUser) {
       setBidMessage(
         "로그인 후 판매자에게 문의할 수 있습니다."
       );
-
       setTradeMessage(
         "로그인 후 판매자에게 문의할 수 있습니다."
       );
-
       return;
     }
 
@@ -1310,211 +1293,48 @@ function CarDetailPage() {
       setBidMessage(
         "본인이 등록한 차량에는 문의할 수 없습니다."
       );
-
       setTradeMessage(
         "본인이 등록한 차량에는 문의할 수 없습니다."
       );
-
       return;
     }
 
-    if (!sellerId) {
-      setBidMessage(
-        "판매자 정보를 확인할 수 없습니다."
-      );
-
-      setTradeMessage(
-        "판매자 정보를 확인할 수 없습니다."
-      );
-
+    if (
+      normalizedLoginRole !== AUTH_ROLES.MEMBER ||
+      !isDealerCar
+    ) {
+      const message =
+        "일반회원만 딜러가 등록한 차량에 문의할 수 있습니다.";
+      setBidMessage(message);
+      setTradeMessage(message);
       return;
     }
 
-    const now =
-      new Date().toISOString();
-
-    const buyerType =
-      loginUser.role ||
-      AUTH_ROLES.MEMBER;
-
-    const buyerId =
-      getLoginUserId(
-        loginUser
+    try {
+      const room = await createOrGetChatRoom(carId);
+      const messages = await getChatRoomMessages(
+        room.roomId
       );
 
-    if (!buyerId) {
-      return;
+      if (!Array.isArray(messages) || messages.length === 0) {
+        await sendChatMessage(
+          room.roomId,
+          `${carName} 차량 문의드립니다.`
+        );
+      }
+
+      refreshMessageRooms();
+      openMessageRoom(room.roomId);
+      setTradeMessage("");
+      setBidMessage("");
+    } catch (error) {
+      console.error("판매자 문의 채팅방 연결 실패:", error);
+      const message =
+        error?.message ||
+        "문의 채팅방을 열지 못했습니다.";
+      setBidMessage(message);
+      setTradeMessage(message);
     }
-
-    const buyerName =
-      getLoginUserName(
-        loginUser
-      );
-
-    const roomId =
-      `${buyerType}-${buyerId}-${sellerType}-${sellerId}-car-${carId}`;
-
-    const firstMessageText =
-      `${carName} 차량 문의드립니다.`;
-
-    const firstMessage = {
-      id: crypto.randomUUID(),
-
-      roomId,
-
-      sender: "ME",
-      senderType:
-        buyerType,
-      senderId:
-        buyerId,
-      senderName:
-        buyerName,
-
-      receiverType:
-        sellerType,
-      receiverId:
-        sellerId,
-      receiverName:
-        sellerName,
-
-      type: "TEXT",
-      text:
-        firstMessageText,
-      createdAt: now,
-    };
-
-    const savedRooms =
-      getSavedMessages();
-
-    const hasRoom =
-      savedRooms.some(
-        (room) =>
-          room.roomId ===
-          roomId
-      );
-
-    const mainImageUrl =
-      carImages.find(
-        (image) =>
-          image.isMain ===
-          true
-      )?.imageUrl ||
-      carImages[0]
-        ?.imageUrl ||
-      car.image ||
-      null;
-
-    const nextRooms =
-      hasRoom
-        ? savedRooms.map(
-          (room) =>
-            room.roomId ===
-              roomId
-              ? {
-                ...room,
-
-                lastMessage:
-                  firstMessageText,
-
-                messages: [
-                  ...(Array.isArray(
-                    room.messages
-                  )
-                    ? room.messages
-                    : []),
-
-                  firstMessage,
-                ],
-
-                updatedAt:
-                  now,
-
-                isRead:
-                  false,
-              }
-              : room
-        )
-        : [
-          {
-            roomId,
-
-            carId,
-            carName,
-
-            carImage:
-              mainImageUrl,
-
-            sellerType,
-            sellerId,
-            sellerName,
-
-            dealerId:
-              isDealerCar
-                ? dealerId
-                : null,
-
-            memberId:
-              isMemberCar
-                ? memberId
-                : null,
-
-            companyId:
-              isDealerCar
-                ? companyId
-                : null,
-
-            companyName:
-              isDealerCar
-                ? companyName
-                : "개인 판매",
-
-            buyerType,
-            buyerId,
-            buyerName,
-
-            lastMessage:
-              firstMessageText,
-
-            messages: [
-              firstMessage,
-            ],
-
-            createdAt:
-              now,
-
-            updatedAt:
-              now,
-
-            isRead:
-              false,
-          },
-
-          ...savedRooms,
-        ];
-
-    localStorage.setItem(
-      MESSAGE_STORAGE_KEY,
-      JSON.stringify(
-        nextRooms
-      )
-    );
-
-    window.dispatchEvent(
-      new Event(
-        "message-change"
-      )
-    );
-
-    window.dispatchEvent(
-      new CustomEvent(
-        "message-open",
-        {
-          detail: {
-            roomId,
-          },
-        }
-      )
-    );
   }
 
   return (
@@ -1908,16 +1728,6 @@ function CarDetailPage() {
                       ? "입찰 완료"
                       : "입찰하기"}
                 </button>
-
-                <button
-                  type="button"
-                  className="outline-button"
-                  onClick={
-                    handleMessageClick
-                  }
-                >
-                  판매자 문의
-                </button>
               </div>
             </form>
           ) : (
@@ -1947,15 +1757,17 @@ function CarDetailPage() {
                   구매완료 테스트
                 </button>
 
-                <button
-                  type="button"
-                  className="outline-button"
-                  onClick={
-                    handleMessageClick
-                  }
-                >
-                  판매자 문의
-                </button>
+                {isDealerCar && (
+                  <button
+                    type="button"
+                    className="outline-button"
+                    onClick={
+                      handleMessageClick
+                    }
+                  >
+                    판매자 문의
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -2101,7 +1913,7 @@ function CarDetailPage() {
             </div>
           </div>
 
-          {!isOwner && (
+          {!isOwner && isDealerCar && (
             <button
               type="button"
               onClick={

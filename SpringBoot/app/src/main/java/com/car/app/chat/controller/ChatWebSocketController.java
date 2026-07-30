@@ -37,13 +37,9 @@ public class ChatWebSocketController {
         Authentication auth = (Authentication) principal;
         String senderLoginId = auth.getName(); // 로그인 아이디 (loginId)
         
-        // 사용자의 역할이 일반 회원(ROLE_MEMBER)인지 판별
-        boolean isMember = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_MEMBER"));
-
         try {
             // 메시지를 DB에 기록하고 응답 포맷으로 가공
-            ChatDto.MessageResponse response = chatService.saveMessage(roomId, request.getMessage(), senderLoginId, isMember);
+            ChatDto.MessageResponse response = chatService.saveMessage(roomId, request.getMessage(), senderLoginId, auth.getAuthorities());
 
             // 해당 채팅방을 구독 중인 클라이언트들에게 메시지를 실시간으로 뿌려줍니다.
             String destination = "/sub/chat/room/" + roomId;

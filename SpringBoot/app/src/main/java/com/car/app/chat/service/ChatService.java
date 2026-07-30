@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -94,6 +95,11 @@ public class ChatService {
 
         return rooms.stream()
                 .map(this::mapToRoomResponse)
+                .sorted(Comparator.comparing(
+                        room -> room.getLastMessageTime() != null
+                                ? room.getLastMessageTime()
+                                : room.getCreatedAt(),
+                        Comparator.reverseOrder()))
                 .collect(Collectors.toList());
     }
 
@@ -123,7 +129,27 @@ public class ChatService {
      * 수신된 실시간 채팅 메시지를 데이터베이스에 안전하게 기록하고 응답 DTO로 반환합니다.
      */
     @Transactional
-    public ChatDto.MessageResponse saveMessage(Long roomId, String messageText, String senderLoginId, boolean isMember) {
+    public ChatDto.MessageResponse saveMessage(
+            Long roomId,
+            String messageText,
+            String senderLoginId,
+            Collection<? extends GrantedAuthority> authorities) {
+        String normalizedMessage = messageText == null ? "" : messageText.trim();
+        if (normalizedMessage.isEmpty()) {
+            throw new IllegalArgumentException("메시지 내용을 입력해 주세요.");
+        }
+        if (normalizedMessage.length() > 1000) {
+            throw new IllegalArgumentException("메시지는 1000자 이하로 입력해 주세요.");
+        }
+
+        boolean isMember = authorities.stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_MEMBER"));
+        boolean isDealer = authorities.stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DEALER"));
+
+        if (!isMember && !isDealer) {
+            throw new AccessDeniedException("채팅 메시지를 보낼 수 없는 계정입니다.");
+        }
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채팅방입니다."));
 
@@ -137,7 +163,7 @@ public class ChatService {
 
         ChatMessage.ChatMessageBuilder builder = ChatMessage.builder()
                 .chatRoom(room)
-                .message(messageText);
+                .message(normalizedMessage);
 
         if (isMember) {
             builder.senderMember(room.getMember());
@@ -146,7 +172,7 @@ public class ChatService {
         }
 
         ChatMessage savedMessage = chatMessageRepository.save(builder.build());
-        log.info("채팅 메시지 저장 완료 [방 ID: {}]: {}", roomId, messageText);
+        log.info("채팅 메시지 저장 완료 [방 ID: {}]", roomId);
         return mapToMessageResponse(savedMessage);
     }
 
@@ -157,16 +183,13 @@ public class ChatService {
         String carName = String.format("%d년식 %s %s",
                 room.getCar().getYear(), room.getCar().getMake(), room.getCar().getModel());
 
-        // 마지막 대화 메시지 및 시간 확인
-        List<ChatMessage> messages = chatMessageRepository.findByChatRoomRoomIdOrderByCreatedAtAsc(room.getRoomId());
-        String lastMessage = "";
-        java.time.LocalDateTime lastMessageTime = null;
-
-        if (messages != null && !messages.isEmpty()) {
-            ChatMessage lastMsg = messages.get(messages.size() - 1);
-            lastMessage = lastMsg.getMessage();
-            lastMessageTime = lastMsg.getCreatedAt();
-        }
+        ChatMessage lastMsg = chatMessageRepository
+                .findTopByChatRoomRoomIdOrderByCreatedAtDesc(room.getRoomId())
+                .orElse(null);
+        String lastMessage = lastMsg == null ? "" : lastMsg.getMessage();
+        java.time.LocalDateTime lastMessageTime = lastMsg == null
+                ? null
+                : lastMsg.getCreatedAt();
 
         return ChatDto.RoomResponse.builder()
                 .roomId(room.getRoomId())

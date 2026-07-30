@@ -89,4 +89,26 @@ public class ChatController {
             return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
         }
     }
+    /**
+     * 로그인한 채팅방 참여자가 텍스트 메시지를 전송하고 DB에 저장합니다.
+     */
+    @PostMapping("/rooms/{roomId}/messages")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER')")
+    public ResponseEntity<ApiResponse<ChatDto.MessageResponse>> sendMessage(
+            @PathVariable Long roomId,
+            @RequestBody ChatDto.MessageRequest request) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            ChatDto.MessageResponse response = chatService.saveMessage(
+                    roomId,
+                    request.getMessage(),
+                    authentication.getName(),
+                    authentication.getAuthorities());
+
+            return ResponseEntity.ok(ApiResponse.success(response, "메시지 전송이 성공적으로 처리되었습니다."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
+        }
+    }
+
 }
