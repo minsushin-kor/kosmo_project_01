@@ -21,19 +21,28 @@ const MessageDropdownPanel = lazy(() =>
 
 function MessageDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const [roomCount, setRoomCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [openRoomId, setOpenRoomId] = useState(null);
   const messageRef = useRef(null);
+
+  const updateUnreadCount = useCallback((rooms) => {
+    const totalUnread = Array.isArray(rooms)
+      ? rooms.reduce(
+          (sum, room) => sum + Number(room.unreadCount || 0),
+          0
+        )
+      : 0;
+    setUnreadCount(totalUnread);
+  }, []);
 
   const refreshRoomCount = useCallback(async () => {
     try {
       const rooms = await getMyChatRooms();
-      setRoomCount(Array.isArray(rooms) ? rooms.length : 0);
+      updateUnreadCount(rooms);
     } catch (error) {
       console.error("메시지 개수 조회 실패:", error);
-      setRoomCount(0);
     }
-  }, []);
+  }, [updateUnreadCount]);
 
   const handleToggleOpen = () => {
     setIsOpen((prev) => {
@@ -85,6 +94,16 @@ function MessageDropdown() {
   }, [refreshRoomCount]);
 
   useEffect(() => {
+    const intervalId = window.setInterval(
+      refreshRoomCount,
+      10000
+    );
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [refreshRoomCount]);
+
+  useEffect(() => {
     if (!isOpen) {
       return undefined;
     }
@@ -114,9 +133,9 @@ function MessageDropdown() {
         aria-expanded={isOpen}
       >
         <span className="message-icon">💬</span>
-        {roomCount > 0 && (
+        {unreadCount > 0 && (
           <span className="message-badge">
-            {roomCount > 99 ? "99+" : roomCount}
+            {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
@@ -135,7 +154,7 @@ function MessageDropdown() {
             key={String(openRoomId ?? "room-list")}
             initialRoomId={openRoomId}
             onClose={handleClose}
-            onRoomsChange={refreshRoomCount}
+            onRoomsChange={updateUnreadCount}
           />
         </Suspense>
       )}

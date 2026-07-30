@@ -7,6 +7,7 @@ import {
 import {
   getChatRoomMessages,
   getMyChatRooms,
+  markChatRoomAsRead,
   sendChatMessage,
 } from "../../api/chatApi";
 import {
@@ -74,6 +75,7 @@ function MessageDropdownPanel({
   onRoomsChange,
 }) {
   const { loginUser } = useAuth();
+  const myRole = loginUser?.role;
   const [rooms, setRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState(
     initialRoomId ?? null
@@ -85,6 +87,8 @@ function MessageDropdownPanel({
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const chatEndRef = useRef(null);
+  const messageRequestInFlightRef = useRef(false);
+  const lastReadPartnerMessageIdRef = useRef(null);
 
   const selectedRoom = rooms.find(
     (room) => String(room.roomId) === String(selectedRoomId)
@@ -95,7 +99,7 @@ function MessageDropdownPanel({
       const roomList = await getMyChatRooms();
       const nextRooms = Array.isArray(roomList) ? roomList : [];
       setRooms(nextRooms);
-      onRoomsChange?.();
+      onRoomsChange?.(nextRooms);
 
       if (
         selectedRoomId !== null &&
@@ -116,23 +120,54 @@ function MessageDropdownPanel({
     }
   }, [onRoomsChange, selectedRoomId]);
 
-  const loadMessages = useCallback(async (roomId) => {
-    if (!roomId) {
-      setMessages([]);
+  const loadMessages = useCallback(async (roomId, shouldMarkRead = false) => {
+    if (!roomId || messageRequestInFlightRef.current) {
+      if (!roomId) {
+        setMessages([]);
+      }
       return;
     }
 
+    messageRequestInFlightRef.current = true;
+
     try {
       const messageList = await getChatRoomMessages(roomId);
-      setMessages(Array.isArray(messageList) ? messageList : []);
+      const nextMessages = Array.isArray(messageList) ? messageList : [];
+
+      setMessages((prev) => {
+        const prevLastId = prev.at(-1)?.messageId ?? null;
+        const nextLastId = nextMessages.at(-1)?.messageId ?? null;
+        return prev.length === nextMessages.length && prevLastId === nextLastId
+          ? prev
+          : nextMessages;
+      });
+
+      const latestPartnerMessage = [...nextMessages]
+        .reverse()
+        .find((message) => message.senderType !== myRole);
+
+      if (
+        shouldMarkRead &&
+        latestPartnerMessage &&
+        String(lastReadPartnerMessageIdRef.current) !==
+          String(latestPartnerMessage.messageId)
+      ) {
+        await markChatRoomAsRead(roomId);
+        lastReadPartnerMessageIdRef.current =
+          latestPartnerMessage.messageId;
+        await loadRooms();
+      }
+
       setErrorMessage("");
     } catch (error) {
       console.error("채팅 메시지 조회 실패:", error);
       setErrorMessage(
         error?.message || "대화 내용을 불러오지 못했습니다."
       );
+    } finally {
+      messageRequestInFlightRef.current = false;
     }
-  }, []);
+  }, [loadRooms, myRole]);
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -141,12 +176,14 @@ function MessageDropdownPanel({
   }, []);
 
   const handleRoomClick = (roomId) => {
+    lastReadPartnerMessageIdRef.current = null;
     setSelectedRoomId(roomId);
     setInputMessage("");
     setIsEmojiOpen(false);
   };
 
   const handleBackToList = () => {
+    lastReadPartnerMessageIdRef.current = null;
     setSelectedRoomId(null);
     setMessages([]);
     setInputMessage("");
@@ -192,17 +229,19 @@ function MessageDropdownPanel({
   }, [loadRooms]);
 
   useEffect(() => {
+    lastReadPartnerMessageIdRef.current = null;
+
     if (!selectedRoomId) {
       return undefined;
     }
 
     const initialLoadId = window.setTimeout(
-      () => loadMessages(selectedRoomId),
+      () => loadMessages(selectedRoomId, true),
       0
     );
 
     const intervalId = window.setInterval(() => {
-      loadMessages(selectedRoomId);
+      loadMessages(selectedRoomId, true);
     }, 3000);
 
     return () => {
@@ -229,8 +268,6 @@ function MessageDropdownPanel({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose]);
-
-  const myRole = loginUser?.role;
 
   return (
     <div className="message-dropdown-box">
@@ -264,7 +301,11 @@ function MessageDropdownPanel({
                   <button
                     key={room.roomId}
                     type="button"
-                    className="message-room-item"
+                    className={`message-room-item ${
+                      Number(room.unreadCount || 0) > 0
+                        ? "unread"
+                        : ""
+                    }`}
                     onClick={() => handleRoomClick(room.roomId)}
                   >
                     <div className="message-room-profile">
@@ -284,6 +325,13 @@ function MessageDropdownPanel({
                         {room.lastMessage || "대화를 시작해 보세요."}
                       </small>
                     </div>
+                    {Number(room.unreadCount || 0) > 0 && (
+                      <span className="message-room-dot">
+                        {Number(room.unreadCount) > 99
+                          ? "99+"
+                          : room.unreadCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
