@@ -111,7 +111,18 @@ function CarCard({
       ?.imageUrl ||
     "";
 
+  const loginDealerId = Number(loginUser?.dealerId || loginUser?.id || 0);
+  const loginMemberId = Number(loginUser?.memberId || loginUser?.id || 0);
+
+  const carDealerId = Number(viewCar.dealerId || viewCar.dealer?.id || (viewCar.ownerType === "DEALER" ? viewCar.ownerId : 0));
+  const carMemberId = Number(viewCar.memberId || viewCar.member?.id || (viewCar.ownerType === "MEMBER" ? viewCar.ownerId : 0));
+
+  const isMyOwnCar =
+    (loginUser?.role === AUTH_ROLES.DEALER && loginDealerId > 0 && carDealerId > 0 && loginDealerId === carDealerId) ||
+    (loginUser?.role === AUTH_ROLES.MEMBER && loginMemberId > 0 && carMemberId > 0 && loginMemberId === carMemberId);
+
   const canUseWishlist =
+    !isMyOwnCar &&
     [
       AUTH_ROLES.MEMBER,
       AUTH_ROLES.DEALER,
@@ -130,7 +141,7 @@ function CarCard({
 
       try {
         const carIds =
-          await getWishlistCarIds();
+          await getWishlistCarIds({ force: true });
 
         if (isMounted) {
           setIsWished(
@@ -150,6 +161,11 @@ function CarCard({
     function handleWishlistChange(
       event
     ) {
+      const eventUserId = event.detail?.userLoginId;
+      if (eventUserId && loginUser?.loginId && eventUserId !== loginUser.loginId) {
+        return;
+      }
+
       if (
         Number(
           event.detail?.carId
@@ -183,6 +199,7 @@ function CarCard({
   }, [
     canUseWishlist,
     viewCar.id,
+    loginUser?.loginId,
   ]);
 
   async function handleWishlistClick(
@@ -242,41 +259,43 @@ function CarCard({
 
   return (
     <article className="car-card">
-      <button
-        type="button"
-        className={`car-card-wishlist-button ${isWished
-            ? "is-active"
-            : ""
-          }`}
-        onClick={
-          handleWishlistClick
-        }
-        disabled={
-          isWishlistLoading
-        }
-        aria-label={
-          isWished
-            ? "찜 해제"
-            : "찜 등록"
-        }
-        aria-pressed={
-          isWished
-        }
-        title={
-          isWished
-            ? "찜 해제"
-            : "찜 등록"
-        }
-      >
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
+      {canUseWishlist && (
+        <button
+          type="button"
+          className={`car-card-wishlist-button ${isWished
+              ? "is-active"
+              : ""
+            }`}
+          onClick={
+            handleWishlistClick
+          }
+          disabled={
+            isWishlistLoading
+          }
+          aria-label={
+            isWished
+              ? "찜 해제"
+              : "찜 등록"
+          }
+          aria-pressed={
+            isWished
+          }
+          title={
+            isWished
+              ? "찜 해제"
+              : "찜 등록"
+          }
         >
-          <path
-            d="M12 21s-7.2-4.35-9.55-8.37C.45 9.2 1.43 5.1 5.08 3.75c2.22-.82 4.65-.08 5.92 1.67 1.27-1.75 3.7-2.49 5.92-1.67 3.65 1.35 4.63 5.45 2.63 8.88C19.2 16.65 12 21 12 21Z"
-          />
-        </svg>
-      </button>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 21s-7.2-4.35-9.55-8.37C.45 9.2 1.43 5.1 5.08 3.75c2.22-.82 4.65-.08 5.92 1.67 1.27-1.75 3.7-2.49 5.92-1.67 3.65 1.35 4.63 5.45 2.63 8.88C19.2 16.65 12 21 12 21Z"
+            />
+          </svg>
+        </button>
+      )}
 
       <Link
         to={`/cars/${viewCar.id}`}

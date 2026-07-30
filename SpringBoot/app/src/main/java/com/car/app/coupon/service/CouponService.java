@@ -82,16 +82,18 @@ public class CouponService {
                     );
 
             if (previousCoupon.isPresent()) {
-                String status = previousCoupon.get().getStatus();
-                if ("UNUSED".equalsIgnoreCase(status)
-                        && previousCoupon.get().getExpiredAt().isAfter(issuedAt)) {
-                    skippedUnusedCount++;
-                } else if ("USED".equalsIgnoreCase(status)) {
-                    skippedUsedCount++;
-                } else {
-                    skippedExpiredOrOtherCount++;
+                Coupon prev = previousCoupon.get();
+                // 30일 이내에 이미 발급받은 이력이 있는 경우 (USED, UNUSED 불문) 재발급 방지
+                if (prev.getIssuedAt() != null && prev.getIssuedAt().isAfter(issuedAt.minusDays(30))) {
+                    if ("USED".equalsIgnoreCase(prev.getStatus())) {
+                        skippedUsedCount++;
+                    } else if ("UNUSED".equalsIgnoreCase(prev.getStatus())) {
+                        skippedUnusedCount++;
+                    } else {
+                        skippedExpiredOrOtherCount++;
+                    }
+                    continue;
                 }
-                continue;
             }
 
             couponsToIssue.add(Coupon.builder()
@@ -259,8 +261,9 @@ public class CouponService {
             throw new IllegalArgumentException("만료 기한이 경과한 쿠폰입니다.");
         }
 
-        // 쿠폰 사용 완료 처리 후 삭제
-        couponRepository.delete(coupon);
+        // 쿠폰 사용 완료 처리 (삭제하지 않고 USED 상태로 변경 및 저장)
+        coupon.setStatus("USED");
+        couponRepository.save(coupon);
     }
 
     /**
@@ -377,6 +380,14 @@ public class CouponService {
         Dealer dealer = dealerRepository.findById(dealerId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러입니다."));
 
+        // 최근 30일 이내 수수료 감면 쿠폰 발급 이력이 있는지 검사
+        Optional<Coupon> recent = couponRepository.findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(
+                dealerId, CHURN_COUPON_TYPE);
+        if (recent.isPresent() && recent.get().getIssuedAt() != null
+                && recent.get().getIssuedAt().isAfter(LocalDateTime.now().minusDays(30))) {
+            throw new IllegalArgumentException("해당 딜러에게는 최근 30일 이내에 이미 수수료 감면 쿠폰이 발급된 기록이 있습니다.");
+        }
+
         Coupon coupon = Coupon.builder()
                 .name(couponName != null ? couponName : "낙찰 수수료 50% 감면 쿠폰")
                 .couponType(CHURN_COUPON_TYPE)
@@ -409,6 +420,14 @@ public class CouponService {
     public Coupon issueRiskCouponToDealer(Long dealerId) {
         Dealer dealer = dealerRepository.findById(dealerId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
+
+        // 최근 30일 이내 수수료 감면 쿠폰 발급 이력이 있는지 검사
+        Optional<Coupon> recent = couponRepository.findFirstByDealerDealerIdAndCouponTypeOrderByIssuedAtDesc(
+                dealerId, CHURN_COUPON_TYPE);
+        if (recent.isPresent() && recent.get().getIssuedAt() != null
+                && recent.get().getIssuedAt().isAfter(LocalDateTime.now().minusDays(30))) {
+            throw new IllegalArgumentException("해당 딜러에게는 최근 30일 이내에 이미 수수료 감면 쿠폰이 발급된 기록이 있습니다.");
+        }
 
         Coupon coupon = Coupon.builder()
                 .name("이탈 방지 딜러 수수료 50% 감면 쿠폰")

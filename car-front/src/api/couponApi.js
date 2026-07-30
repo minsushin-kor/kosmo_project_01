@@ -34,3 +34,12 @@ export function issueRiskCouponsManually() {
 export function issueRiskCouponToDealer(dealerId) {
   return apiClient.post(`/coupons/issue-risk-coupon/dealer/${dealerId}`);
 }
+
+// 관리자: 특정 딜러에게 수수료 감면 쿠폰 직접 지급
+export function issueCouponToDealer(dealerId, name, discountRate) {
+  const params = new URLSearchParams();
+  params.append("dealerId", dealerId);
+  if (name) params.append("name", name);
+  if (discountRate) params.append("discountRate", discountRate);
+  return apiClient.post(`/coupons/issue-to-dealer?${params.toString()}`);
+}
