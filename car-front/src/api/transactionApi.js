@@ -85,6 +85,24 @@ export async function getReceivedPurchaseRequests() {
         : [];
 }
 
+export async function getReceivedCarPurchaseRequests(
+    carId
+) {
+    if (!carId) {
+        throw new Error(
+            "구매 요청을 조회할 차량 ID를 확인할 수 없습니다."
+        );
+    }
+
+    const result = await apiClient.get(
+        `/transactions/purchase-requests/received/cars/${carId}`
+    );
+
+    return Array.isArray(result)
+        ? result
+        : [];
+}
+
 export async function approvePurchaseRequest(
     transactionId
 ) {

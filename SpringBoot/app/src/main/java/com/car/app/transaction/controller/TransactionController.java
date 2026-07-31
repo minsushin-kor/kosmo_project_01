@@ -161,6 +161,26 @@ public class TransactionController {
     }
 
     /**
+     * 딜러가 본인 소유의 특정 차량에 접수된 구매 요청을 조회합니다.
+     */
+    @GetMapping("/api/transactions/purchase-requests/received/cars/{carId}")
+    @PreAuthorize("hasRole('DEALER')")
+    public ResponseEntity<ApiResponse<List<TransactionDto.Response>>> getReceivedPurchaseRequestsForCar(
+            @PathVariable Long carId) {
+
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+        List<TransactionDto.Response> requests =
+                purchaseRequestService.getReceivedRequestsForCar(
+                        carId,
+                        auth.getName());
+
+        return ResponseEntity.ok(ApiResponse.success(
+                requests,
+                "차량 구매 요청 조회가 완료되었습니다."));
+    }
+
+    /**
      * 딜러가 본인 차량에 접수된 구매 요청을 승인합니다.
      */
     @PatchMapping("/api/transactions/purchase-requests/{transactionId}/approve")

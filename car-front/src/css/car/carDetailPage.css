@@ -489,6 +489,127 @@
   line-height: 1.55;
 }
 
+.owner-purchase-request-box {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #cfe3fb;
+  border-radius: 14px;
+  background-color: #ffffff;
+}
+
+.owner-purchase-request-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.owner-purchase-request-heading strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.owner-purchase-request-heading p {
+  margin: 5px 0 0;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.owner-purchase-request-heading>span {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background-color: var(--main-blue-light);
+  color: var(--main-blue);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.owner-purchase-request-state {
+  margin: 12px 0 0;
+  padding: 11px;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.owner-purchase-request-state.error {
+  background-color: #fff1f2;
+  color: #be123c;
+}
+
+.owner-purchase-request-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  margin-top: 12px;
+  overflow-y: auto;
+}
+
+.owner-purchase-request-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  background-color: #f8fbff;
+}
+
+.owner-purchase-request-item>div {
+  min-width: 0;
+}
+
+.owner-purchase-request-item strong,
+.owner-purchase-request-item span {
+  display: block;
+}
+
+.owner-purchase-request-item strong {
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.owner-purchase-request-item span {
+  margin-top: 4px;
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.owner-purchase-request-item button {
+  flex-shrink: 0;
+  min-width: 64px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--main-blue);
+  border-radius: 10px;
+  background-color: var(--main-blue);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.owner-purchase-request-item button:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.owner-purchase-request-item button:disabled {
+  border-color: #cbd5e1;
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
 .owner-manage-actions {
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   margin-top: 16px;

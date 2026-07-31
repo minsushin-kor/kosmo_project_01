@@ -32,6 +32,10 @@ import {
   useAuctionCoupon as applyAuctionCoupon,
 } from "../../api/couponApi";
 import {
+  approvePurchaseRequest,
+  getReceivedCarPurchaseRequests,
+} from "../../api/transactionApi";
+import {
   useAuth,
 } from "../../hooks/useAuth";
 import {
@@ -77,6 +81,18 @@ function formatDateTime(dateText) {
       minute: "2-digit",
     }
   );
+}
+
+function formatPurchaseRequestPrice(
+  priceValue
+) {
+  const price = Number(
+    priceValue || 0
+  );
+
+  return price >= 100000
+    ? `${price.toLocaleString()}원`
+    : `${price.toLocaleString()}만원`;
 }
 
 function getAuctionRemainText(
@@ -273,6 +289,26 @@ function CarDetailPage() {
     isPurchaseRequestSubmitting,
     setIsPurchaseRequestSubmitting,
   ] = useState(false);
+
+  const [
+    dealerPurchaseRequests,
+    setDealerPurchaseRequests,
+  ] = useState([]);
+
+  const [
+    isDealerPurchaseRequestLoading,
+    setIsDealerPurchaseRequestLoading,
+  ] = useState(false);
+
+  const [
+    dealerPurchaseRequestError,
+    setDealerPurchaseRequestError,
+  ] = useState("");
+
+  const [
+    approvingPurchaseRequestId,
+    setApprovingPurchaseRequestId,
+  ] = useState(null);
 
   const [
     bidList,
@@ -677,6 +713,92 @@ function CarDetailPage() {
     normalizedLoginRole,
   ]);
 
+  useEffect(() => {
+    const targetCarId =
+      car?.id ||
+      car?.carId;
+    const targetDealerId = Number(
+      car?.dealerId ||
+      car?.dealer?.dealerId ||
+      (
+        car?.ownerType ===
+        "DEALER"
+          ? car?.ownerId
+          : 0
+      )
+    );
+    const currentDealerId = Number(
+      loginUser?.dealerId ||
+      loginUser?.id ||
+      0
+    );
+    const isOwnDealerCar =
+      normalizedLoginRole ===
+      AUTH_ROLES.DEALER &&
+      targetDealerId > 0 &&
+      currentDealerId > 0 &&
+      targetDealerId ===
+      currentDealerId;
+
+    if (
+      !targetCarId ||
+      !isOwnDealerCar
+    ) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    async function loadPurchaseRequests() {
+      setIsDealerPurchaseRequestLoading(
+        true
+      );
+      setDealerPurchaseRequestError("");
+
+      try {
+        const requests =
+          await getReceivedCarPurchaseRequests(
+            targetCarId
+          );
+
+        if (isMounted) {
+          setDealerPurchaseRequests(
+            requests
+          );
+        }
+      } catch (error) {
+        if (isMounted) {
+          setDealerPurchaseRequestError(
+            error?.message ||
+            "구매 요청을 불러오지 못했습니다."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsDealerPurchaseRequestLoading(
+            false
+          );
+        }
+      }
+    }
+
+    loadPurchaseRequests();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    car?.carId,
+    car?.dealer?.dealerId,
+    car?.dealerId,
+    car?.id,
+    car?.ownerId,
+    car?.ownerType,
+    loginUser?.dealerId,
+    loginUser?.id,
+    normalizedLoginRole,
+  ]);
+
   const carImages =
     Array.isArray(
       car?.images
@@ -746,6 +868,13 @@ function CarDetailPage() {
     car.id ||
     car.carId ||
     Number(id);
+
+  const currentCarPurchaseRequests =
+    dealerPurchaseRequests.filter(
+      (request) =>
+        String(request.carId) ===
+        String(carId)
+    );
 
   const memberId =
     car.memberId ||
@@ -1433,6 +1562,55 @@ function CarDetailPage() {
     }
   }
 
+  async function handleApprovePurchaseRequest(
+    request
+  ) {
+    if (
+      !request?.transactionId ||
+      approvingPurchaseRequestId !==
+      null
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `${request.buyerName || "회원"}님의 구매 요청을 승인하시겠습니까?\n승인하면 차량이 판매완료 처리되고 다른 구매 요청은 자동 취소됩니다.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setApprovingPurchaseRequestId(
+      request.transactionId
+    );
+    setOwnerActionMessage("");
+
+    try {
+      await approvePurchaseRequest(
+        request.transactionId
+      );
+
+      setDealerPurchaseRequests([]);
+      setCar((currentCar) => ({
+        ...currentCar,
+        status: "판매완료",
+      }));
+      setOwnerActionMessage(
+        `${request.buyerName || "회원"}님의 구매 요청을 승인하고 판매완료 처리했습니다.`
+      );
+    } catch (error) {
+      setOwnerActionMessage(
+        error?.message ||
+        "구매 요청을 승인하지 못했습니다."
+      );
+    } finally {
+      setApprovingPurchaseRequestId(
+        null
+      );
+    }
+  }
+
   async function handleDeleteCar() {
     if (
       !isOwner ||
@@ -1806,6 +1984,99 @@ function CarDetailPage() {
               {ownerActionMessage && (
                 <p className="bid-message">{ownerActionMessage}</p>
               )}
+              {isNormalSaleCar &&
+                isDealer && (
+                  <div className="owner-purchase-request-box">
+                    <div className="owner-purchase-request-heading">
+                      <div>
+                        <strong>
+                          구매 요청
+                        </strong>
+                        <p>
+                          여러 회원의 요청 중 한 명을 승인할 수 있습니다.
+                          승인하면 나머지 요청은 자동 취소됩니다.
+                        </p>
+                      </div>
+
+                      <span>
+                        {
+                          currentCarPurchaseRequests.length
+                        }
+                        건
+                      </span>
+                    </div>
+
+                    {isDealerPurchaseRequestLoading ? (
+                      <p className="owner-purchase-request-state">
+                        구매 요청을 불러오는 중입니다.
+                      </p>
+                    ) : dealerPurchaseRequestError ? (
+                      <p className="owner-purchase-request-state error">
+                        {
+                          dealerPurchaseRequestError
+                        }
+                      </p>
+                    ) : currentCarPurchaseRequests.length ===
+                      0 ? (
+                      <p className="owner-purchase-request-state">
+                        대기 중인 구매 요청이 없습니다.
+                      </p>
+                    ) : (
+                      <div className="owner-purchase-request-list">
+                        {currentCarPurchaseRequests.map(
+                          (
+                            request
+                          ) => (
+                            <div
+                              className="owner-purchase-request-item"
+                              key={
+                                request.transactionId
+                              }
+                            >
+                              <div>
+                                <strong>
+                                  {request.buyerName ||
+                                    "회원"}
+                                </strong>
+                                <span>
+                                  {formatPurchaseRequestPrice(
+                                    request.dealPrice
+                                  )}
+                                  {" · "}
+                                  {formatDateTime(
+                                    request.createdAt
+                                  )}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={
+                                  approvingPurchaseRequestId !==
+                                  null
+                                }
+                                onClick={() =>
+                                  handleApprovePurchaseRequest(
+                                    request
+                                  )
+                                }
+                              >
+                                {String(
+                                  approvingPurchaseRequestId
+                                ) ===
+                                  String(
+                                    request.transactionId
+                                  )
+                                  ? "승인 중..."
+                                  : "승인"}
+                              </button>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               <div className="detail-action-buttons owner-manage-actions">
                 {isAuctionCar && (
                   <Link to={ownerManagePath} className="outline-button">

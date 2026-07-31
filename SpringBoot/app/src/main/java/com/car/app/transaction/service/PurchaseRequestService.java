@@ -137,6 +137,41 @@ public class PurchaseRequestService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<TransactionDto.Response> getReceivedRequestsForCar(
+            Long carId,
+            String dealerLoginId) {
+
+        Dealer dealer = getDealer(dealerLoginId);
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "존재하지 않는 차량 매물입니다."));
+
+        if (car.getDealer() == null
+                || !dealer.getDealerId().equals(
+                        car.getDealer().getDealerId())) {
+            throw new AccessDeniedException(
+                    "본인 차량의 구매 요청만 조회할 수 있습니다.");
+        }
+
+        return transactionRepository
+                .findByCarCarIdAndSellerTypeAndSellerIdAndBuyerTypeAndStatusOrderByCreatedAtDesc(
+                        carId,
+                        "DEALER",
+                        dealer.getDealerId(),
+                        "MEMBER",
+                        PURCHASE_REQUESTED)
+                .stream()
+                .map(transaction -> {
+                    String buyerName = memberRepository
+                            .findById(transaction.getBuyerId())
+                            .map(Member::getName)
+                            .orElse("회원");
+                    return toResponse(transaction, buyerName);
+                })
+                .toList();
+    }
+
     @Transactional
     public TransactionDto.Response approveRequest(
             Long transactionId,

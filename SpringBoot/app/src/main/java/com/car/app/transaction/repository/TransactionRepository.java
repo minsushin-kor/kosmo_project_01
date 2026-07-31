@@ -36,6 +36,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             String buyerType,
             String status);
 
+    List<Transaction> findByCarCarIdAndSellerTypeAndSellerIdAndBuyerTypeAndStatusOrderByCreatedAtDesc(
+            Long carId,
+            String sellerType,
+            Long sellerId,
+            String buyerType,
+            String status);
+
     List<Transaction> findByCarCarIdAndStatus(
             Long carId,
             String status);
