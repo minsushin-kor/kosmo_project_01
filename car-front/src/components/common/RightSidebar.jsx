@@ -230,7 +230,7 @@ function mergeRecommendationCars(
       };
     })
     .filter((car) => car?.id)
-    .slice(0, 4);
+    .slice(0, 5);
 }
 
 const POPULAR_SEARCH_CONDITIONS = {
@@ -266,7 +266,32 @@ const MiniCarItem = memo(
   function MiniCarItem({
     car,
     label,
+    showAiMetrics = false,
   }) {
+    const condition =
+      car.condition == null
+        ? Number.NaN
+        : Number(car.condition);
+
+    const mmr =
+      car.mmr == null
+        ? Number.NaN
+        : Number(car.mmr);
+
+    const conditionText =
+      Number.isFinite(condition)
+        ? `${condition.toFixed(
+          2
+        )} / 5.00`
+        : "계산 전";
+
+    const mmrText =
+      Number.isFinite(mmr)
+        ? `${Math.round(
+          mmr / 10000
+        ).toLocaleString()}만원`
+        : "계산 전";
+
     return (
       <Link
         to={`/cars/${car.id}`}
@@ -294,6 +319,22 @@ const MiniCarItem = memo(
             ).toLocaleString()}
             만원
           </p>
+
+          {showAiMetrics && (
+            <div className="sidebar-ai-metrics">
+              <span>
+                <b>
+                  AI 예상 차량 상태 점수
+                </b>
+                {conditionText}
+              </span>
+
+              <span>
+                <b>AI 예상 가격</b>
+                {mmrText}
+              </span>
+            </div>
+          )}
         </div>
       </Link>
     );
@@ -753,6 +794,9 @@ function RightSidebar({
                     isDealer
                       ? "AI 추천"
                       : "추천"
+                  }
+                  showAiMetrics={
+                    isDealer
                   }
                 />
               )

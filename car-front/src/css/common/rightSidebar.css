@@ -379,6 +379,27 @@
   font-weight: 900;
 }
 
+.sidebar-ai-metrics {
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid #e3edf8;
+}
+
+.sidebar-ai-metrics span {
+  display: grid;
+  gap: 1px;
+  color: #475569;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.sidebar-ai-metrics b {
+  color: var(--main-blue);
+  font-weight: 900;
+}
+
 .recommendation-widget .right-widget-title-row>span {
   color: var(--main-blue);
   font-size: 11px;

@@ -9,6 +9,7 @@ import {
 import ImageUploader from "../../components/common/ImageUploader";
 import {
   getCarDetail,
+  previewVehicleAiPrediction,
   registerCar,
   updateCar,
 } from "../../api/carApi";
@@ -81,6 +82,21 @@ function DealerRegisterCarPage() {
   const [
     loadError,
     setLoadError,
+  ] = useState("");
+
+  const [
+    aiPrediction,
+    setAiPrediction,
+  ] = useState(null);
+
+  const [
+    isAiPredicting,
+    setIsAiPredicting,
+  ] = useState(false);
+
+  const [
+    aiPredictionMessage,
+    setAiPredictionMessage,
   ] = useState("");
 
   const carOptions = [
@@ -279,6 +295,18 @@ function DealerRegisterCarPage() {
       ...prev,
       [name]: value,
     }));
+
+    if (
+      [
+        "year",
+        "make",
+        "model",
+        "odometer",
+      ].includes(name)
+    ) {
+      setAiPrediction(null);
+      setAiPredictionMessage("");
+    }
   }
 
   function handleOptionChange(e) {
@@ -457,6 +485,119 @@ function DealerRegisterCarPage() {
         date.getSeconds()
       ),
     ].join("");
+  }
+
+  function formatPredictedPrice(value) {
+    const price = Number(value);
+
+    if (!Number.isFinite(price)) {
+      return "계산 전";
+    }
+
+    return `${Math.round(
+      price / 10000
+    ).toLocaleString()}만원`;
+  }
+
+  async function handleAiPredictionPreview() {
+    if (
+      isAiPredicting ||
+      !isMember ||
+      isEditMode
+    ) {
+      return;
+    }
+
+    const year =
+      Number(formData.year);
+
+    const odometer =
+      Number(formData.odometer);
+
+    if (
+      !formData.year ||
+      !formData.make.trim() ||
+      !formData.model.trim() ||
+      formData.odometer === ""
+    ) {
+      setAiPrediction(null);
+      setAiPredictionMessage(
+        "연식, 제조사, 모델명, 주행거리를 먼저 입력해주세요."
+      );
+      return;
+    }
+
+    if (
+      !Number.isFinite(year) ||
+      year < 1990 ||
+      year > 2030 ||
+      !Number.isFinite(odometer) ||
+      odometer < 0
+    ) {
+      setAiPrediction(null);
+      setAiPredictionMessage(
+        "연식은 1990~2030년, 주행거리는 0km 이상으로 입력해주세요."
+      );
+      return;
+    }
+
+    try {
+      setIsAiPredicting(true);
+      setAiPrediction(null);
+      setAiPredictionMessage("");
+
+      const result =
+        await previewVehicleAiPrediction({
+          year,
+          make:
+            formData.make.trim(),
+          model:
+            formData.model.trim(),
+          odometer,
+          option:
+            formData.option.join(
+              ", "
+            ),
+          body:
+            formData.body.trim(),
+          color:
+            formData.color.trim(),
+          state:
+            formData.state.trim(),
+          sellingPrice:
+            formData.price
+              ? Number(
+                formData.price
+              )
+              : null,
+        });
+
+      const mmr =
+        result.mmr == null
+          ? Number.NaN
+          : Number(result.mmr);
+
+      if (!Number.isFinite(mmr)) {
+        throw new Error(
+          "AI 예측 결과 형식이 올바르지 않습니다."
+        );
+      }
+
+      setAiPrediction({
+        mmr,
+      });
+    } catch (error) {
+      console.error(
+        "AI 차량 예상 조회 실패:",
+        error
+      );
+      setAiPredictionMessage(
+        error?.message ||
+        "AI 예상 결과를 불러오지 못했습니다."
+      );
+    } finally {
+      setIsAiPredicting(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -1026,6 +1167,65 @@ function DealerRegisterCarPage() {
               </div>
             </div>
           </div>
+
+          {isMember &&
+            !isEditMode && (
+              <section className="ai-prediction-box">
+                <div className="ai-prediction-heading">
+                  <div>
+                    <h3>
+                      AI 예상 가격
+                    </h3>
+
+                    <p>
+                      입력한 연식, 제조사, 모델명, 주행거리를 기준으로 차량 가격을 예상합니다.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="ai-prediction-button"
+                    onClick={
+                      handleAiPredictionPreview
+                    }
+                    disabled={
+                      isSubmitting ||
+                      isAiPredicting
+                    }
+                  >
+                    {isAiPredicting
+                      ? "AI 계산 중..."
+                      : "AI 예상 가격 확인"}
+                  </button>
+                </div>
+
+                {aiPrediction && (
+                  <div className="ai-prediction-result">
+                    <div>
+                      <span>
+                        AI 예상 가격
+                      </span>
+
+                      <strong>
+                        {formatPredictedPrice(
+                          aiPrediction.mmr
+                        )}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+
+                {aiPredictionMessage && (
+                  <p className="ai-prediction-message">
+                    {aiPredictionMessage}
+                  </p>
+                )}
+
+                <small>
+                  AI 예상값은 참고용이며 실제 낙찰 가격과 다를 수 있습니다.
+                </small>
+              </section>
+            )}
 
           <div className="register-info-box">
             <p>

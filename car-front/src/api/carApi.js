@@ -774,3 +774,27 @@ export async function getDealerAiRecommendations() {
     .map(mapServerCarToClientCar)
     .filter(Boolean);
 }
+
+/**
+ * 일반회원 차량 등록 전에 FastAPI 모델의
+ * 예상 상태 점수와 예상 가격을 조회합니다.
+ */
+export async function previewVehicleAiPrediction(
+  vehicle
+) {
+  const response = await apiClient.post(
+    "/ai/vehicle-preview",
+    vehicle
+  );
+
+  return {
+    condition:
+      response?.predicted_condition ??
+      response?.predictedCondition ??
+      null,
+    mmr:
+      response?.predicted_mmr ??
+      response?.predictedMmr ??
+      null,
+  };
+}

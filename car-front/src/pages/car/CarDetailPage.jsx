@@ -964,6 +964,18 @@ function CarDetailPage() {
       0
     );
 
+  const aiMmr =
+    car.mmr == null
+      ? Number.NaN
+      : Number(car.mmr);
+
+  const aiMmrText =
+    Number.isFinite(aiMmr)
+      ? `${Math.round(
+        aiMmr / 10000
+      ).toLocaleString()}만원`
+      : "계산 전";
+
   const fuel =
     car.fuel ||
     "미등록";
@@ -1240,7 +1252,6 @@ function CarDetailPage() {
       label: "사고이력",
       value:
         car.accident ||
-        car.condition ||
         "미등록",
     },
     {
@@ -2474,6 +2485,38 @@ function CarDetailPage() {
               </span>
             )}
           </div>
+        </section>
+
+        <section className="detail-panel ai-detail-prediction-panel">
+          <div className="ai-detail-prediction-heading">
+            <h2>
+              AI 분석 결과
+            </h2>
+
+            <p>
+              차량 정보를 기준으로 계산한 참고값입니다.
+            </p>
+          </div>
+
+          <div className="ai-detail-prediction-grid">
+            <div>
+              <span>
+                AI 예상 가격
+              </span>
+
+              <strong>
+                {aiMmrText}
+              </strong>
+            </div>
+          </div>
+
+          {!Number.isFinite(
+            aiMmr
+          ) && (
+            <p className="ai-detail-prediction-note">
+              아직 예상 가격이 계산되지 않았습니다.
+            </p>
+          )}
         </section>
 
         <aside className="seller-panel">

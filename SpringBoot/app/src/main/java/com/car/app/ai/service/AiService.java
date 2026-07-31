@@ -117,6 +117,60 @@ public class AiService {
     }
 
     /**
+     * 차량을 DB에 저장하기 전에 입력 정보만으로 Condition과 MMR을 미리 예측합니다.
+     */
+    @Transactional(readOnly = true)
+    public AiClient.VehiclePredictionResult previewVehiclePrediction(
+            CarDto.CreateRequest request) {
+
+        if (request == null
+                || request.getYear() == null
+                || request.getMake() == null
+                || request.getMake().isBlank()
+                || request.getModel() == null
+                || request.getModel().isBlank()
+                || request.getOdometer() == null) {
+            throw new IllegalArgumentException(
+                    "연식, 제조사, 모델명, 주행거리를 입력해주세요.");
+        }
+
+        if (request.getYear() < 1990
+                || request.getYear() > 2030
+                || request.getOdometer() < 0) {
+            throw new IllegalArgumentException(
+                    "연식은 1990~2030년, 주행거리는 0km 이상으로 입력해주세요.");
+        }
+
+        AiClient.VehicleItem vehicle = AiClient.VehicleItem.builder()
+                .carId(1L)
+                .year(request.getYear())
+                .make(request.getMake().trim())
+                .model(request.getModel().trim())
+                .odometer(request.getOdometer())
+                .option(request.getOption())
+                .body(request.getBody())
+                .color(request.getColor())
+                .sellingPrice(request.getSellingPrice())
+                .state(request.getState())
+                .status("REGISTERED")
+                .ownerType("MEMBER")
+                .build();
+
+        AiClient.VehiclePredictionBatchResponse response =
+                aiClient.predictVehicleConditionAndMmr(
+                        List.of(vehicle));
+
+        if (response == null
+                || response.getRecommendations() == null
+                || response.getRecommendations().isEmpty()) {
+            throw new IllegalStateException(
+                    "AI 차량 가격 예측 서버에서 결과를 받지 못했습니다.");
+        }
+
+        return response.getRecommendations().get(0);
+    }
+
+    /**
      * 매일 자정 실행되는 이탈 위험도 예측 및 등급 업데이트 배치 처리 메소드입니다.
      * churn 테이블의 최신 집계값을 기준으로 실제 거래·입찰 정보가 있는 항목만 갱신한 뒤
      * FastAPI 뱃치 API를 호출하고 예측 결과를 일괄 저장합니다.

@@ -778,6 +778,74 @@
   font-weight: 900;
 }
 
+/* AI 예측 */
+
+.ai-detail-prediction-panel {
+  border-color: #bfdbfe;
+  background:
+    linear-gradient(
+      135deg,
+      #f3f8ff 0%,
+      #ffffff 100%
+    );
+}
+
+.ai-detail-prediction-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.ai-detail-prediction-heading h2 {
+  margin: 0;
+}
+
+.ai-detail-prediction-heading p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.ai-detail-prediction-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.ai-detail-prediction-grid div {
+  padding: 17px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background-color: #ffffff;
+}
+
+.ai-detail-prediction-grid span {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ai-detail-prediction-grid strong {
+  color: var(--main-blue);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.ai-detail-prediction-note {
+  margin: 12px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 /* 판매자 정보 */
 
 .seller-panel {
@@ -937,8 +1005,18 @@
 
   .auction-summary-grid,
   .detail-action-buttons,
-  .detail-info-grid {
+  .detail-info-grid,
+  .ai-detail-prediction-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ai-detail-prediction-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ai-detail-prediction-heading p {
+    text-align: left;
   }
 }
 

@@ -152,6 +152,107 @@
   box-shadow: var(--shadow-card);
 }
 
+.ai-prediction-box {
+  padding: 18px;
+  border: 1px solid #b9d8fa;
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      135deg,
+      #f3f8ff,
+      #ffffff
+    );
+  box-shadow: var(--shadow-card);
+}
+
+.ai-prediction-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.ai-prediction-heading h3 {
+  margin: 0 0 6px;
+  color: var(--text-main);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.ai-prediction-heading p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ai-prediction-button {
+  flex: 0 0 auto;
+  min-width: 150px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--main-blue);
+  border-radius: 12px;
+  background-color: var(--main-blue);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.ai-prediction-button:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.ai-prediction-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.ai-prediction-result {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ai-prediction-result div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background-color: #ffffff;
+}
+
+.ai-prediction-result span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ai-prediction-result strong {
+  color: var(--main-blue);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.ai-prediction-message {
+  margin: 14px 0 0;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ai-prediction-box small {
+  display: block;
+  margin-top: 12px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .register-info-box p {
   margin: 0;
   color: #475569;
@@ -211,6 +312,19 @@
 
   .form-button-area {
     flex-direction: column;
+  }
+
+  .ai-prediction-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ai-prediction-button {
+    width: 100%;
+  }
+
+  .ai-prediction-result {
+    grid-template-columns: 1fr;
   }
 
   .submit-button {
