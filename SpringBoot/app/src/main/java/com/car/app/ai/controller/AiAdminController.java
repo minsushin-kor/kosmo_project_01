@@ -1,6 +1,6 @@
 package com.car.app.ai.controller;
 
-import com.car.app.ai.service.AiService;
+import com.car.app.ai.service.ChurnBatchOrchestrator;
 import com.car.app.company.entity.Company;
 import com.car.app.company.entity.CompanyChurn;
 import com.car.app.company.repository.CompanyChurnRepository;
@@ -38,7 +38,7 @@ public class AiAdminController {
     private static final double CHURN_COUPON_RISK_THRESHOLD = 70.0;
     private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
-    private final AiService aiService;
+    private final ChurnBatchOrchestrator churnBatchOrchestrator;
     private final DealerRepository dealerRepository;
     private final CompanyRepository companyRepository;
     private final DealerChurnRepository dealerChurnRepository;
@@ -99,7 +99,7 @@ public class AiAdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> triggerChurnBatch() {
         try {
-            aiService.runChurnPredictionBatch();
+            churnBatchOrchestrator.runChurnPredictionBatch();
             return ResponseEntity.ok(ApiResponse.success("이탈 위험도 예측 배치가 성공적으로 실행 완료되었습니다."));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(ApiResponse.fail("ERR_BATCH_FAILED", "배치 실행 중 오류: " + e.getMessage()));

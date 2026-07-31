@@ -8,7 +8,6 @@ import com.car.app.car.dto.CarDto;
 import com.car.app.car.repository.CarRepository;
 import com.car.app.company.entity.Company;
 import com.car.app.company.repository.CompanyRepository;
-import com.car.app.coupon.service.CouponService;
 import com.car.app.dealer.entity.Dealer;
 import com.car.app.dealer.repository.DealerRepository;
 import com.car.app.member.entity.Member;
@@ -44,7 +43,6 @@ public class AiService {
     private final TransactionRepository transactionRepository;
     private final CompanyRepository companyRepository;
     private final AuctionRepository auctionRepository;
-    private final CouponService couponService;
     private final DealerChurnRepository dealerChurnRepository;
     private final CompanyChurnRepository companyChurnRepository;
     private final MemberRepository memberRepository;
@@ -187,6 +185,13 @@ public class AiService {
                 .filter(dealer -> dealer.getCompany() != null)
                 .collect(Collectors.groupingBy(dealer -> dealer.getCompany().getCompanyId()));
         for (Company company : companies) {
+            if (company.getLoginId() == null || company.getLoginId().isBlank()) {
+                log.warn(
+                        "login_id가 없는 회사 {}는 이탈률 예측과 저장에서 제외합니다.",
+                        company.getCompanyId());
+                continue;
+            }
+
             CompanyChurn churn = latestCompanyChurnMap.get(company.getCompanyId());
             if (churn == null) {
                 log.warn("company_churn 데이터가 없어 회사 {}의 이탈 예측을 건너뜁니다.", company.getCompanyId());
@@ -306,14 +311,6 @@ public class AiService {
                     companyChurnRepository.saveAll(companyChurnUpdates);
                 }
                 log.info("회사 {}곳의 이탈 위험도와 최신 churn 분석 결과 저장 완료.", companyUpdates.size());
-            }
-
-            // 이탈 방지 쿠폰은 관리자 화면에서 수동으로만 발급합니다.
-            try {
-                log.info("AI 이탈 위험이 낮은 상위 5% 회사 골든 뱃지 갱신 배치 실행...");
-                couponService.updateCompanyTiersAndBadges();
-            } catch (Exception e) {
-                log.error("AI 이탈 안정도 상위 5% 회사 골든 뱃지 갱신 중 오류 발생: {}", e.getMessage());
             }
 
         } else {

@@ -9,6 +9,7 @@ import com.car.app.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CouponService {
 
     private static final String CHURN_COUPON_TYPE = "COMMISSION_DISCOUNT";
@@ -282,6 +284,7 @@ public class CouponService {
 
         List<Company> rankedCompanies = companies.stream()
                 .filter(this::hasFastApiChurnPrediction)
+                .filter(this::hasRequiredLoginId)
                 .sorted(Comparator
                         .comparingDouble(Company::getRiskScore)
                         .thenComparing(Company::getCompanyId))
@@ -298,7 +301,7 @@ public class CouponService {
             topCompanyIds.add(rankedCompanies.get(i).getCompanyId());
         }
 
-        for (Company company : companies) {
+        for (Company company : rankedCompanies) {
             boolean previousBadge = Boolean.TRUE.equals(company.getGoldenBadgeStatus());
             boolean isTopCompany = topCompanyIds.contains(company.getCompanyId());
 
@@ -364,6 +367,17 @@ public class CouponService {
                 && riskScore <= 100.0
                 && company.getRiskGrade() != null
                 && !company.getRiskGrade().isBlank();
+    }
+
+    private boolean hasRequiredLoginId(Company company) {
+        boolean valid = company.getLoginId() != null
+                && !company.getLoginId().isBlank();
+        if (!valid) {
+            log.warn(
+                    "login_id가 없는 회사 {}는 골든 배지 갱신에서 제외합니다.",
+                    company.getCompanyId());
+        }
+        return valid;
     }
 
     @Transactional(readOnly = true)

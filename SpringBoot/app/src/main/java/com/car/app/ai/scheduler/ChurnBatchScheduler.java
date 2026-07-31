@@ -1,6 +1,6 @@
 package com.car.app.ai.scheduler;
 
-import com.car.app.ai.service.AiService;
+import com.car.app.ai.service.ChurnBatchOrchestrator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ChurnBatchScheduler {
 
-    private final AiService aiService;
+    private final ChurnBatchOrchestrator churnBatchOrchestrator;
 
     /**
      * 매일 자정(0시 0분 0초)에 실행되어 딜러/상사의 이탈 위험도를 예측 및 업데이트합니다.
@@ -23,7 +23,7 @@ public class ChurnBatchScheduler {
     public void runMidnightBatch() {
         log.info("자정 배치 스케줄러: 이탈 위험도 갱신 작업을 시작합니다.");
         try {
-            aiService.runChurnPredictionBatch();
+            churnBatchOrchestrator.runChurnPredictionBatch();
             log.info("자정 배치 스케줄러: 이탈 위험도 갱신 작업을 성공적으로 마쳤습니다.");
         } catch (Exception e) {
             log.error("자정 배치 스케줄러: 작업 중 예상치 못한 에러가 발생했습니다: {}", e.getMessage());
