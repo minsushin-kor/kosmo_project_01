@@ -236,6 +236,10 @@
   background-color: #94a3b8;
 }
 
+.car-detail-page .status-badge.time-ended {
+  background-color: #94a3b8;
+}
+
 .seller-type-badge {
   height: 26px;
   padding: 0 10px;

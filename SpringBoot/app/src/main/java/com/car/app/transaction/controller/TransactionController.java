@@ -3,6 +3,7 @@ package com.car.app.transaction.controller;
 import com.car.app.transaction.dto.TransactionDto;
 import com.car.app.transaction.entity.Transaction;
 import com.car.app.transaction.repository.TransactionRepository;
+import com.car.app.transaction.service.PurchaseRequestService;
 import com.car.app.dealer.entity.Dealer;
 import com.car.app.dealer.repository.DealerRepository;
 import com.car.app.member.entity.Member;
@@ -31,6 +32,7 @@ public class TransactionController {
     private final TransactionRepository transactionRepository;
     private final MemberRepository memberRepository;
     private final DealerRepository dealerRepository;
+    private final PurchaseRequestService purchaseRequestService;
 
     private static final Set<String> ALLOWED_STATUSES = Set.of("PENDING_PAYMENT", "PAID", "COMPLETED", "CANCELLED");
 
@@ -63,6 +65,12 @@ public class TransactionController {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         verifyTransactionOwnershipOrAdmin(auth, transaction);
+
+        if (PurchaseRequestService.PURCHASE_REQUESTED.equals(
+                transaction.getStatus())) {
+            throw new IllegalArgumentException(
+                    "구매 요청은 딜러의 구매 요청 승인 기능으로만 처리할 수 있습니다.");
+        }
 
         return ResponseEntity.ok(ApiResponse.success(TransactionDto.Response.fromEntity(transaction), "거래 상세 조회가 완료되었습니다."));
     }
@@ -134,6 +142,42 @@ public class TransactionController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(ApiResponse.success(responses, "내 거래 내역 조회가 완료되었습니다."));
+    }
+
+    /**
+     * 현재 로그인한 딜러가 받은 대기 중 구매 요청을 조회합니다.
+     */
+    @GetMapping("/api/transactions/purchase-requests/received")
+    @PreAuthorize("hasRole('DEALER')")
+    public ResponseEntity<ApiResponse<List<TransactionDto.Response>>> getReceivedPurchaseRequests() {
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+        List<TransactionDto.Response> requests =
+                purchaseRequestService.getReceivedRequests(auth.getName());
+
+        return ResponseEntity.ok(ApiResponse.success(
+                requests,
+                "받은 구매 요청 조회가 완료되었습니다."));
+    }
+
+    /**
+     * 딜러가 본인 차량에 접수된 구매 요청을 승인합니다.
+     */
+    @PatchMapping("/api/transactions/purchase-requests/{transactionId}/approve")
+    @PreAuthorize("hasRole('DEALER')")
+    public ResponseEntity<ApiResponse<TransactionDto.Response>> approvePurchaseRequest(
+            @PathVariable Long transactionId) {
+
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+        TransactionDto.Response approved =
+                purchaseRequestService.approveRequest(
+                        transactionId,
+                        auth.getName());
+
+        return ResponseEntity.ok(ApiResponse.success(
+                approved,
+                "구매 요청을 승인하고 판매완료 처리했습니다."));
     }
 
     private void verifyTransactionOwnershipOrAdmin(Authentication auth, Transaction transaction) {

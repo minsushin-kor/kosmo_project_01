@@ -21,6 +21,7 @@ public class TransactionDto {
         private String carImageUrl;
         private String buyerType;
         private Long buyerId;
+        private String buyerName;
         private String sellerType;
         private Long sellerId;
         private Long dealPrice;

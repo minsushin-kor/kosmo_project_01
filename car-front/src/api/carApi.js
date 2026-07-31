@@ -628,9 +628,9 @@ export async function updateMyDealerCarStatus(
 }
 
 /**
- * 일반회원이 딜러 차량을 즉시 구매합니다.
+ * 일반회원이 딜러 차량에 구매 요청을 보냅니다.
  */
-export async function purchaseCar(
+export async function requestCarPurchase(
   carId
 ) {
   if (!carId) {
@@ -641,6 +641,24 @@ export async function purchaseCar(
 
   return apiClient.post(
     `/cars/${carId}/purchase`
+  );
+}
+
+/**
+ * 로그인한 일반회원이 해당 차량에 보낸
+ * 대기 중 구매 요청을 조회합니다.
+ */
+export async function getMyCarPurchaseRequest(
+  carId
+) {
+  if (!carId) {
+    throw new Error(
+      "구매 요청을 조회할 차량 ID가 필요합니다."
+    );
+  }
+
+  return apiClient.get(
+    `/cars/${carId}/purchase-request`
   );
 }
 

@@ -22,9 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.car.app.notification.service.NotificationService;
-import com.car.app.transaction.entity.Transaction;
-import com.car.app.transaction.repository.TransactionRepository;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
@@ -50,7 +47,6 @@ public class CarService {
     private final DealerRepository dealerRepository;
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
-    private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
     private final com.car.app.wishlist.repository.WishlistRepository wishlistRepository;
     private final com.car.app.ai.service.AiService aiService;
@@ -412,12 +408,14 @@ public class CarService {
                         .trim()
                         .toUpperCase();
 
-        if (!List.of(
-                "REGISTERED",
-                "SOLD").contains(normalizedStatus)) {
-
+        if ("SOLD".equals(normalizedStatus)) {
             throw new IllegalArgumentException(
-                    "차량 상태는 REGISTERED 또는 SOLD 중 하나여야 합니다.");
+                    "판매완료 처리는 회원의 구매 요청을 승인할 때만 가능합니다.");
+        }
+
+        if (!"REGISTERED".equals(normalizedStatus)) {
+            throw new IllegalArgumentException(
+                    "변경할 수 없는 차량 상태입니다.");
         }
 
         if ("DELETED".equalsIgnoreCase(
@@ -425,6 +423,12 @@ public class CarService {
 
             throw new IllegalArgumentException(
                     "삭제된 차량의 상태는 변경할 수 없습니다.");
+        }
+
+        if ("SOLD".equalsIgnoreCase(
+                car.getStatus())) {
+            throw new IllegalArgumentException(
+                    "판매완료 차량은 다시 판매중으로 변경할 수 없습니다.");
         }
 
         car.setStatus(normalizedStatus);
@@ -535,59 +539,6 @@ public class CarService {
         // 지연 로딩 관계인 이미지 리스트를 트랜잭션 내에서 강제 로드해 둡니다.
         car.getImages().size();
         return car;
-    }
-
-    /**
-     * 일반 회원이 딜러 소유의 차량을 즉시 구매합니다.
-     * 거래(Transaction) 내역을 생성하고 차량 상태를 SOLD로 변경합니다.
-     */
-    @Transactional
-    public Transaction purchaseCar(Long carId, String memberLoginId) {
-        Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 차량 매물입니다."));
-
-        Member buyer = memberRepository.findByLoginId(memberLoginId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
-
-        // 검증 1: 딜러가 등록한 차량 매물인지 확인
-        if (car.getDealer() == null) {
-            throw new IllegalArgumentException("딜러가 등록한 매물만 즉시 구매가 가능합니다.");
-        }
-
-        // 검증 2: 판매 중 상태(REGISTERED)인지 확인
-        if (!"REGISTERED".equalsIgnoreCase(car.getStatus())) {
-            throw new IllegalArgumentException("구매 가능한 상태의 차량이 아닙니다.");
-        }
-
-        // 3단계: 수수료 및 거래 정보 설정 (3.0% 기본 요율 적용)
-        BigDecimal commissionRate = new BigDecimal("0.0300");
-        long dealPrice = car.getSellingPrice();
-        long commissionAmount = (long) (dealPrice * commissionRate.doubleValue());
-
-        Transaction transaction = Transaction.builder()
-                .car(car)
-                .buyerType("MEMBER")
-                .buyerId(buyer.getMemberId())
-                .sellerType("DEALER")
-                .sellerId(car.getDealer().getDealerId())
-                .dealPrice(dealPrice)
-                .commissionRate(commissionRate)
-                .commissionAmount(commissionAmount)
-                .build();
-
-        // 4단계: 차량 상태를 SOLD로 갱신
-        car.setStatus("SOLD");
-
-        // [알림] 딜러에게 차량 판매 완료 알림 생성 및 푸시
-        String dealerMsg = String.format("등록하신 %d년식 %s %s 매물이 %s 님에게 %,d원에 판매 완료되었습니다.",
-                car.getYear(), car.getMake(), car.getModel(), buyer.getName(), dealPrice);
-        notificationService.sendNotification("DEALER", car.getDealer().getDealerId(), "CAR_SOLD", dealerMsg,
-                car.getCarId());
-
-        // [알림] 해당 매물을 찜해둔 유저들에게 차량 판매 완료 상태 변경 알림 전송 ❤️
-        notifyWishlistUsersOnStatusChange(car, "판매완료");
-
-        return transactionRepository.save(transaction);
     }
 
     /**

@@ -33,7 +33,7 @@ function getAuctionRemainText(endDate) {
     new Date();
 
   if (diff <= 0) {
-    return "경매 종료";
+    return "경매시간 종료";
   }
 
   const day = Math.floor(
@@ -97,14 +97,44 @@ function CarCard({
     auction?.status ||
     viewCar.status;
 
-  const isDone =
+  const normalizedStatus =
+    String(status || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
+
+  const normalizedCarStatus =
+    String(viewCar.status || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
+
+  const isAuctionSold =
+    isAuction &&
+    [
+      "SOLD",
+      "판매완료",
+    ].includes(normalizedCarStatus);
+
+  const hasFinalStatus =
+    isAuctionSold ||
     [
       "경매종료",
       "낙찰완료",
       "판매완료",
-    ].includes(status) ||
+      "거래완료",
+      "ENDED",
+      "COMPLETED",
+    ].includes(normalizedStatus);
+
+  const isAuctionTimeEnded =
+    isAuction &&
+    !isAuctionSold &&
+    !hasFinalStatus &&
     remainText ===
-    "경매 종료";
+    "경매시간 종료";
+
+  const isDone =
+    hasFinalStatus ||
+    isAuctionTimeEnded;
 
   const imageUrl =
     resolvePublicImageUrl(
@@ -114,14 +144,9 @@ function CarCard({
       ""
     );
 
-  const normalizedStatus =
-    String(status || "")
-      .replace(/\s+/g, "")
-      .toUpperCase();
-
   const isAuctionActive =
     isAuction &&
-    !isDone &&
+    !isAuctionTimeEnded &&
     [
       "경매중",
       "ACTIVE",
@@ -390,14 +415,20 @@ function CarCard({
             </h3>
 
             <span
-              className={`status-badge ${isDone
-                  ? "done"
-                  : isAuctionActive
-                    ? "auction-active"
-                    : ""
+              className={`status-badge ${isAuctionTimeEnded
+                  ? "time-ended"
+                  : isAuctionSold || isDone
+                    ? "done"
+                    : isAuctionActive
+                      ? "auction-active"
+                      : ""
                 }`}
             >
-              {status}
+              {isAuctionSold
+                ? "판매완료"
+                : isAuctionTimeEnded
+                  ? "경매시간 종료"
+                  : status}
             </span>
           </div>
 

@@ -124,6 +124,10 @@
   box-shadow: var(--shadow-card);
 }
 
+.dealer-purchase-request-panel {
+  margin-bottom: 22px;
+}
+
 .dealer-car-panel-header {
   display: flex;
   justify-content: space-between;
@@ -327,6 +331,21 @@
 .dealer-table-actions a:hover,
 .dealer-table-actions button:hover {
   background-color: #f0f7ff;
+}
+
+.dealer-table-actions .dealer-approve-button {
+  border-color: var(--main-blue);
+  background-color: var(--main-blue);
+  color: #ffffff;
+}
+
+.dealer-table-actions .dealer-approve-button:hover {
+  background-color: var(--main-blue-dark);
+}
+
+.dealer-table-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .empty-table-message {

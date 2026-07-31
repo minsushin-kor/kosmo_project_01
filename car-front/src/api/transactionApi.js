@@ -74,3 +74,27 @@ export async function getAdminTransactions() {
         ? result
         : [];
 }
+
+export async function getReceivedPurchaseRequests() {
+    const result = await apiClient.get(
+        "/transactions/purchase-requests/received"
+    );
+
+    return Array.isArray(result)
+        ? result
+        : [];
+}
+
+export async function approvePurchaseRequest(
+    transactionId
+) {
+    if (!transactionId) {
+        throw new Error(
+            "승인할 구매 요청 ID를 확인할 수 없습니다."
+        );
+    }
+
+    return apiClient.patch(
+        `/transactions/purchase-requests/${transactionId}/approve`
+    );
+}

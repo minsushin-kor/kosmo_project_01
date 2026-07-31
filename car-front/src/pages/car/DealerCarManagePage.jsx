@@ -9,6 +9,10 @@ import {
   getMyCars,
   updateMyDealerCarStatus,
 } from "../../api/carApi";
+import {
+  approvePurchaseRequest,
+  getReceivedPurchaseRequests,
+} from "../../api/transactionApi";
 import "../../css/car/dealerCarManagePage.css";
 
 const STATUS_OPTIONS = [
@@ -28,11 +32,42 @@ const STATUS_OPTIONS = [
 
 const SERVER_STATUS_MAP = {
   판매중: "REGISTERED",
-  판매완료: "SOLD",
 };
+
+function formatRequestDate(dateText) {
+  if (!dateText) {
+    return "-";
+  }
+
+  const date = new Date(dateText);
+
+  return Number.isNaN(date.getTime())
+    ? dateText
+    : date.toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+}
+
+function formatDealPrice(priceValue) {
+  const price = Number(priceValue || 0);
+
+  if (price >= 100000) {
+    return `${price.toLocaleString()}원`;
+  }
+
+  return `${price.toLocaleString()}만원`;
+}
 
 function DealerCarManagePage() {
   const [dealerCars, setDealerCars] = useState([]);
+  const [
+    purchaseRequests,
+    setPurchaseRequests,
+  ] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] =
     useState("전체");
@@ -43,6 +78,10 @@ function DealerCarManagePage() {
     processingCarId,
     setProcessingCarId,
   ] = useState(null);
+  const [
+    approvingRequestId,
+    setApprovingRequestId,
+  ] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -52,7 +91,13 @@ function DealerCarManagePage() {
       setErrorMessage("");
 
       try {
-        const myCars = await getMyCars();
+        const [
+          myCars,
+          receivedRequests,
+        ] = await Promise.all([
+          getMyCars(),
+          getReceivedPurchaseRequests(),
+        ]);
 
         if (!active) {
           return;
@@ -65,6 +110,9 @@ function DealerCarManagePage() {
               car.ownerType === "DEALER" &&
               car.status !== "삭제"
           )
+        );
+        setPurchaseRequests(
+          receivedRequests
         );
       } catch (error) {
         if (!active) {
@@ -210,6 +258,69 @@ function DealerCarManagePage() {
     }
   }
 
+  async function handleApproveRequest(
+    request
+  ) {
+    if (
+      !request?.transactionId ||
+      approvingRequestId !== null
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `${request.carMake || ""} ${request.carModel || "차량"} 구매 요청을 승인하시겠습니까?\n승인하면 해당 차량은 판매완료 처리됩니다.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setApprovingRequestId(
+      request.transactionId
+    );
+
+    try {
+      const approved =
+        await approvePurchaseRequest(
+          request.transactionId
+        );
+
+      setPurchaseRequests(
+        (currentRequests) =>
+          currentRequests.filter(
+            (item) =>
+              String(item.carId) !==
+              String(approved.carId)
+          )
+      );
+      setDealerCars(
+        (currentCars) =>
+          currentCars.map((car) =>
+            String(car.id) ===
+            String(approved.carId)
+              ? {
+                ...car,
+                status:
+                  "판매완료",
+              }
+              : car
+          )
+      );
+
+      alert(
+        "구매 요청을 승인하고 판매완료 처리했습니다."
+      );
+    } catch (error) {
+      alert(
+        error?.message ||
+        "구매 요청을 승인하지 못했습니다."
+      );
+    } finally {
+      setApprovingRequestId(null);
+    }
+  }
+
   function handleResetFilter() {
     setSearchText("");
     setStatusFilter("전체");
@@ -265,6 +376,137 @@ function DealerCarManagePage() {
             </strong>
             <em>대</em>
           </article>
+
+          <article>
+            <span>대기 중 구매 요청</span>
+            <strong>
+              {purchaseRequests.length}
+            </strong>
+            <em>건</em>
+          </article>
+        </section>
+
+        <section className="dealer-car-panel dealer-purchase-request-panel">
+          <div className="dealer-car-panel-header">
+            <div>
+              <h3>받은 구매 요청</h3>
+
+              <p>
+                회원의 구매 요청을 확인한 뒤 승인할 수 있습니다.
+                승인하면 차량이 판매완료로 변경됩니다.
+              </p>
+            </div>
+          </div>
+
+          <div className="dealer-car-table-wrap">
+            <table className="dealer-car-table">
+              <thead>
+                <tr>
+                  <th>차량명</th>
+                  <th>요청 회원</th>
+                  <th>구매 금액</th>
+                  <th>요청 시간</th>
+                  <th>처리</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="5">
+                      구매 요청을 불러오는 중입니다.
+                    </td>
+                  </tr>
+                ) : purchaseRequests.length ===
+                  0 ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="empty-table-message"
+                    >
+                      대기 중인 구매 요청이 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  purchaseRequests.map(
+                    (request) => (
+                      <tr
+                        key={
+                          request.transactionId
+                        }
+                      >
+                        <td>
+                          <strong>
+                            <Link
+                              to={`/cars/${request.carId}`}
+                            >
+                              {[
+                                request.carMake,
+                                request.carModel,
+                              ]
+                                .filter(Boolean)
+                                .join(" ") ||
+                                "차량"}
+                            </Link>
+                          </strong>
+                        </td>
+
+                        <td>
+                          <strong>
+                            {request.buyerName ||
+                              "회원"}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <strong>
+                            {formatDealPrice(
+                              request.dealPrice
+                            )}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <strong>
+                            {formatRequestDate(
+                              request.createdAt
+                            )}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <div className="dealer-table-actions">
+                            <button
+                              type="button"
+                              className="dealer-approve-button"
+                              disabled={
+                                approvingRequestId !==
+                                null
+                              }
+                              onClick={() =>
+                                handleApproveRequest(
+                                  request
+                                )
+                              }
+                            >
+                              {String(
+                                approvingRequestId
+                              ) ===
+                                String(
+                                  request.transactionId
+                                )
+                                ? "승인 중..."
+                                : "승인"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="dealer-car-panel">
@@ -445,7 +687,9 @@ function DealerCarManagePage() {
                             </Link>
 
                             {car.status !==
-                              "판매중" && (
+                              "판매중" &&
+                              car.status !==
+                              "판매완료" && (
                                 <button
                                   type="button"
                                   disabled={
@@ -459,24 +703,6 @@ function DealerCarManagePage() {
                                   }
                                 >
                                   판매
-                                </button>
-                              )}
-
-                            {car.status !==
-                              "판매완료" && (
-                                <button
-                                  type="button"
-                                  disabled={
-                                    isProcessing
-                                  }
-                                  onClick={() =>
-                                    handleChangeStatus(
-                                      car.id,
-                                      "판매완료"
-                                    )
-                                  }
-                                >
-                                  완료
                                 </button>
                               )}
 

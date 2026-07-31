@@ -11,6 +11,8 @@ import {
 import {
   deleteCar,
   getCarDetail,
+  getMyCarPurchaseRequest,
+  requestCarPurchase,
 } from "../../api/carApi";
 import {
   createOrGetChatRoom,
@@ -38,9 +40,6 @@ import {
 import {
   saveRecentCarId,
 } from "../../utils/carRecommendationStorage";
-import {
-  saveNormalTrade,
-} from "../../utils/normalTradeStorage";
 import "../../css/car/carDetailPage.css";
 
 import {
@@ -105,7 +104,7 @@ function getAuctionRemainText(
   }
 
   if (diff <= 0) {
-    return "경매 종료";
+    return "경매시간 종료";
   }
 
   const day = Math.floor(
@@ -264,6 +263,16 @@ function CarDetailPage() {
     tradeMessage,
     setTradeMessage,
   ] = useState("");
+
+  const [
+    purchaseRequest,
+    setPurchaseRequest,
+  ] = useState(null);
+
+  const [
+    isPurchaseRequestSubmitting,
+    setIsPurchaseRequestSubmitting,
+  ] = useState(false);
 
   const [
     bidList,
@@ -616,6 +625,58 @@ function CarDetailPage() {
     return () => { isMounted = false; };
   }, [loginUser, isDealer, myBid?.winner]);
 
+  useEffect(() => {
+    const targetCarId =
+      car?.id ||
+      car?.carId;
+    const dealerOwnedCar =
+      Boolean(
+        car?.dealerId ||
+        car?.dealer?.dealerId ||
+        car?.ownerType ===
+        "DEALER"
+      );
+
+    if (
+      !targetCarId ||
+      normalizedLoginRole !==
+      AUTH_ROLES.MEMBER ||
+      !dealerOwnedCar
+    ) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    getMyCarPurchaseRequest(
+      targetCarId
+    )
+      .then((result) => {
+        if (isMounted) {
+          setPurchaseRequest(
+            result || null
+          );
+        }
+      })
+      .catch((error) => {
+        console.error(
+          "구매 요청 상태 조회 실패:",
+          error
+        );
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    car?.carId,
+    car?.dealer?.dealerId,
+    car?.dealerId,
+    car?.id,
+    car?.ownerType,
+    normalizedLoginRole,
+  ]);
+
   const carImages =
     Array.isArray(
       car?.images
@@ -885,12 +946,37 @@ function CarDetailPage() {
       "경매중"
       : "판매중";
 
+  const normalizedCarStatus =
+    String(car.status || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
+
+  const isAuctionSold =
+    isAuctionCar &&
+    (
+      Boolean(auctionWinner) ||
+      [
+        "SOLD",
+        "판매완료",
+      ].includes(normalizedCarStatus)
+    );
+
+  const isAuctionTimeEnded =
+    isAuctionCar &&
+    !isAuctionSold &&
+    ![
+      "경매종료",
+      "낙찰완료",
+      "ENDED",
+      "COMPLETED",
+    ].includes(auctionStatus) &&
+    remainText ===
+    "경매시간 종료";
+
   const isAuctionDone =
     isAuctionCar &&
     (
-      Boolean(
-        auctionWinner
-      ) ||
+      isAuctionSold ||
       auctionStatus ===
       "경매종료" ||
       auctionStatus ===
@@ -899,8 +985,7 @@ function CarDetailPage() {
       "ENDED" ||
       auctionStatus ===
       "COMPLETED" ||
-      remainText ===
-      "경매 종료"
+      isAuctionTimeEnded
     );
 
   const canPlaceBid =
@@ -1282,10 +1367,10 @@ function CarDetailPage() {
     }
   }
 
-  function handlePurchaseComplete() {
+  async function handlePurchaseRequest() {
     if (!loginUser) {
       setTradeMessage(
-        "로그인 후 구매할 수 있습니다."
+        "로그인 후 구매 요청을 보낼 수 있습니다."
       );
 
       return;
@@ -1310,53 +1395,42 @@ function CarDetailPage() {
       return;
     }
 
-    const buyerId =
-      getLoginUserId(
-        loginUser
-      );
-
-    if (!buyerId) {
+    if (
+      purchaseRequest &&
+      String(
+        purchaseRequest.carId
+      ) === String(carId)
+    ) {
       setTradeMessage(
-        "로그인 사용자 정보를 확인할 수 없습니다."
+        "이미 딜러에게 구매 요청을 보낸 차량입니다."
       );
-
       return;
     }
 
-    const trade =
-      saveNormalTrade({
-        id:
-          `normal-${carId}-${buyerId}`,
-
-        carId,
-        carName,
-
-        dealerId,
-        dealerName:
-          sellerName,
-
-        companyId,
-        companyName,
-
-        buyerId,
-
-        buyerName:
-          getLoginUserName(
-            loginUser
-          ),
-
-        price,
-
-        status:
-          "구매완료",
-
-        completedAt:
-          new Date().toISOString(),
-      });
-
-    setTradeMessage(
-      `${trade.carName} 구매완료 처리되었습니다. 딜러 프로필에서 리뷰를 작성할 수 있습니다.`
+    setIsPurchaseRequestSubmitting(
+      true
     );
+    setTradeMessage("");
+
+    try {
+      const request =
+        await requestCarPurchase(
+          carId
+        );
+      setPurchaseRequest(request);
+      setTradeMessage(
+        `${carName} 구매 요청을 보냈습니다. 딜러가 승인하면 판매완료로 변경됩니다.`
+      );
+    } catch (error) {
+      setTradeMessage(
+        error?.message ||
+        "구매 요청을 보내지 못했습니다."
+      );
+    } finally {
+      setIsPurchaseRequestSubmitting(
+        false
+      );
+    }
   }
 
   async function handleDeleteCar() {
@@ -1552,15 +1626,19 @@ function CarDetailPage() {
         <div className="car-detail-summary">
           <div className="detail-status-row">
             <span
-              className={`status-badge ${isAuctionDone
-                ? "done"
-                : ""
+              className={`status-badge ${isAuctionTimeEnded
+                ? "time-ended"
+                : isAuctionSold || isAuctionDone
+                  ? "done"
+                  : ""
                 }`}
             >
               {isAuctionCar
-                ? auctionWinner
-                  ? "낙찰완료"
-                  : auctionStatus
+                ? isAuctionSold
+                  ? "판매완료"
+                  : isAuctionTimeEnded
+                    ? "경매시간 종료"
+                    : auctionStatus
                 : car.status ||
                 "판매중"}
             </span>
@@ -1950,17 +2028,42 @@ function CarDetailPage() {
                 <button
                   type="button"
                   onClick={
-                    handlePurchaseComplete
+                    handlePurchaseRequest
                   }
                   disabled={
                     normalizedLoginRole !==
                     AUTH_ROLES.MEMBER ||
                     isOwner ||
-                    car.status ===
-                    "판매완료"
+                    [
+                      "SOLD",
+                      "판매완료",
+                    ].includes(
+                      normalizedCarStatus
+                    ) ||
+                    isPurchaseRequestSubmitting ||
+                    (
+                      purchaseRequest &&
+                      String(
+                        purchaseRequest.carId
+                      ) === String(carId)
+                    )
                   }
                 >
-                  구매완료 테스트
+                  {[
+                    "SOLD",
+                    "판매완료",
+                  ].includes(
+                    normalizedCarStatus
+                  )
+                    ? "판매완료"
+                    : isPurchaseRequestSubmitting
+                    ? "요청 중..."
+                    : purchaseRequest &&
+                      String(
+                        purchaseRequest.carId
+                      ) === String(carId)
+                      ? "구매 요청 완료"
+                      : "구매 요청"}
                 </button>
 
                 {isDealerCar && (

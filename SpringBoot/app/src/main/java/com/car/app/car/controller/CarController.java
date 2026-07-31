@@ -4,6 +4,8 @@ import com.car.app.car.dto.CarDto;
 import com.car.app.car.entity.Car;
 import com.car.app.car.service.CarService;
 import com.car.app.global.response.ApiResponse;
+import com.car.app.transaction.dto.TransactionDto;
+import com.car.app.transaction.service.PurchaseRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,7 +16,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import com.car.app.transaction.entity.Transaction;
 
 import java.util.List;
 
@@ -27,6 +28,7 @@ import java.util.List;
 public class CarController {
 
     private final CarService carService;
+    private final PurchaseRequestService purchaseRequestService;
 
     /**
      * 일반 회원 혹은 딜러 권한을 확인하여 새로운 중고차 매물을 등록합니다.
@@ -139,22 +141,44 @@ public class CarController {
     }
 
     /**
-     * 일반 회원이 딜러가 등록한 매물 차량을 즉시 구매합니다.
+     * 일반 회원이 딜러가 등록한 차량에 구매 요청을 보냅니다.
      * 권한: ROLE_MEMBER 필요.
      */
     @PostMapping("/{carId}/purchase")
     @PreAuthorize("hasRole('MEMBER')")
-    public ResponseEntity<ApiResponse<Long>> purchaseCar(@PathVariable Long carId) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String memberLoginId = authentication.getName();
+    public ResponseEntity<ApiResponse<TransactionDto.Response>> requestPurchase(
+            @PathVariable Long carId) {
 
-            Transaction transaction = carService.purchaseCar(carId, memberLoginId);
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+        TransactionDto.Response request =
+                purchaseRequestService.requestPurchase(
+                        carId,
+                        authentication.getName());
 
-            return ResponseEntity.ok(ApiResponse.success(transaction.getTransactionId(), "즉시 구매 요청이 성공적으로 완료되었습니다."));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.fail("ERR_INVALID_REQUEST", e.getMessage()));
-        }
+        return ResponseEntity.ok(ApiResponse.success(
+                request,
+                "구매 요청을 딜러에게 전송했습니다."));
+    }
+
+    /**
+     * 현재 로그인한 회원이 해당 차량에 보낸 대기 중 구매 요청을 조회합니다.
+     */
+    @GetMapping("/{carId}/purchase-request")
+    @PreAuthorize("hasRole('MEMBER')")
+    public ResponseEntity<ApiResponse<TransactionDto.Response>> getMyPurchaseRequest(
+            @PathVariable Long carId) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+        TransactionDto.Response request =
+                purchaseRequestService.getMyPendingRequest(
+                        carId,
+                        authentication.getName());
+
+        return ResponseEntity.ok(ApiResponse.success(
+                request,
+                "구매 요청 상태 조회가 완료되었습니다."));
     }
 
     /**

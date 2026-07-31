@@ -164,6 +164,10 @@
   background-color: #16a34a;
 }
 
+.car-card .status-badge.time-ended {
+  background-color: #94a3b8;
+}
+
 .car-card-spec {
   display: grid;
   grid-template-columns:

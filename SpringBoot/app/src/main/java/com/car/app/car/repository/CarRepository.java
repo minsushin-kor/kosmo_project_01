@@ -4,8 +4,14 @@ import com.car.app.car.entity.Car;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CarRepository
         extends JpaRepository<Car, Long>,
@@ -48,4 +54,9 @@ public interface CarRepository
     List<Car> findByMemberMemberIdAndStatusNotOrderByCreatedAtDesc(
             Long memberId,
             String status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select car from Car car where car.carId = :carId")
+    Optional<Car> findByIdForUpdate(
+            @Param("carId") Long carId);
 }
