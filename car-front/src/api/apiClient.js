@@ -6,13 +6,10 @@ import {
 import ApiError from "./ApiError";
 
 const SERVER_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL?.trim();
-
-if (!SERVER_BASE_URL) {
-    console.warn(
-        "VITE_API_BASE_URL 환경변수가 설정되지 않았습니다."
-    );
-}
+    (
+        import.meta.env.VITE_API_BASE_URL?.trim() ||
+        ""
+    ).replace(/\/+$/, "");
 
 const apiClient = axios.create({
     baseURL: `${SERVER_BASE_URL || ""

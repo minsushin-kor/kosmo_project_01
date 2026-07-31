@@ -20,6 +20,7 @@ import {
   toggleWishlist,
   WISHLIST_CHANGE_EVENT,
 } from "../../api/wishlistApi";
+import { resolvePublicImageUrl } from "../../utils/imageUrl";
 import "../../css/car/carCard.css";
 
 function getAuctionRemainText(endDate) {
@@ -106,10 +107,27 @@ function CarCard({
     "경매 종료";
 
   const imageUrl =
-    viewCar.imageUrl ||
-    viewCar.images?.[0]
-      ?.imageUrl ||
-    "";
+    resolvePublicImageUrl(
+      viewCar.imageUrl ||
+      viewCar.images?.[0]
+        ?.imageUrl ||
+      ""
+    );
+
+  const normalizedStatus =
+    String(status || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
+
+  const isAuctionActive =
+    isAuction &&
+    !isDone &&
+    [
+      "경매중",
+      "ACTIVE",
+      "BIDDING",
+      "REGISTERED",
+    ].includes(normalizedStatus);
 
   const loginDealerId = Number(loginUser?.dealerId || loginUser?.id || 0);
   const loginMemberId = Number(loginUser?.memberId || loginUser?.id || 0);
@@ -374,7 +392,9 @@ function CarCard({
             <span
               className={`status-badge ${isDone
                   ? "done"
-                  : ""
+                  : isAuctionActive
+                    ? "auction-active"
+                    : ""
                 }`}
             >
               {status}

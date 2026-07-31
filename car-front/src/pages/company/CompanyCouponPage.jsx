@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { getMyCommissionCoupons, getMyCompanyCoupons } from "../../api/couponApi";
+import { getMyCommissionCoupons } from "../../api/couponApi";
+import { AUTH_ROLES } from "../../data/authUser";
 import "../../css/common/page.css";
 
 function CompanyCouponPage() {
@@ -12,12 +13,8 @@ function CompanyCouponPage() {
     async function fetchCoupons() {
       setLoading(true);
       try {
-        if (loginUser?.role === "ROLE_DEALER") {
+        if (loginUser?.role === AUTH_ROLES.DEALER) {
           const res = await getMyCommissionCoupons();
-          const list = Array.isArray(res) ? res : res?.data || [];
-          setCoupons(list.filter((c) => String(c.status || "UNUSED").toUpperCase() === "UNUSED"));
-        } else if (loginUser?.role === "ROLE_COMPANY") {
-          const res = await getMyCompanyCoupons();
           const list = Array.isArray(res) ? res : res?.data || [];
           setCoupons(list.filter((c) => String(c.status || "UNUSED").toUpperCase() === "UNUSED"));
         }

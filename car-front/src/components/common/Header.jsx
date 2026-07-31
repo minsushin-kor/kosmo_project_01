@@ -156,24 +156,6 @@ function Header() {
           </>
         ) : isCompany ? (
           <>
-            <Link
-              to="/company/coupons"
-              className="header-coupon-link"
-              {...getPrefetchHandlers(
-                "/company/coupons"
-              )}
-            >
-              쿠폰함
-
-              {Number(
-                loginUser?.couponCount || 0
-              ) > 0 && (
-                  <span className="header-count-badge">
-                    {loginUser.couponCount}
-                  </span>
-                )}
-            </Link>
-
             <NotificationDropdown
               loginUser={loginUser}
             />

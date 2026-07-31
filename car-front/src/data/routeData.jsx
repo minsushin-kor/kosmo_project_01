@@ -254,7 +254,7 @@ export const PROTECTED_ROUTES = [
     path: "/company/coupons",
     element: <CompanyCouponPage />,
     allowedRoles: [
-      AUTH_ROLES.COMPANY,
+      AUTH_ROLES.DEALER,
     ],
   },
   {

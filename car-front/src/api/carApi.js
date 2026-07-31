@@ -4,6 +4,7 @@ import {
   toKoreanVehicleModel,
   toKoreanVehicleName,
 } from "../utils/vehicleNameMapper";
+import { resolvePublicImageUrl } from "../utils/imageUrl";
 
 const WON_PRICE_THRESHOLD = 100000;
 
@@ -145,7 +146,13 @@ export function mapServerCarToClientCar(
   const images = Array.isArray(
     serverCar.images
   )
-    ? serverCar.images
+    ? serverCar.images.map((image) => ({
+      ...image,
+      imageUrl:
+        resolvePublicImageUrl(
+          image?.imageUrl
+        ),
+    }))
     : [];
 
   const mainImage =
@@ -346,8 +353,11 @@ export function mapServerCarToClientCar(
       "",
 
     imageUrl:
-      mainImage?.imageUrl ||
-      "",
+      resolvePublicImageUrl(
+        mainImage?.imageUrl ||
+        serverCar.imageUrl ||
+        ""
+      ),
 
     imageText:
       model || "CAR",

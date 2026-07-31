@@ -26,7 +26,7 @@ public class NotificationController {
      * 로그인한 사용자의 알림 목록을 최신순으로 조회합니다.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER')")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER', 'COMPANY_MASTER')")
     public ResponseEntity<ApiResponse<List<NotificationDto.Response>>> getMyNotifications() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         List<NotificationDto.Response> notifications = notificationService.getMyNotifications(
@@ -38,7 +38,7 @@ public class NotificationController {
      * 안 읽은 알림 개수를 조회합니다.
      */
     @GetMapping("/unread-count")
-    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER')")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER', 'COMPANY_MASTER')")
     public ResponseEntity<ApiResponse<NotificationDto.UnreadCountResponse>> getUnreadCount() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         long count = notificationService.getUnreadCount(authentication.getName(), authentication.getAuthorities());
@@ -49,7 +49,7 @@ public class NotificationController {
      * 특정 알림을 읽음 처리 상태로 전환합니다.
      */
     @PatchMapping("/{notificationId}/read")
-    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER')")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER', 'COMPANY_MASTER')")
     public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long notificationId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         notificationService.markAsRead(notificationId, authentication.getName(), authentication.getAuthorities());
@@ -60,7 +60,7 @@ public class NotificationController {
      * 안 읽은 알림을 전체 읽음 처리 상태로 전환합니다.
      */
     @PatchMapping("/read-all")
-    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER')")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER', 'COMPANY_MASTER')")
     public ResponseEntity<ApiResponse<Void>> markAllAsRead() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         notificationService.markAllAsRead(authentication.getName(), authentication.getAuthorities());

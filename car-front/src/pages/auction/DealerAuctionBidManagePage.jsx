@@ -42,12 +42,6 @@ function formatDateTime(dateText) {
   );
 }
 
-function normalizeStatus(status) {
-  return String(
-    status || ""
-  ).toUpperCase();
-}
-
 function isBidWon(bid) {
   return bid?.winner === true || bid?.isWinner === true || String(bid?.status || "").toUpperCase() === "WON";
 }

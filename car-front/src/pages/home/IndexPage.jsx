@@ -6,6 +6,9 @@ import {
 } from "react";
 import SearchBox from "../../components/common/SearchBox";
 import {
+  useSearchParams,
+} from "react-router-dom";
+import {
   clearLastSearchCondition,
   getLastSearchCondition,
   initialSearchCondition,
@@ -113,6 +116,34 @@ async function requestCarList() {
     : [];
 }
 
+function isDealerNormalCar(car) {
+  return (
+    car.saleType === "NORMAL" &&
+    (
+      car.ownerType === "DEALER" ||
+      car.sellerType === "회사딜러" ||
+      (
+        Boolean(car.dealerId) &&
+        !car.memberId
+      )
+    )
+  );
+}
+
+function isMemberAuctionCar(car) {
+  return (
+    car.saleType === "AUCTION" &&
+    (
+      car.ownerType === "MEMBER" ||
+      car.sellerType === "일반회원" ||
+      (
+        Boolean(car.memberId) &&
+        !car.dealerId
+      )
+    )
+  );
+}
+
 function IndexPage() {
   const {
     loginUser,
@@ -169,6 +200,14 @@ function IndexPage() {
 
   const role =
     loginUser?.role;
+
+  const [searchParams] =
+    useSearchParams();
+
+  const adminMarket =
+    role === AUTH_ROLES.ADMIN
+      ? searchParams.get("market")
+      : null;
 
   useEffect(() => {
     let isMounted = true;
@@ -256,23 +295,7 @@ function IndexPage() {
         role ===
         AUTH_ROLES.MEMBER
       ) {
-        return allCars.filter(
-          (car) =>
-            car.saleType ===
-            "NORMAL" &&
-            (
-              car.ownerType ===
-              "DEALER" ||
-              car.sellerType ===
-              "회사딜러" ||
-              (
-                Boolean(
-                  car.dealerId
-                ) &&
-                !car.memberId
-              )
-            )
-        );
+        return allCars.filter(isDealerNormalCar);
       }
 
       if (
@@ -281,29 +304,28 @@ function IndexPage() {
         role ===
         AUTH_ROLES.DEALER
       ) {
-        return allCars.filter(
-          (car) =>
-            car.saleType ===
-            "AUCTION" &&
-            (
-              car.ownerType ===
-              "MEMBER" ||
-              car.sellerType ===
-              "일반회원" ||
-              (
-                Boolean(
-                  car.memberId
-                ) &&
-                !car.dealerId
-              )
-            )
-        );
+        return allCars.filter(isMemberAuctionCar);
+      }
+
+      if (
+        role === AUTH_ROLES.ADMIN &&
+        adminMarket === "dealer"
+      ) {
+        return allCars.filter(isDealerNormalCar);
+      }
+
+      if (
+        role === AUTH_ROLES.ADMIN &&
+        adminMarket === "auction"
+      ) {
+        return allCars.filter(isMemberAuctionCar);
       }
 
       return allCars;
     }, [
       allCars,
       role,
+      adminMarket,
     ]);
 
   const pageGuide =
@@ -324,8 +346,22 @@ function IndexPage() {
         return PAGE_GUIDES.auction;
       }
 
+      if (
+        role === AUTH_ROLES.ADMIN &&
+        adminMarket === "dealer"
+      ) {
+        return PAGE_GUIDES.member;
+      }
+
+      if (
+        role === AUTH_ROLES.ADMIN &&
+        adminMarket === "auction"
+      ) {
+        return PAGE_GUIDES.auction;
+      }
+
       return PAGE_GUIDES.default;
-    }, [role]);
+    }, [role, adminMarket]);
 
   const filteredCars =
     useMemo(() => {

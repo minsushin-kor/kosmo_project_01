@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { prefetchRoute } from "../../data/routeLoaders";
 import {
@@ -6,6 +6,7 @@ import {
   getUnreadNotificationCount,
   markNotificationAsRead,
 } from "../../api/notificationApi";
+import { AUTH_ROLES } from "../../data/authUser";
 
 function NotificationDropdown({ loginUser }) {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -15,7 +16,7 @@ function NotificationDropdown({ loginUser }) {
   const notificationRef = useRef(null);
 
   // 알림 데이터 불러오기 (DB 실시간 알림)
-  const fetchNotifications = () => {
+  const fetchNotifications = useCallback(() => {
     if (!loginUser) {
       setNotifications([]);
       setUnreadCount(0);
@@ -36,14 +37,17 @@ function NotificationDropdown({ loginUser }) {
         setNotifications(list);
       })
       .catch(() => setNotifications([]));
-  };
+  }, [loginUser]);
 
   useEffect(() => {
-    fetchNotifications();
+    const initialTimer = window.setTimeout(fetchNotifications, 0);
     // 30초마다 알림 자동 갱신
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [loginUser]);
+    const interval = window.setInterval(fetchNotifications, 30000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(interval);
+    };
+  }, [fetchNotifications]);
 
   const handleNotificationClick = () => {
     setIsNotificationOpen((prev) => !prev);
@@ -58,7 +62,7 @@ function NotificationDropdown({ loginUser }) {
       try {
         await markNotificationAsRead(notif.notificationId);
         setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }
@@ -91,7 +95,7 @@ function NotificationDropdown({ loginUser }) {
   // 알림 클릭 시 이동할 페이지 URL 매핑
   const getTargetLink = (notif) => {
     if (notif.type === "COUPON_ISSUED" || notif.type === "GOLDEN_BADGE_AWARDED" || notif.type === "GOLDEN_BADGE_REVOKED") {
-      return loginUser?.role === "ROLE_DEALER" ? "/dealer/cars" : "/company/my-page";
+      return loginUser?.role === AUTH_ROLES.DEALER ? "/dealer/cars" : "/company/mypage";
     }
     if (notif.referenceId) {
       return `/cars/${notif.referenceId}`;

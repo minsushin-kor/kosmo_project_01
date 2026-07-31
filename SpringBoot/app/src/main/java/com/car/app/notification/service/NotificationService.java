@@ -3,6 +3,8 @@ package com.car.app.notification.service;
 import com.car.app.notification.dto.NotificationDto;
 import com.car.app.notification.entity.Notification;
 import com.car.app.notification.repository.NotificationRepository;
+import com.car.app.company.entity.Company;
+import com.car.app.company.repository.CompanyRepository;
 import com.car.app.dealer.entity.Dealer;
 import com.car.app.dealer.repository.DealerRepository;
 import com.car.app.member.entity.Member;
@@ -30,6 +32,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final MemberRepository memberRepository;
     private final DealerRepository dealerRepository;
+    private final CompanyRepository companyRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
@@ -123,16 +126,30 @@ public class NotificationService {
     private RecipientInfo resolveRecipient(String loginId, Collection<? extends GrantedAuthority> authorities) {
         boolean isMember = authorities.stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_MEMBER"));
+        boolean isDealer = authorities.stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DEALER"));
+        boolean isCompany = authorities.stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COMPANY_MASTER"));
 
         if (isMember) {
             Member member = memberRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원 계정입니다."));
             return new RecipientInfo("MEMBER", member.getMemberId());
-        } else {
+        }
+
+        if (isDealer) {
             Dealer dealer = dealerRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 딜러 계정입니다."));
             return new RecipientInfo("DEALER", dealer.getDealerId());
         }
+
+        if (isCompany) {
+            Company company = companyRepository.findByLoginId(loginId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회사 계정입니다."));
+            return new RecipientInfo("COMPANY_MASTER", company.getCompanyId());
+        }
+
+        throw new AccessDeniedException("알림을 조회할 수 없는 사용자 권한입니다.");
     }
 
     private static class RecipientInfo {

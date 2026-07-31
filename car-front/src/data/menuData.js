@@ -11,6 +11,16 @@ export const COMMON_MENU_LIST = [
 export const ROLE_MENU_LIST = {
   [AUTH_ROLES.ADMIN]: [
     {
+      id: "admin-dealer-market",
+      name: "딜러 판매 차량",
+      path: "/?market=dealer",
+    },
+    {
+      id: "admin-member-auction",
+      name: "일반회원 경매",
+      path: "/?market=auction",
+    },
+    {
       id: "admin",
       name: "관리자",
       path: "/admin",

@@ -33,7 +33,6 @@ import {
   getReviewableTrades,
 } from "../../utils/normalTradeStorage";
 import { getMyCommissionCoupons } from "../../api/couponApi";
-import { getMyAuctionBids } from "../../api/auctionApi";
 import { getMyWishlists } from "../../api/wishlistApi";
 import "../../css/common/page.css";
 import "../../css/company/dealerPage.css";

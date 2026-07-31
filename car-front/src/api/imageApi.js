@@ -1,8 +1,11 @@
 import axios from "axios";
+import { resolvePublicImageUrl } from "../utils/imageUrl";
 
 const SERVER_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL?.trim() ||
-    "http://localhost:8080";
+    (
+        import.meta.env.VITE_API_BASE_URL?.trim() ||
+        ""
+    ).replace(/\/+$/, "");
 
 /*
  * VITE_API_BASE_URL을
@@ -100,7 +103,13 @@ export async function uploadImage(
             );
         }
 
-        return uploadedImage;
+        return {
+            ...uploadedImage,
+            imageUrl:
+                resolvePublicImageUrl(
+                    uploadedImage.imageUrl
+                ),
+        };
     } catch (error) {
         console.error(
             "이미지 업로드 실패:",
