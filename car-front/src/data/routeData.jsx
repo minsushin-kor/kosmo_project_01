@@ -311,6 +311,7 @@ export const PROTECTED_ROUTES = [
     ),
     allowedRoles: [
       AUTH_ROLES.DEALER,
+      AUTH_ROLES.ADMIN,
     ],
   },
   {
@@ -331,6 +332,7 @@ export const PROTECTED_ROUTES = [
     ),
     allowedRoles: [
       AUTH_ROLES.MEMBER,
+      AUTH_ROLES.ADMIN,
     ],
   },
   {

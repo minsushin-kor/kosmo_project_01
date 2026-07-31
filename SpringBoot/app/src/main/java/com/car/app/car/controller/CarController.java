@@ -158,15 +158,19 @@ public class CarController {
     }
 
     /**
-     * 본인이 등록한 차량 정보를 수정합니다.
+     * 본인이 등록한 차량 정보를 수정하며, 관리자는 모든 차량 정보를 수정할 수 있습니다.
      */
     @PutMapping("/{carId}")
-    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER')")
+    @PreAuthorize("hasAnyRole('MEMBER', 'DEALER', 'ADMIN')")
     public ResponseEntity<ApiResponse<CarDto.Response>> updateCar(@PathVariable Long carId,
             @RequestBody CarDto.CreateRequest request) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            Car car = carService.updateCar(carId, authentication.getName(), request);
+            Car car = carService.updateCar(
+                    carId,
+                    authentication.getName(),
+                    authentication.getAuthorities(),
+                    request);
             return ResponseEntity.ok(ApiResponse.success(carService.mapToResponse(car), "차량 정보가 성공적으로 수정되었습니다."));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(ApiResponse.fail("ERR_UNAUTHORIZED", e.getMessage()));

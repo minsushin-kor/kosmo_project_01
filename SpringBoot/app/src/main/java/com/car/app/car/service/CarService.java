@@ -204,10 +204,15 @@ public class CarService {
     public Car updateCar(
             Long carId,
             String loginId,
+            Collection<? extends GrantedAuthority> authorities,
             CarDto.CreateRequest request) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "존재하지 않는 차량 매물입니다."));
+
+        boolean isAdmin = authorities != null
+                && authorities.stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
 
         boolean isOwner = (car.getMember() != null &&
                 loginId.equals(
@@ -217,9 +222,9 @@ public class CarService {
                         loginId.equals(
                                 car.getDealer().getLoginId()));
 
-        if (!isOwner) {
+        if (!isOwner && !isAdmin) {
             throw new SecurityException(
-                    "본인이 등록한 차량만 수정할 수 있습니다.");
+                    "본인이 등록한 차량만 수정할 수 있습니다. 관리자는 모든 매물을 수정할 수 있습니다.");
         }
 
         if (request.getYear() != null) {

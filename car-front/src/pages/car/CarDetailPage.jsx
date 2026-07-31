@@ -310,6 +310,7 @@ function CarDetailPage() {
     ).toUpperCase();
 
   const isDealer = normalizedLoginRole === AUTH_ROLES.DEALER;
+  const isAdmin = normalizedLoginRole === AUTH_ROLES.ADMIN;
 
   const loginDealerId = Number(loginUser?.dealerId || loginUser?.id || 0);
   const loginMemberId = Number(loginUser?.memberId || loginUser?.id || 0);
@@ -1788,6 +1789,17 @@ function CarDetailPage() {
                 </button>
               </div>
             </div>
+          ) : isAdmin ? (
+            <div className="bid-form">
+              <p className="bid-message">
+                관리자 권한으로 이 거래 게시글을 수정할 수 있습니다.
+              </p>
+              <div className="detail-action-buttons">
+                <Link to={ownerEditPath} className="outline-button">
+                  매물 수정
+                </Link>
+              </div>
+            </div>
           ) : isAuctionCar ? (
             hasDealerBidThisCar ? (
               <div
@@ -2168,7 +2180,7 @@ function CarDetailPage() {
             </div>
           </div>
 
-          {!isOwner && isDealerCar && (
+          {!isOwner && !isAdmin && isDealerCar && (
             <button
               type="button"
               onClick={

@@ -44,6 +44,23 @@ function DealerRegisterCarPage() {
     loginUser?.role ===
     AUTH_ROLES.DEALER;
 
+  const isAdmin =
+    loginUser?.role ===
+    AUTH_ROLES.ADMIN;
+
+  const [
+    editingOwnerType,
+    setEditingOwnerType,
+  ] = useState("");
+
+  const isMemberListing =
+    isMember ||
+    (
+      isAdmin &&
+      isEditMode &&
+      editingOwnerType === "MEMBER"
+    );
+
   const [
     carImages,
     setCarImages,
@@ -209,6 +226,18 @@ function DealerRegisterCarPage() {
           existingImages
         );
 
+        setEditingOwnerType(
+          String(
+            car?.ownerType ||
+            (
+              car?.memberId ||
+              car?.member
+                ? "MEMBER"
+                : "DEALER"
+            )
+          ).toUpperCase()
+        );
+
         setLoadError("");
       })
       .catch((error) => {
@@ -281,7 +310,11 @@ function DealerRegisterCarPage() {
 
     if (
       !isMember &&
-      !isDealer
+      !isDealer &&
+      !(
+        isAdmin &&
+        isEditMode
+      )
     ) {
       alert(
         "매물 등록 권한이 없습니다."
@@ -337,7 +370,7 @@ function DealerRegisterCarPage() {
 
     if (!formData.price) {
       alert(
-        isMember
+        isMemberListing
           ? "경매 시작가를 입력해주세요."
           : "판매 가격을 입력해주세요."
       );
@@ -382,7 +415,7 @@ function DealerRegisterCarPage() {
       price <= 0
     ) {
       alert(
-        isMember
+        isMemberListing
           ? "경매 시작가는 0보다 커야 합니다."
           : "판매 가격은 0보다 커야 합니다."
       );
@@ -545,14 +578,14 @@ function DealerRegisterCarPage() {
           combinedImages,
 
         startTime:
-          isMember
+          isMemberListing
             ? formatLocalDateTime(
               now
             )
             : null,
 
         endTime:
-          isMember
+          isMemberListing
             ? formatLocalDateTime(
               endDate
             )
@@ -580,7 +613,7 @@ function DealerRegisterCarPage() {
         isEditMode
           ? "매물 정보가 수정되었습니다."
           : (
-            isMember
+            isMemberListing
               ? "경매 매물이 등록되었습니다."
               : "판매 매물이 등록되었습니다."
           )
@@ -609,7 +642,7 @@ function DealerRegisterCarPage() {
           isEditMode
             ? "매물 수정 중 오류가 발생했습니다."
             : (
-              isMember
+              isMemberListing
                 ? "경매 매물 등록 중 오류가 발생했습니다."
                 : "판매 매물 등록 중 오류가 발생했습니다."
             )
@@ -659,12 +692,14 @@ function DealerRegisterCarPage() {
           <h2>
             {isEditMode
               ? (
-                isMember
+                isAdmin
+                  ? "관리자 거래 매물 수정"
+                  : isMemberListing
                   ? "일반회원 경매 매물 수정"
                   : "딜러 판매 매물 수정"
               )
               : (
-                isMember
+                isMemberListing
                   ? "일반회원 중고차 매물 등록"
                   : "딜러 판매 매물 등록"
               )}
@@ -672,7 +707,11 @@ function DealerRegisterCarPage() {
 
           <p>
             {isEditMode
-              ? "본인이 등록한 매물 정보와 차량 이미지를 수정합니다."
+              ? (
+                isAdmin
+                  ? "관리자 권한으로 거래 매물 정보와 차량 이미지를 수정합니다."
+                  : "본인이 등록한 매물 정보와 차량 이미지를 수정합니다."
+              )
               : (
                 isMember
                   ? "일반회원이 등록한 차량은 회사와 딜러가 참여하는 비공개 입찰 경매로 진행됩니다."
@@ -959,7 +998,7 @@ function DealerRegisterCarPage() {
 
               <div className="form-group">
                 <label htmlFor="car-price">
-                  {isMember
+                  {isMemberListing
                     ? "경매 시작가"
                     : "판매 가격"}
                 </label>
@@ -979,7 +1018,7 @@ function DealerRegisterCarPage() {
                     isSubmitting
                   }
                   placeholder={
-                    isMember
+                    isMemberListing
                       ? "예: 1500"
                       : "예: 1650"
                   }
@@ -993,7 +1032,7 @@ function DealerRegisterCarPage() {
               {isEditMode
                 ? "수정된 내용은 저장 즉시 차량 상세페이지에 반영됩니다."
                 : (
-                  isMember
+                  isMemberListing
                     ? "등록한 차량은 3시간 동안 비공개 입찰 경매로 진행됩니다. 회사 소속 딜러만 입찰할 수 있습니다."
                     : "회사 소속 딜러가 등록한 차량은 일반회원에게 일반 중고거래 방식으로 판매됩니다."
                 )}
@@ -1018,7 +1057,7 @@ function DealerRegisterCarPage() {
                   isEditMode
                     ? "매물 수정"
                     : (
-                      isMember
+                      isMemberListing
                         ? "경매 매물 등록"
                         : "판매 매물 등록"
                     )
