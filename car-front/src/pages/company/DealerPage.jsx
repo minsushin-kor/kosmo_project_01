@@ -1331,8 +1331,8 @@ function DealerPage() {
               {/* 2. 내 입찰 내역 통합 카드 */}
               <Link to="/dealer/bids" style={{ textDecoration: "none", background: "#f8fafc", borderRadius: "12px", border: "1px solid #cbd5e1", padding: "16px", display: "flex", flexDirection: "column", gap: "4px" }}>
                 <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>🔨 내 입찰 내역</span>
-                <strong style={{ fontSize: "1.05rem", color: "#0f172a", marginTop: "4px" }}>입찰 & 낙찰 내역 전체보기</strong>
-                <small style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "2px" }}>진행 중인 입찰 및 최종 낙찰 목록 조회</small>
+                <strong style={{ fontSize: "1.05rem", color: "#0f172a", marginTop: "4px" }}>입찰 결과 전체보기</strong>
+                <small style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "2px" }}>진행 중인 입찰과 낙찰 성공·실패 결과 조회</small>
               </Link>
             </>
           )}

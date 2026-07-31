@@ -214,6 +214,11 @@
   color: var(--main-blue);
 }
 
+.auction-bid-status.낙찰실패 {
+  background-color: #eeeeee;
+  color: #555555;
+}
+
 .auction-action-btn {
   min-width: 74px;
   height: 34px;

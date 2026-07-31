@@ -54,24 +54,24 @@ function isBidActive(bid) {
 
 function getBidResultText(bid) {
   if (isBidWon(bid)) {
-    return "낙찰";
+    return "낙찰 성공";
   }
   if (isBidActive(bid)) {
     return "입찰중";
   }
-  return "미낙찰";
+  return "낙찰 실패";
 }
 
 function getStatusClassName(bid) {
   const result =
     getBidResultText(bid);
 
-  if (result === "낙찰") {
+  if (result === "낙찰 성공") {
     return "낙찰완료";
   }
 
-  if (result === "미낙찰") {
-    return "미낙찰";
+  if (result === "낙찰 실패") {
+    return "낙찰실패";
   }
 
   return "입찰완료";
@@ -238,6 +238,12 @@ function DealerAuctionBidManagePage() {
       if (activeTab === "won") {
         return isBidWon(bid);
       }
+      if (activeTab === "lost") {
+        return (
+          !isBidWon(bid) &&
+          !isBidActive(bid)
+        );
+      }
       return true;
     });
   }, [filteredBids, activeTab]);
@@ -359,7 +365,7 @@ function DealerAuctionBidManagePage() {
 
           <article>
             <span>
-              낙찰
+              낙찰 성공
             </span>
 
             <strong>
@@ -371,7 +377,7 @@ function DealerAuctionBidManagePage() {
 
           <article>
             <span>
-              미낙찰
+              낙찰 실패
             </span>
 
             <strong>
@@ -402,7 +408,14 @@ function DealerAuctionBidManagePage() {
             style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: activeTab === "won" ? "#86198f" : "#e2e8f0", color: activeTab === "won" ? "#fff" : "#334155", cursor: "pointer", fontWeight: "bold" }}
             onClick={() => setSearchParams({ tab: "won" })}
           >
-            🏆 최종 낙찰 완료 ({summary.winner || 0})
+            🏆 낙찰 성공 ({summary.winner || 0})
+          </button>
+          <button
+            type="button"
+            style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: activeTab === "lost" ? "#64748b" : "#e2e8f0", color: activeTab === "lost" ? "#fff" : "#334155", cursor: "pointer", fontWeight: "bold" }}
+            onClick={() => setSearchParams({ tab: "lost" })}
+          >
+            낙찰 실패 ({summary.failed || 0})
           </button>
         </div>
 
@@ -410,7 +423,13 @@ function DealerAuctionBidManagePage() {
           <div className="auction-bid-panel-header">
             <div>
               <h3>
-                {activeTab === "bidding" ? "🔨 입찰 진행 중인 경매" : activeTab === "won" ? "🏆 최종 낙찰받은 경매 목록" : "입찰 목록"}
+                {activeTab === "bidding"
+                  ? "🔨 입찰 진행 중인 경매"
+                  : activeTab === "won"
+                      ? "🏆 낙찰 성공한 경매 목록"
+                    : activeTab === "lost"
+                      ? "낙찰 실패한 경매 목록"
+                      : "입찰 목록"}
               </h3>
 
               <p>
@@ -418,6 +437,8 @@ function DealerAuctionBidManagePage() {
                   ? "딜러 본인이 현재 입찰에 참여하고 있는 진행 중인 경매입니다." 
                   : activeTab === "won" 
                     ? "딜러 본인이 최종 낙찰에 성공한 경매 매물 목록입니다." 
+                    : activeTab === "lost"
+                      ? "타 딜러가 낙찰하여 최종 낙찰에 실패한 경매 매물 목록입니다."
                     : "내가 참여한 전체 경매 입찰 결과입니다."}
               </p>
             </div>
@@ -527,14 +548,21 @@ function DealerAuctionBidManagePage() {
                               만원
                             </strong>
 
-                            {bid.winningBidAmount !=
+                            {isBidWon(bid) &&
+                              bid.winningBidAmount !=
                               null && (
                                 <span>
-                                  최종 낙찰가:{" "}
+                                  낙찰 금액:{" "}
                                   {Number(
                                     bid.winningBidAmount
                                   ).toLocaleString()}
                                   만원
+                                </span>
+                              )}
+                            {!isBidWon(bid) &&
+                              !isBidActive(bid) && (
+                                <span>
+                                  내 입찰가는 낙찰되지 않았습니다.
                                 </span>
                               )}
                           </td>
@@ -606,8 +634,8 @@ function DealerAuctionBidManagePage() {
 
           <p>
             경매 진행 중에는 본인의 입찰 금액만 확인할 수 있습니다.
-            경매 마감 후 최고 입찰자로 선정되면 낙찰로 표시되며,
-            그 외 입찰은 미낙찰로 표시됩니다.
+            경매 마감 후 최고 입찰자로 선정되면 낙찰 성공으로 표시되며,
+            그 외 입찰은 낙찰 실패로 표시됩니다.
           </p>
         </section>
       </div>

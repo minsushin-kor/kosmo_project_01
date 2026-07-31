@@ -1117,6 +1117,43 @@ function CarDetailPage() {
       isAuctionTimeEnded
     );
 
+  const normalizedAuctionStatus =
+    String(auctionStatus || "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
+
+  const isMyBidLost =
+    Boolean(myBid) &&
+    myBid?.winner !== true &&
+    (
+      [
+        "COMPLETED",
+        "CLOSED",
+        "ENDED",
+        "낙찰완료",
+        "경매종료",
+      ].includes(
+        normalizedAuctionStatus
+      ) ||
+      [
+        "SOLD",
+        "판매완료",
+      ].includes(
+        normalizedCarStatus
+      )
+    );
+
+  const visibleAuctionWinner =
+    isDealer
+      ? myBid?.winner === true
+        ? {
+          bidPrice:
+            myBid.winningBidAmount ||
+            myBid.bidAmount,
+        }
+        : null
+      : auctionWinner;
+
   const canPlaceBid =
     isAuctionCar &&
     !isOwner &&
@@ -1919,7 +1956,7 @@ function CarDetailPage() {
           </button>
 
           {isAuctionCar &&
-            auctionWinner && (
+            visibleAuctionWinner && (
               <div className="detail-auction-winner-box">
                 <h3>
                   낙찰완료
@@ -1934,7 +1971,7 @@ function CarDetailPage() {
                   낙찰가:{" "}
                   <strong>
                     {Number(
-                      auctionWinner.bidPrice ||
+                      visibleAuctionWinner.bidPrice ||
                       0
                     ).toLocaleString()}
                     만원
@@ -1948,7 +1985,7 @@ function CarDetailPage() {
               <div>
                 <span>남은 시간</span>
                 <strong>
-                  {auctionWinner
+                  {isAuctionSold
                     ? "낙찰 처리 완료"
                     : remainText}
                 </strong>
@@ -2182,6 +2219,25 @@ function CarDetailPage() {
                       * 차량 인도 및 결제 관련 사항은 판매자에게 문의하세요.
                     </p>
                   </>
+                ) : isMyBidLost ? (
+                  <>
+                    <h3 style={{ color: "#475569", marginBottom: "8px", fontSize: "1.1rem" }}>
+                      낙찰 실패
+                    </h3>
+                    <p style={{ margin: 0, color: "#334155", fontSize: "0.98rem" }}>
+                      내 입찰가:{" "}
+                      <strong style={{ color: "#475569", fontSize: "1.15rem" }}>
+                        {Number(
+                          myBid?.bidAmount ||
+                          0
+                        ).toLocaleString()}
+                        만원
+                      </strong>
+                    </p>
+                    <p style={{ margin: "6px 0 0 0", color: "#64748b", fontSize: "0.8rem" }}>
+                      타 딜러가 최종 낙찰하여 이 입찰은 낙찰 실패 처리되었습니다.
+                    </p>
+                  </>
                 ) : (
                   <>
                     <h3 style={{ color: "#0f172a", marginBottom: "8px", fontSize: "1.1rem" }}>
@@ -2253,7 +2309,7 @@ function CarDetailPage() {
                 </p>
               )}
 
-              {auctionWinner && (
+              {isAuctionDone && (
                 <p className="bid-message">
                   낙찰이 완료된
                   차량이라 추가
