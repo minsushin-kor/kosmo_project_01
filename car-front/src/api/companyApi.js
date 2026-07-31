@@ -55,9 +55,22 @@ export async function getPublicCompanyCars(
         return [];
     }
 
+    const normalizedCompanyId =
+        String(companyId).trim();
+
+    if (
+        !/^\d+$/.test(
+            normalizedCompanyId
+        )
+    ) {
+        throw new Error(
+            "올바른 회사 번호가 아닙니다."
+        );
+    }
+
     const cars =
         await apiClient.get(
-            `/companies/${companyId}/cars`
+            `/companies/${normalizedCompanyId}/cars`
         );
 
     return Array.isArray(cars)

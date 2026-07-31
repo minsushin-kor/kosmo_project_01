@@ -139,9 +139,13 @@ function MyPage() {
 
         setDealers(dealerList);
 
+        const companyId =
+          loginUser.companyId ??
+          loginUser.id;
+
         const carResult =
           await getPublicCompanyCars(
-            dealerList
+            companyId
           );
 
         if (!isActive) {
